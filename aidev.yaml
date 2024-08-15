@@ -1,0 +1,3 @@
+build:
+    build: Check for compilation errors
+    command_pattern: yarn build
