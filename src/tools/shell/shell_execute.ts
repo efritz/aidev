@@ -4,7 +4,6 @@ import { readFileSync, unlinkSync, writeFileSync } from 'fs'
 import chalk from 'chalk'
 import chokidar from 'chokidar'
 import treeKill from 'tree-kill'
-import { $ } from 'zx'
 import { CancelError } from '../../util/interrupts/interrupts'
 import { prefixFormatter, Updater, withProgress } from '../../util/progress/progress'
 import { ExecutionContext } from '../context'
@@ -170,8 +169,9 @@ async function editCommand(context: ExecutionContext, command: string): Promise<
                         }
                     })
 
-                    const editor = $`e ${tempPath}`
-                    editor.catch(error => reject(new Error(`Failed to open editor: ${error.message}`)))
+                    spawn('e', [tempPath]).on('error', error =>
+                        reject(new Error(`Failed to open editor: ${error.message}`)),
+                    )
                 }),
         )
     } finally {
