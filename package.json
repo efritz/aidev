@@ -1,6 +1,12 @@
 {
     "name": "ai",
+    "description": "Terminal-based AI assistant",
+    "version": "0.0.0",
     "license": "MIT",
+    "main": "dist/main.mjs",
+    "bin": {
+        "ai": "dist/main.mjs"
+    },
     "type": "module",
     "scripts": {
         "clean": "rm -rf dist",
