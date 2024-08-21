@@ -1,4 +1,4 @@
-# Terminal-based AI assistant
+# Personalized AI assistant
 
 ## Usage
 
