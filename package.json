@@ -2,10 +2,10 @@
     "name": "ai",
     "description": "Personalized AI assistant",
     "version": "0.0.0",
-    "publisher": "Eric Fritz",
+    "publisher": "efritz",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.90.0"
+        "vscode": "^1.92.0"
     },
     "main": "./dist/extension.cjs",
     "activationEvents": [
@@ -26,6 +26,7 @@
     "scripts": {
         "clean": "rm -rf dist",
         "build": "yarn clean && tsup",
+        "vsix": "yarn vsce package --no-dependencies --allow-missing-repository",
         "dev": "yarn build && node dist/main.js",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'"
