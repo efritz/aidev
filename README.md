@@ -40,7 +40,7 @@ To build and run the latest from source:
 
 ```bash
 yarn
-yarn start
+yarn dev
 ```
 
 Or:
@@ -48,5 +48,5 @@ Or:
 ```bash
 yarn
 yarn build
-node ./dist/main.mjs "$@"
+node ./dist/main.js "$@"
 ```

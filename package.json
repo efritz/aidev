@@ -3,19 +3,17 @@
     "description": "Terminal-based AI assistant",
     "version": "0.0.0",
     "license": "MIT",
-    "main": "dist/main.mjs",
+    "main": "dist/main.js",
     "bin": {
-        "ai": "dist/main.mjs"
+        "ai": "dist/main.js"
     },
     "type": "module",
     "scripts": {
         "clean": "rm -rf dist",
-        "build": "yarn clean && tsc && yarn rename && yarn update-imports",
-        "rename": "renamer --find .js --replace .mjs \"dist/**\"",
-        "update-imports": "find dist -name '*.mjs' -exec sed -i '' -e \"s/from '\\.\\([^']*\\)'/from '\\.\\1.mjs'/g\" {} \\;",
-        "start": "yarn build && node dist/main.mjs",
+        "build": "yarn clean && tsup src/main.ts --format esm --dts --target es2022",
+        "dev": "yarn build && node dist/main.js",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
-        "lint": "eslint"
+        "lint": "eslint 'src/**/*.{js,ts}'"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.24.3",
@@ -42,10 +40,11 @@
         "@types/diff": "^5.2.1",
         "@types/minimatch": "^5.1.2",
         "@types/node": "^20.14.12",
+        "@typescript-eslint/parser": "^8.2.0",
         "eslint": "^9.8.0",
         "eslint-plugin-unused-imports": "^4.0.1",
         "prettier": "^3.3.3",
-        "renamer": "^5.0.2",
+        "tsup": "^8.2.4",
         "typescript": "^5.5.4"
     }
 }

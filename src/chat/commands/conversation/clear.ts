@@ -1,4 +1,3 @@
-import { clearScreenDown, cursorTo } from 'readline'
 import chalk from 'chalk'
 import { ChatContext } from '../../context'
 import { CommandDescription } from './../command'
