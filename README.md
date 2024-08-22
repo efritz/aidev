@@ -36,6 +36,8 @@ Meta commands:
 
 ## Running
 
+### CLI
+
 To build and run the latest from source:
 
 ```bash
@@ -50,3 +52,12 @@ yarn
 yarn build
 node ./dist/main.js "$@"
 ```
+
+### VSCode
+
+```bash
+yarn
+yarn vsix
+```
+
+In VSCode, select `Extensions: Install from VSIX` from the command palette and select the `ai-0.0.0.vsix` payload from the above command.
