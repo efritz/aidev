@@ -1,3 +1,4 @@
+import * as http from 'http'
 import * as vscode from 'vscode'
 import { modelNames } from './providers/providers'
 
@@ -19,16 +20,53 @@ export function activate(context: vscode.ExtensionContext) {
             .filter(path => path !== ''),
     )
 
-    const chat = async (model?: string) => {
-        const terminal = vscode.window.createTerminal('aidev')
-        await terminal.processId
-        terminal.show()
+    const startWebServer = (): Promise<{ server: http.Server; port: number }> => {
+        return new Promise((resolve, reject) => {
+            const server = http.createServer((req, res) => {
+                if (req.url === '/open-documents') {
+                    const paths = relativeFsPathsForOpenTextDocuments()
+                    res.writeHead(200, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify(paths))
+                } else {
+                    res.writeHead(404)
+                    res.end()
+                }
+            })
 
-        terminal.sendText(`${model ? `ai --model ${model}` : 'ai'}`)
-        const paths = relativeFsPathsForOpenTextDocuments()
-        if (paths.length > 0) {
-            // TODO - expose this as tool result instead
-            terminal.sendText(`:load ${paths.join(' ')}`)
+            server.on('error', error => reject(error))
+            server.listen(0, () => {
+                const address = server.address()
+                if (address && typeof address === 'object') {
+                    resolve({ server, port: address.port })
+                } else {
+                    reject(new Error('Failed to get server port'))
+                }
+            })
+        })
+    }
+
+    const chat = async (model?: string) => {
+        try {
+            const { server, port } = await startWebServer()
+            const command = model ? `ai --model ${model} --port ${port}` : `ai --port ${port}`
+
+            const terminal = vscode.window.createTerminal('aidev')
+            await terminal.processId
+            terminal.sendText(`${command}; exit`)
+            terminal.show()
+
+            context.subscriptions.push(
+                ...[
+                    terminal,
+                    vscode.window.onDidCloseTerminal(closedTerminal => {
+                        if (closedTerminal === terminal) {
+                            server.close()
+                        }
+                    }),
+                ],
+            )
+        } catch (error: any) {
+            vscode.window.showErrorMessage(`Failed to start webserver: ${error}`)
         }
     }
 

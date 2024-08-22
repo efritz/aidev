@@ -16,7 +16,13 @@ export const loadCommand: CommandDescription = {
 }
 
 async function handleLoad(context: ChatContext, args: string): Promise<void> {
-    const patterns = args.split(' ').filter(p => p.trim() !== '')
+    return handleLoadPatterns(
+        context,
+        args.split(' ').filter(p => p.trim() !== ''),
+    )
+}
+
+export async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :load.'))
         console.log()

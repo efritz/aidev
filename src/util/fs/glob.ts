@@ -35,7 +35,7 @@ export function expandPrefixes(prefixes: string[]): string[] {
 function isDir(path: string): boolean {
     try {
         return lstatSync(path).isDirectory()
-    } catch (e) {
+    } catch (error: any) {
         return false
     }
 }

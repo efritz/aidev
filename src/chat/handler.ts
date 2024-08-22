@@ -13,7 +13,7 @@ export async function handler(context: ChatContext) {
         try {
             const currentBranch = context.provider.conversationManager.currentBranch()
             await handle(context, (await context.prompter.question(`[${currentBranch}] $ `)).trim())
-        } catch (error) {
+        } catch (error: any) {
             if (error instanceof ExitError) {
                 return
             }

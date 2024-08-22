@@ -1,5 +1,7 @@
 import readline from 'readline'
+import axios from 'axios'
 import { program } from 'commander'
+import { handleLoadPatterns } from './chat/commands/context/load'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
 import { handler } from './chat/handler'
@@ -24,25 +26,29 @@ async function main() {
     const historyFlags = '-h, --history <string>'
     const historyDescription = 'File to load chat history from.'
 
+    const portFlags = '-p, --port <number>'
+    const portDescription = 'Port number of the vscode extension server providing editor information.'
+
     program
         .option(modelFlags, modelDescription, modelDefault)
         .option(historyFlags, historyDescription)
-        .action(options => chat(options.model, options.history))
+        .option(portFlags, portDescription)
+        .action(options => chat(options.model, options.history, options.port))
 
     program.parse(process.argv)
 }
 
 const system = `You are an assistant!`
 
-async function chat(model: string, historyFilename?: string) {
+async function chat(model: string, historyFilename?: string, port?: number) {
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
 
-    await chatWithProvider(createProvider(model, system), model, historyFilename)
+    await chatWithProvider(createProvider(model, system), model, historyFilename, port)
 }
 
-async function chatWithProvider(provider: Provider, model: string, historyFilename?: string) {
+async function chatWithProvider(provider: Provider, model: string, historyFilename?: string, port?: number) {
     let context: ChatContext
 
     const rl = readline.createInterface({
@@ -65,7 +71,7 @@ async function chatWithProvider(provider: Provider, model: string, historyFilena
         }
 
         await interruptHandler.withInterruptHandler(
-            () => chatWithReadline(context, historyFilename),
+            () => chatWithReadline(context, historyFilename, port),
             interruptInputOptions,
         )
     } finally {
@@ -99,13 +105,26 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
-async function chatWithReadline(context: ChatContext, historyFilename?: string) {
+async function chatWithReadline(context: ChatContext, historyFilename?: string, port?: number) {
     if (historyFilename) {
         loadHistory(context, historyFilename)
     }
 
+    if (port) {
+        loadOpenDocuments(context, port)
+    }
+
     console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.model}...\n`)
+
     await handler(context)
+}
+
+async function loadOpenDocuments(context: ChatContext, port: number) {
+    const response = await axios.get<string[]>(`http://localhost:${port}/open-documents`)
+
+    if (response.data && response.data.length > 0) {
+        handleLoadPatterns(context, response.data)
+    }
 }
 
 await main()
