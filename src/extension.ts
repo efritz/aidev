@@ -1,8 +1,16 @@
 import * as http from 'http'
+import { AddressInfo } from 'net'
 import * as vscode from 'vscode'
 import { modelNames } from './providers/providers'
 
 export function activate(context: vscode.ExtensionContext) {
+    const openDocumentURIs: Set<string> = new Set(
+        vscode.window.tabGroups.all
+            .flatMap(g => g.tabs)
+            .map(t => (t.input instanceof vscode.TabInputText && t.input.uri.fsPath) || '')
+            .filter(path => path !== ''),
+    )
+
     const workspaceRoot = () =>
         vscode.workspace.workspaceFolders?.length === 1 ? vscode.workspace.workspaceFolders[0].uri.fsPath : ''
 
@@ -13,16 +21,9 @@ export function activate(context: vscode.ExtensionContext) {
                   .map(path => path.replace(workspaceRoot(), '.'))
             : []
 
-    const openDocumentURIs: Set<string> = new Set(
-        vscode.window.tabGroups.all
-            .flatMap(g => g.tabs)
-            .map(t => (t.input instanceof vscode.TabInputText && t.input.uri.fsPath) || '')
-            .filter(path => path !== ''),
-    )
-
-    const startWebServer = (): Promise<{ server: http.Server; port: number }> => {
-        return new Promise((resolve, reject) => {
-            const server = http.createServer((req, res) => {
+    const createServer = () =>
+        http.createServer((req, res) => {
+            try {
                 if (req.url === '/open-documents') {
                     const paths = relativeFsPathsForOpenTextDocuments()
                     res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -31,56 +32,57 @@ export function activate(context: vscode.ExtensionContext) {
                     res.writeHead(404)
                     res.end()
                 }
-            })
-
-            server.on('error', error => reject(error))
-            server.listen(0, () => {
-                const address = server.address()
-                if (address && typeof address === 'object') {
-                    resolve({ server, port: address.port })
-                } else {
-                    reject(new Error('Failed to get server port'))
-                }
-            })
+            } catch (error: any) {
+                res.writeHead(500, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: error.message }))
+            }
         })
+
+    const startServer = async (server: http.Server): Promise<number> => {
+        await new Promise<void>((resolve, reject) => {
+            server.on('error', reject)
+            server.listen(0, resolve)
+        })
+
+        const { port } = server.address() as AddressInfo
+        return port
+    }
+
+    const showTerminal = async (command: string): Promise<vscode.Terminal> => {
+        const terminal = vscode.window.createTerminal('aidev')
+        await terminal.processId
+        terminal.sendText(`${command}; exit`)
+        terminal.show()
+
+        return terminal
     }
 
     const chat = async (model?: string) => {
         try {
-            const { server, port } = await startWebServer()
-            const command = model ? `ai --model ${model} --port ${port}` : `ai --port ${port}`
+            const server = createServer()
+            const port = await startServer(server)
 
-            const terminal = vscode.window.createTerminal('aidev')
-            await terminal.processId
-            terminal.sendText(`${command}; exit`)
-            terminal.show()
+            const options = [`--port ${port}`, ...(model ? [`--model ${model}`] : [])]
+            const terminal = await showTerminal(`ai ${options.join(' ')}`)
 
-            context.subscriptions.push(
-                ...[
-                    terminal,
-                    vscode.window.onDidCloseTerminal(closedTerminal => {
-                        if (closedTerminal === terminal) {
-                            server.close()
-                        }
-                    }),
-                ],
-            )
+            vscode.window.onDidCloseTerminal(t => {
+                if (t === terminal) {
+                    server.close()
+                }
+            })
         } catch (error: any) {
-            vscode.window.showErrorMessage(`Failed to start webserver: ${error}`)
+            vscode.window.showErrorMessage(`Failed to start chat: ${error.message}`)
         }
     }
 
-    const chatModel = async () => {
-        const model = await vscode.window.showQuickPick(modelNames)
-        return chat(model)
-    }
+    const chatModel = async () => chat(await vscode.window.showQuickPick(modelNames))
 
     context.subscriptions.push(
         ...[
             vscode.commands.registerCommand('aidev.chat', chat),
             vscode.commands.registerCommand('aidev.chat-model', chatModel),
-            vscode.workspace.onDidOpenTextDocument(document => openDocumentURIs.add(document.uri.fsPath)),
-            vscode.workspace.onDidCloseTextDocument(document => openDocumentURIs.delete(document.uri.fsPath)),
+            vscode.workspace.onDidOpenTextDocument(doc => openDocumentURIs.add(doc.uri.fsPath)),
+            vscode.workspace.onDidCloseTextDocument(doc => openDocumentURIs.delete(doc.uri.fsPath)),
         ],
     )
 }
