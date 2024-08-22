@@ -17,8 +17,18 @@
     "contributes": {
         "commands": [
             {
-                "command": "aidev.run",
-                "title": "Run aidev"
+                "command": "aidev.chat",
+                "title": "Open aidev"
+            },
+            {
+                "command": "aidev.chat-model",
+                "title": "Open aidev with specific model"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "aidev.chat",
+                "key": "cmd+shift+i"
             }
         ]
     },

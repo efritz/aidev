@@ -1,32 +1,21 @@
 import * as vscode from 'vscode'
+import { modelNames } from './providers/providers'
 
 export function activate(context: vscode.ExtensionContext) {
+    const chat = async (model?: string) => {
+        const terminal = vscode.window.createTerminal('aidev')
+        terminal.sendText(`${model ? `ai --model ${model}` : 'ai'}; exit`, true)
+        terminal.show()
+    }
+
     context.subscriptions.push(
-        vscode.commands.registerCommand('aidev.run', async () => {
-            const editor = vscode.window.activeTextEditor
-            if (!editor) {
-                vscode.window.showErrorMessage('Cannot edit file, expected an active text editor.')
-                return
-            }
-
-            const oldContents = editor.document.getText()
-            if (oldContents === '') {
-                vscode.window.showErrorMessage('Cannot edit file, expected a non-empty file.')
-                return
-            }
-
-            editor.edit(editBuilder => replaceAll(editor, editBuilder, 'TEST'))
-        }),
+        ...[
+            vscode.commands.registerCommand('aidev.chat', chat),
+            vscode.commands.registerCommand('aidev.chat-model', async () =>
+                chat(await vscode.window.showQuickPick(modelNames)),
+            ),
+        ],
     )
 }
 
 export function deactivate() {}
-
-const replaceAll = (editor: vscode.TextEditor, eb: vscode.TextEditorEdit, newContents: string): void => {
-    const fullRange = new vscode.Range(
-        editor.document.positionAt(0),
-        editor.document.positionAt(editor.document.getText().length),
-    )
-
-    eb.replace(fullRange, newContents)
-}
