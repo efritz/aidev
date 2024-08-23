@@ -3,39 +3,37 @@ import { AddressInfo } from 'net'
 import * as vscode from 'vscode'
 import { modelNames } from './providers/providers'
 
+const sseHeaders = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+}
+
+const jsonHeaders = {
+    'Content-Type': 'application/json',
+}
+
 export function activate(context: vscode.ExtensionContext) {
-    const openDocumentURIs: Set<string> = new Set(
-        vscode.window.tabGroups.all
-            .flatMap(g => g.tabs)
-            .map(t => (t.input instanceof vscode.TabInputText && t.input.uri.fsPath) || '')
-            .filter(path => path !== ''),
-    )
-
-    const workspaceRoot = () =>
-        vscode.workspace.workspaceFolders?.length === 1 ? vscode.workspace.workspaceFolders[0].uri.fsPath : ''
-
-    const relativeFsPathsForOpenTextDocuments = () =>
-        workspaceRoot()
-            ? [...openDocumentURIs]
-                  .filter(path => path.startsWith(workspaceRoot()))
-                  .map(path => path.replace(workspaceRoot(), '.'))
-            : []
-
     const sseClients = new Set<http.ServerResponse>()
+    const openDocumentURIs = new Set(pathFromTabGroups())
+
     const sendSSEUpdate = () => {
-        const paths = relativeFsPathsForOpenTextDocuments()
+        const paths = pathsRelativeToWorkspaceRoot([...openDocumentURIs])
         const data = `data: ${JSON.stringify(paths)}\n\n`
         sseClients.forEach(client => client.write(data))
     }
 
-    const sseHeaders = {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-    }
-    const jsonHeaders = {
-        'Content-Type': 'application/json',
-    }
+    const onTextDocumentChange =
+        (isOpening: boolean) =>
+        ({ uri: { fsPath: path } }: vscode.TextDocument) => {
+            if (isOpening) {
+                openDocumentURIs.add(path)
+            } else {
+                openDocumentURIs.delete(path)
+            }
+
+            sendSSEUpdate()
+        }
 
     const createServer = () =>
         http.createServer((req, res) => {
@@ -64,16 +62,14 @@ export function activate(context: vscode.ExtensionContext) {
             server.listen(0, resolve)
         })
 
-        const { port } = server.address() as AddressInfo
-        return port
+        return (server.address() as AddressInfo).port
     }
 
-    const showTerminal = async (command: string): Promise<vscode.Terminal> => {
+    const createTerminal = async (command: string): Promise<vscode.Terminal> => {
         const terminal = vscode.window.createTerminal('aidev')
         await terminal.processId
         terminal.sendText(`${command}; exit`)
         terminal.show()
-
         return terminal
     }
 
@@ -83,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
             const port = await startServer(server)
 
             const options = [`--port ${port}`, ...(model ? [`--model ${model}`] : [])]
-            const terminal = await showTerminal(`ai ${options.join(' ')}`)
+            const terminal = await createTerminal(`ai ${options.join(' ')}`)
 
             vscode.window.onDidCloseTerminal(t => {
                 if (t === terminal) {
@@ -97,24 +93,39 @@ export function activate(context: vscode.ExtensionContext) {
 
     const chatModel = async () => chat(await vscode.window.showQuickPick(modelNames))
 
-    const updateOpenDocuments = (doc: vscode.TextDocument, isOpening: boolean) => {
-        if (isOpening) {
-            openDocumentURIs.add(doc.uri.fsPath)
-        } else {
-            openDocumentURIs.delete(doc.uri.fsPath)
-        }
-
-        sendSSEUpdate()
-    }
-
     context.subscriptions.push(
         ...[
             vscode.commands.registerCommand('aidev.chat', chat),
             vscode.commands.registerCommand('aidev.chat-model', chatModel),
-            vscode.workspace.onDidOpenTextDocument(doc => updateOpenDocuments(doc, true)),
-            vscode.workspace.onDidCloseTextDocument(doc => updateOpenDocuments(doc, false)),
+            vscode.workspace.onDidOpenTextDocument(onTextDocumentChange(true)),
+            vscode.workspace.onDidCloseTextDocument(onTextDocumentChange(false)),
         ],
     )
 }
 
 export function deactivate() {}
+
+function pathFromTabGroups() {
+    return vscode.window.tabGroups.all
+        .flatMap(tabGroup => tabGroup.tabs)
+        .map(tab => pathFromTab(tab) ?? '')
+        .filter(path => path !== '')
+}
+
+function pathFromTab(tab: vscode.Tab): string | undefined {
+    if (!(tab.input instanceof vscode.TabInputText)) {
+        return undefined
+    }
+
+    return tab.input.uri.fsPath
+}
+
+function pathsRelativeToWorkspaceRoot(paths: string[]): string[] {
+    const folders = vscode.workspace.workspaceFolders ?? []
+    if (folders.length !== 1) {
+        return []
+    }
+
+    const root = folders[0].uri.fsPath
+    return paths.filter(path => path.startsWith(root)).map(path => path.replace(root, '.'))
+}
