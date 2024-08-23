@@ -21,19 +21,39 @@ export function activate(context: vscode.ExtensionContext) {
                   .map(path => path.replace(workspaceRoot(), '.'))
             : []
 
+    const sseClients = new Set<http.ServerResponse>()
+    const sendSSEUpdate = () => {
+        const paths = relativeFsPathsForOpenTextDocuments()
+        const data = `data: ${JSON.stringify(paths)}\n\n`
+        sseClients.forEach(client => client.write(data))
+    }
+
+    const sseHeaders = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+    }
+    const jsonHeaders = {
+        'Content-Type': 'application/json',
+    }
+
     const createServer = () =>
         http.createServer((req, res) => {
             try {
-                if (req.url === '/open-documents') {
-                    const paths = relativeFsPathsForOpenTextDocuments()
-                    res.writeHead(200, { 'Content-Type': 'application/json' })
-                    res.end(JSON.stringify(paths))
-                } else {
+                if (req.url !== '/open-documents') {
                     res.writeHead(404)
                     res.end()
+                    return
                 }
+
+                sseClients.add(res)
+                req.on('close', () => sseClients.delete(res))
+
+                res.writeHead(200, sseHeaders)
+                res.flushHeaders()
+                sendSSEUpdate()
             } catch (error: any) {
-                res.writeHead(500, { 'Content-Type': 'application/json' })
+                res.writeHead(500, jsonHeaders)
                 res.end(JSON.stringify({ error: error.message }))
             }
         })
@@ -77,12 +97,22 @@ export function activate(context: vscode.ExtensionContext) {
 
     const chatModel = async () => chat(await vscode.window.showQuickPick(modelNames))
 
+    const updateOpenDocuments = (doc: vscode.TextDocument, isOpening: boolean) => {
+        if (isOpening) {
+            openDocumentURIs.add(doc.uri.fsPath)
+        } else {
+            openDocumentURIs.delete(doc.uri.fsPath)
+        }
+
+        sendSSEUpdate()
+    }
+
     context.subscriptions.push(
         ...[
             vscode.commands.registerCommand('aidev.chat', chat),
             vscode.commands.registerCommand('aidev.chat-model', chatModel),
-            vscode.workspace.onDidOpenTextDocument(doc => openDocumentURIs.add(doc.uri.fsPath)),
-            vscode.workspace.onDidCloseTextDocument(doc => openDocumentURIs.delete(doc.uri.fsPath)),
+            vscode.workspace.onDidOpenTextDocument(doc => updateOpenDocuments(doc, true)),
+            vscode.workspace.onDidCloseTextDocument(doc => updateOpenDocuments(doc, false)),
         ],
     )
 }

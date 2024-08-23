@@ -1,6 +1,6 @@
 import readline from 'readline'
-import axios from 'axios'
 import { program } from 'commander'
+import EventSource from 'eventsource'
 import { handleLoadPatterns } from './chat/commands/context/load'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
@@ -111,20 +111,19 @@ async function chatWithReadline(context: ChatContext, historyFilename?: string, 
     }
 
     if (port) {
-        loadOpenDocuments(context, port)
+        // TODO - inject more gracefully into conversation
+        const eventSource = new EventSource(`http://localhost:${port}/open-documents`)
+        eventSource.onmessage = event => {
+            const openDocuments: string[] = JSON.parse(event.data)
+            if (openDocuments.length > 0) {
+                handleLoadPatterns(context, openDocuments)
+            }
+        }
     }
 
     console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.model}...\n`)
 
     await handler(context)
-}
-
-async function loadOpenDocuments(context: ChatContext, port: number) {
-    const response = await axios.get<string[]>(`http://localhost:${port}/open-documents`)
-
-    if (response.data && response.data.length > 0) {
-        handleLoadPatterns(context, response.data)
-    }
 }
 
 await main()
