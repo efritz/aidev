@@ -1,5 +1,6 @@
+import { readFile, readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { ContextState } from '../context/state'
+import { ContextFile, ContextState } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
@@ -98,12 +99,50 @@ export function createConversation<T>({
     }
 
     const providerMessages = (): T[] => {
+        const messages = visibleMessages()
+
+        const shouldIncludeFile = (file: ContextFile): boolean => {
+            for (const reason of file.inclusionReasons) {
+                switch (reason.type) {
+                    case 'explicit':
+                        return true
+
+                    case 'editor':
+                        const _ = reason.currentlyVisible // TODO - factor this in
+                        return true
+
+                    case 'assistant_tool_use':
+                        if (messages.some(m => m.id === reason.messageId)) {
+                            return true
+                        }
+
+                        break
+                }
+            }
+
+            return false
+        }
+        const contents = new Map<string, string>()
+        for (const [_, file] of contextState.files.entries()) {
+            if (shouldIncludeFile(file)) {
+                contents.set(file.path, readFileSync(file.path, 'utf-8').toString())
+            }
+        }
+        if (contents.size > 0) {
+            messages.unshift({
+                id: uuidv4(),
+                role: 'user',
+                type: 'text',
+                content: JSON.stringify(contents), // TODO - preamble text?
+            })
+        }
+
         const providerMessages: T[] = []
         if (initialMessage) {
             providerMessages.push(initialMessage)
         }
 
-        for (const message of visibleMessages()) {
+        for (const message of messages) {
             switch (message.role) {
                 case 'user':
                     providerMessages.push(userMessageToParam(message))
