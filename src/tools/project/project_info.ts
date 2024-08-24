@@ -30,7 +30,7 @@ export const projectInfo: Tool = {
             )
             console.log()
 
-            return { result: { exists: false } }
+            return { result: { exists: false }, reprompt: true }
         }
 
         const manifest = parseYaml(readFileSync(manifestPath, 'utf-8'))

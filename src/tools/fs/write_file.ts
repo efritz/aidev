@@ -43,7 +43,7 @@ export const writeFile: Tool = {
 
             writeFileSync(path, contents)
             console.log(`${chalk.dim('ℹ')} Wrote file.`)
-            return { result: { userCanceled: false } }
+            return { result: { userCanceled: false }, reprompt: true }
         } else {
             console.log(chalk.dim('ℹ') + ' No file was written.\n')
             return { result: { userCanceled: true } }
