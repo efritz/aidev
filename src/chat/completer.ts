@@ -1,4 +1,3 @@
-import * as path from 'path'
 import { CompleterResult } from 'readline'
 import { expandFilePatterns } from '../util/fs/glob'
 import { filterIgnoredPaths } from '../util/fs/ignore'
