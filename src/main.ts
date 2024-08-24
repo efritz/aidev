@@ -1,9 +1,9 @@
+import EventEmitter from 'events'
 import readline from 'readline'
 import { program } from 'commander'
-import EventSource from 'eventsource'
-import { handleLoadPatterns } from './chat/commands/context/load'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
+import { createEditorEventSource, registerEditorListeners } from './chat/editor'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
 import { Provider } from './providers/provider'
@@ -58,6 +58,8 @@ async function chatWithProvider(provider: Provider, model: string, historyFilena
         completer: (line: string) => (context ? completer(context, line) : undefined),
     })
 
+    const editorEventSource = createEditorEventSource(port)
+
     try {
         const interruptHandler = createInterruptHandler(rl)
         const prompter = createPrompter(rl, interruptHandler)
@@ -68,14 +70,21 @@ async function chatWithProvider(provider: Provider, model: string, historyFilena
             interruptHandler,
             prompter,
             provider,
+            editorState: {
+                openFiles: [],
+                events: new EventEmitter(),
+            },
         }
 
+        registerEditorListeners(context, editorEventSource)
+
         await interruptHandler.withInterruptHandler(
-            () => chatWithReadline(context, historyFilename, port),
+            () => chatWithReadline(context, historyFilename),
             interruptInputOptions,
         )
     } finally {
         rl.close()
+        editorEventSource?.close()
     }
 }
 
@@ -105,24 +114,12 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
-async function chatWithReadline(context: ChatContext, historyFilename?: string, port?: number) {
+async function chatWithReadline(context: ChatContext, historyFilename?: string) {
     if (historyFilename) {
         loadHistory(context, historyFilename)
     }
 
-    if (port) {
-        // TODO - inject more gracefully into conversation
-        const eventSource = new EventSource(`http://localhost:${port}/open-documents`)
-        eventSource.onmessage = event => {
-            const openDocuments: string[] = JSON.parse(event.data)
-            if (openDocuments.length > 0) {
-                handleLoadPatterns(context, openDocuments)
-            }
-        }
-    }
-
     console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.model}...\n`)
-
     await handler(context)
 }
 

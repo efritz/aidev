@@ -3,22 +3,51 @@ import { Response } from '../messages/messages'
 import { ProgressFunction } from '../providers/provider'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { handleCommand } from './commands/commands'
+import { handleLoadPatterns } from './commands/context/load'
 import { ExitError } from './commands/control/exit'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
 import { runToolsInMessages } from './tools'
 
 export async function handler(context: ChatContext) {
+    const loaded = new Set()
+    const loadEditorFiles = async () => {
+        const newFiles = context.editorState.openFiles.filter(file => !loaded.has(file))
+        if (newFiles.length === 0) {
+            return
+        }
+
+        newFiles.forEach(file => loaded.add(file))
+        await handleLoadPatterns(context, newFiles)
+    }
+
+    let restoreState = false
+
     while (true) {
+        await loadEditorFiles()
+
+        const oldRestoreState = restoreState
+        restoreState = false
+
+        const controller = new AbortController()
+        context.editorState.events.addListener('open-files-changed', () => {
+            controller.abort()
+            restoreState = true
+        })
+
         try {
             const currentBranch = context.provider.conversationManager.currentBranch()
-            await handle(context, (await context.prompter.question(`[${currentBranch}] $ `)).trim())
+            const prompt = `[${currentBranch}] $ `
+            const message = await context.prompter.question(prompt, controller.signal, oldRestoreState)
+            await handle(context, message.trim())
         } catch (error: any) {
             if (error instanceof ExitError) {
                 return
             }
 
             throw error
+        } finally {
+            context.editorState.events.removeAllListeners('open-files-changed')
         }
     }
 }

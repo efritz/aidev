@@ -1,3 +1,4 @@
+import * as fs from 'fs'
 import * as http from 'http'
 import { AddressInfo } from 'net'
 import * as vscode from 'vscode'
@@ -27,7 +28,9 @@ export function activate(context: vscode.ExtensionContext) {
         (isOpening: boolean) =>
         ({ uri: { fsPath: path } }: vscode.TextDocument) => {
             if (isOpening) {
-                openDocumentURIs.add(path)
+                if (fs.existsSync(path)) {
+                    openDocumentURIs.add(path)
+                }
             } else {
                 openDocumentURIs.delete(path)
             }
