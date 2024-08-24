@@ -4,7 +4,7 @@ import { gitignoreToMinimatch } from '@humanwhocodes/gitignore-to-minimatch'
 import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 
-export function filterIgnoredPaths(paths: string[]): string[] {
+export function filterIgnoredPaths(paths: string[], silent = false): string[] {
     const patternsByPath: Record<string, string[]> = {}
     const filteredPaths = paths.filter(path => {
         const patterns = matchingPatterns(path)
@@ -16,12 +16,14 @@ export function filterIgnoredPaths(paths: string[]): string[] {
         return false
     })
 
-    for (const { path, pattern, count } of collectMinimalPaths(patternsByPath)) {
-        console.log(
-            chalk.yellow(
-                `${chalk.dim('ℹ')} Path ${path} ${count > 1 ? `(${count} occurrences) ` : ''}ignored by ${pattern}.`,
-            ),
-        )
+    if (!silent) {
+        for (const { path, pattern, count } of collectMinimalPaths(patternsByPath)) {
+            console.log(
+                chalk.yellow(
+                    `${chalk.dim('ℹ')} Path ${path} ${count > 1 ? `(${count} occurrences) ` : ''}ignored by ${pattern}.`,
+                ),
+            )
+        }
     }
 
     return filteredPaths
