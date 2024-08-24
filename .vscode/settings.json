@@ -2,5 +2,10 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "prettier.configPath": ".prettierrc.cjs",
-    "prettier.requireConfig": true
+    "prettier.requireConfig": true,
+    "files.exclude": {
+        "dist": true,
+        "node_modules": true,
+        "ai-0.0.0.vsix": true
+    }
 }
