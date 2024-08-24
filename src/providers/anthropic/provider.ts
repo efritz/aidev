@@ -32,6 +32,7 @@ export const provider: ProviderSpec = {
 }
 
 function createAnthropicProvider({
+    contextState,
     model: { model, options: modelOptions },
     system,
     temperature = 0.0,
@@ -40,7 +41,7 @@ function createAnthropicProvider({
     const apiKey = getKey('anthropic')
     const defaultHeaders = modelOptions?.headers
     const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
-    const { providerMessages, ...conversationManager } = createConversation()
+    const { providerMessages, ...conversationManager } = createConversation(contextState)
 
     return createProvider({
         createStream: () =>

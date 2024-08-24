@@ -12,7 +12,7 @@ import { runToolsInMessages } from './tools'
 export async function handler(context: ChatContext) {
     const loaded = new Set()
     const loadEditorFiles = async () => {
-        const newFiles = context.editorState.openFiles.filter(file => !loaded.has(file))
+        const newFiles = context.contextState.openFiles.filter(file => !loaded.has(file))
         if (newFiles.length === 0) {
             return
         }
@@ -30,7 +30,7 @@ export async function handler(context: ChatContext) {
         restoreState = false
 
         const controller = new AbortController()
-        context.editorState.events.addListener('open-files-changed', () => {
+        context.contextState.events.addListener('open-files-changed', () => {
             controller.abort()
             restoreState = true
         })
@@ -47,7 +47,7 @@ export async function handler(context: ChatContext) {
 
             throw error
         } finally {
-            context.editorState.events.removeAllListeners('open-files-changed')
+            context.contextState.events.removeAllListeners('open-files-changed')
         }
     }
 }

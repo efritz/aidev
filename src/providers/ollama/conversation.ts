@@ -1,10 +1,12 @@
 import { Message as OllamaMessage, ToolCall } from 'ollama'
+import { ContextState } from '../../context/state'
 import { Conversation, createConversation as createGenericConversation } from '../../conversation/conversation'
 import { AssistantMessage, UserMessage } from '../../messages/messages'
 import { serializeToolResult } from '../../tools/tools'
 
-export function createConversation(system: string): Conversation<OllamaMessage> {
+export function createConversation(contextState: ContextState, system: string): Conversation<OllamaMessage> {
     return createGenericConversation({
+        contextState,
         userMessageToParam,
         assistantMessagesToParam,
         initialMessage: systemMessageToParam(system),

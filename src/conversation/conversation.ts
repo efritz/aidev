@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import { ContextState } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
@@ -36,6 +37,7 @@ export type ConversationManager = {
 }
 
 type ConversationOptions<T> = {
+    contextState: ContextState
     userMessageToParam: (message: UserMessage) => T
     assistantMessagesToParam: (messages: AssistantMessage[]) => T
     initialMessage?: T
@@ -43,6 +45,7 @@ type ConversationOptions<T> = {
 }
 
 export function createConversation<T>({
+    contextState,
     userMessageToParam,
     assistantMessagesToParam,
     initialMessage,

@@ -1,3 +1,4 @@
+import { ContextState } from '../context/state'
 import { ConversationManager } from '../conversation/conversation'
 import { Response } from '../messages/messages'
 
@@ -22,6 +23,7 @@ export type ProviderSpec = {
 }
 
 export type ProviderOptions = {
+    contextState: ContextState
     model: Model
     system: string
     temperature?: number

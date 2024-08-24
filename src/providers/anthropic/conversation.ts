@@ -4,6 +4,7 @@ import {
     ToolResultBlockParam,
     ToolUseBlockParam,
 } from '@anthropic-ai/sdk/resources/messages'
+import { ContextState } from '../../context/state'
 import { Conversation, createConversation as createGenericConversation } from '../../conversation/conversation'
 import { AssistantMessage, UserMessage } from '../../messages/messages'
 import { serializeToolResult } from '../../tools/tools'
@@ -15,8 +16,9 @@ type UserParam = { role: 'user'; content: UserContent[] }
 type AssistantParam = { role: 'assistant'; content: AssistantContent[] }
 type Params = { role: 'user' | 'assistant'; content: Content[] }
 
-export function createConversation(): Conversation<MessageParam> {
+export function createConversation(contextState: ContextState): Conversation<MessageParam> {
     return createGenericConversation<Params>({
+        contextState,
         userMessageToParam,
         assistantMessagesToParam,
         postPush: (messages: Params[]) => {

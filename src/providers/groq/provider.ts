@@ -21,6 +21,7 @@ export const provider: ProviderSpec = {
 }
 
 function createGroqProvider({
+    contextState,
     model: { model },
     system,
     temperature = 0.0,
@@ -28,7 +29,7 @@ function createGroqProvider({
 }: ProviderOptions): Provider {
     const apiKey = getKey('groq')
     const client = new Groq({ apiKey })
-    const { providerMessages, ...conversationManager } = createConversation(system)
+    const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
         createStream: () =>

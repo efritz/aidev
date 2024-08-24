@@ -2,10 +2,11 @@ import EventEmitter from 'events'
 import readline from 'readline'
 import { program } from 'commander'
 import { completer } from './chat/completer'
-import { ChatContext } from './chat/context'
+import { ChatContext, ContextFile } from './chat/context'
 import { createEditorEventSource, registerEditorListeners } from './chat/editor'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
+import { ContextState } from './context/state'
 import { Provider } from './providers/provider'
 import { createProvider, modelNames } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
@@ -45,10 +46,22 @@ async function chat(model: string, historyFilename?: string, port?: number) {
         throw new Error('chat command is not supported in this environment.')
     }
 
-    await chatWithProvider(createProvider(model, system), model, historyFilename, port)
+    const contextState = {
+        events: new EventEmitter(),
+        files: new Map<string, ContextFile>(),
+        openFiles: [],
+    }
+
+    await chatWithProvider(contextState, createProvider(contextState, model, system), model, historyFilename, port)
 }
 
-async function chatWithProvider(provider: Provider, model: string, historyFilename?: string, port?: number) {
+async function chatWithProvider(
+    contextState: ContextState,
+    provider: Provider,
+    model: string,
+    historyFilename?: string,
+    port?: number,
+) {
     let context: ChatContext
 
     const rl = readline.createInterface({
@@ -70,10 +83,7 @@ async function chatWithProvider(provider: Provider, model: string, historyFilena
             interruptHandler,
             prompter,
             provider,
-            editorState: {
-                openFiles: [],
-                events: new EventEmitter(),
-            },
+            contextState,
         }
 
         registerEditorListeners(context, editorEventSource)
