@@ -2,6 +2,10 @@
 
 ## Features
 
+### Diff view
+
+-   Allow the user to edit diff chunks before writing a file, just like the user can modify commands.
+
 ### Context management
 
 -   Include @file tags in user messages as context files.
