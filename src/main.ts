@@ -6,7 +6,7 @@ import { ChatContext, ContextFile } from './chat/context'
 import { createEditorEventSource, registerEditorListeners } from './chat/editor'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
-import { ContextState } from './context/state'
+import { ContextState, createContextState } from './context/state'
 import { Provider } from './providers/provider'
 import { createProvider, modelNames } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
@@ -46,12 +46,7 @@ async function chat(model: string, historyFilename?: string, port?: number) {
         throw new Error('chat command is not supported in this environment.')
     }
 
-    const contextState = {
-        events: new EventEmitter(),
-        files: new Map<string, ContextFile>(),
-        openFiles: [],
-    }
-
+    const contextState = createContextState()
     await chatWithProvider(contextState, createProvider(contextState, model, system), model, historyFilename, port)
 }
 
