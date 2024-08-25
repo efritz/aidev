@@ -6,7 +6,7 @@ import { CommandDescription } from '../command'
 
 export const statusCommand: CommandDescription = {
     prefix: ':status',
-    description: 'Display the current branching structure',
+    description: 'Display the current branching structure and context files',
     handler: handleStatus,
 }
 
@@ -23,6 +23,12 @@ async function handleStatus(context: ChatContext, args: string) {
     console.log(chalk.bold('Branch structure:'))
     console.log()
     printBranch(branchMetadata, branchMetadata['main'], '', true, currentBranch)
+    console.log()
+
+    // Add context files information
+    console.log(chalk.bold('Context files:'))
+    console.log()
+    printContextFiles(context)
     console.log()
 }
 
@@ -68,6 +74,29 @@ function printBranch(
             currentBranch,
         ),
     )
+}
+
+function printContextFiles(context: ChatContext) {
+    // TODO - should only show tool use files visible to current branch
+    const files = Array.from(context.contextState.files.values())
+    if (files.length === 0) {
+        console.log(chalk.yellow('No files in context.'))
+        return
+    }
+
+    files.forEach(file => {
+        const reasons = file.inclusionReasons.map(reason => {
+            switch (reason.type) {
+                case 'explicit':
+                    return chalk.blue('explicit')
+                case 'tool_use':
+                    return chalk.magenta('tool_use')
+                case 'editor':
+                    return chalk.green(reason.currentlyVisible ? 'editor (visible)' : 'editor (hidden)')
+            }
+        })
+        console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)
+    })
 }
 
 const countUserMessages = (messages: Message[]): number => messages.filter(message => message.role === 'user').length
