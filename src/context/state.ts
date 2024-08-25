@@ -4,7 +4,6 @@ export interface ContextState {
     events: EventEmitter
     files: Map<string, ContextFile>
     addFile: (path: string, reason: InclusionReason) => void
-    openFiles: string[]
 }
 
 export type ContextFile = {
@@ -14,8 +13,8 @@ export type ContextFile = {
 
 export type InclusionReason =
     | { type: 'explicit' }
+    | { type: 'tool_use'; messageId: string }
     | { type: 'editor'; currentlyVisible: boolean }
-    | { type: 'assistant_tool_use'; messageId: string }
 
 export function createContextState(): ContextState {
     const events = new EventEmitter()

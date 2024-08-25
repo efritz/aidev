@@ -107,16 +107,16 @@ export function createConversation<T>({
                     case 'explicit':
                         return true
 
-                    case 'editor':
-                        const _ = reason.currentlyVisible // TODO - factor this in
-                        return true
-
-                    case 'assistant_tool_use':
+                    case 'tool_use':
                         if (messages.some(m => m.id === reason.messageId)) {
                             return true
                         }
 
                         break
+
+                    case 'editor':
+                        const _ = reason.currentlyVisible // TODO - factor this in
+                        return true
                 }
             }
 
