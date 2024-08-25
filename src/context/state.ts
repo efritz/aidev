@@ -9,7 +9,7 @@ export interface ContextState {
 
 export type ContextFile = {
     path: string
-    inclusionReasons: InclusionReason[]
+    inclusionReasons: Set<InclusionReason>
 }
 
 export type InclusionReason =
@@ -21,30 +21,25 @@ export function createContextState(): ContextState {
     const events = new EventEmitter()
     const files = new Map<string, ContextFile>()
 
-    const addFile = (path: string, reason: InclusionReason) => {
-        let file = files.get(path)
-        if (!file) {
-            file = { path, inclusionReasons: [] }
-            files.set(path, file)
+    const getOrCreateFile = (path: string) => {
+        const file = files.get(path)
+        if (file) {
+            return file
         }
 
-        const existingReasonIndex = file.inclusionReasons.findIndex(r => r.type === reason.type)
+        const newFile = { path, inclusionReasons: new Set<InclusionReason>() }
+        files.set(path, newFile)
+        return newFile
+    }
 
-        if (existingReasonIndex !== -1) {
-            if (reason.type === 'explicit') {
-            } else if (reason.type === 'editor') {
-                file.inclusionReasons[existingReasonIndex] = reason
-            } else if (reason.type === 'assistant_tool_use') {
-                if (
-                    !file.inclusionReasons.some(
-                        r => r.type === 'assistant_tool_use' && r.messageId === reason.messageId,
-                    )
-                ) {
-                    file.inclusionReasons.push(reason)
-                }
-            }
-        } else {
-            file.inclusionReasons.push(reason)
+    const addFile = (path: string, reason: InclusionReason) => {
+        const { inclusionReasons: reasons } = getOrCreateFile(path)
+        reasons.add(reason)
+
+        if (reason.type === 'editor') {
+            // We only want the most recent reason for editor visibility.
+            // Remote the inverse entry if it exists in the set for this file.
+            reasons.delete({ type: 'editor', currentlyVisible: !reason.currentlyVisible })
         }
     }
 
