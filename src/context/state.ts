@@ -8,7 +8,7 @@ export interface ContextState {
 
 export type ContextFile = {
     path: string
-    inclusionReasons: Set<InclusionReason>
+    inclusionReasons: InclusionReason[]
 }
 
 export type InclusionReason =
@@ -26,21 +26,34 @@ export function createContextState(): ContextState {
             return file
         }
 
-        const newFile = { path, inclusionReasons: new Set<InclusionReason>() }
+        const newFile = { path, inclusionReasons: [] }
         files.set(path, newFile)
         return newFile
     }
 
     const addFile = (path: string, reason: InclusionReason) => {
         const { inclusionReasons: reasons } = getOrCreateFile(path)
-        reasons.add(reason)
+
+        if (
+            (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
+            (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.messageId === reason.messageId))
+        ) {
+            // Already exists
+            return
+        }
 
         if (reason.type === 'editor') {
-            // We only want the most recent reason for editor visibility.
-            // Remote the inverse entry if it exists in the set for this file.
-            reasons.delete({ type: 'editor', currentlyVisible: !reason.currentlyVisible })
+            const matching = reasons.find(r => r.type === 'editor')
+            if (matching) {
+                // Update in-place
+                matching.currentlyVisible = reason.currentlyVisible
+                return
+            }
         }
+
+        // No matching reasons exist
+        reasons.push(reason)
     }
 
-    return { events, files, addFile, openFiles: [] }
+    return { events, files, addFile }
 }
