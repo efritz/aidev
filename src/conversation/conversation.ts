@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { ContextFile, ContextState } from '../context/state'
+import { ContextFile, ContextState, shouldIncludeFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
@@ -100,41 +100,15 @@ export function createConversation<T>({
 
     const providerMessages = (): T[] => {
         const messages = visibleMessages()
-
-        const shouldIncludeFile = (file: ContextFile): boolean => {
-            for (const reason of file.inclusionReasons) {
-                switch (reason.type) {
-                    case 'explicit':
-                        return true
-
-                    case 'tool_use':
-                        if (
-                            messages.some(
-                                m => m.type === 'tool_use' && m.tools.some(toolUse => toolUse.id === reason.toolUseId),
-                            )
-                        ) {
-                            return true
-                        }
-
-                        break
-
-                    case 'editor':
-                        if (reason.currentlyOpen) {
-                            return true
-                        }
-
-                        break
-                }
-            }
-
-            return false
-        }
         const contents = new Map<string, string>()
+        const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
+
         for (const [_, file] of contextState.files.entries()) {
-            if (shouldIncludeFile(file)) {
+            if (shouldIncludeFile(file, visibleToolUseIds)) {
                 contents.set(file.path, readFileSync(file.path, 'utf-8').toString())
             }
         }
+
         if (contents.size > 0) {
             messages.unshift({
                 id: uuidv4(),

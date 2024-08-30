@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { shouldIncludeFile } from '../../../context/state'
 import { Branch } from '../../../conversation/conversation'
 import { Message } from '../../../messages/messages'
 import { ChatContext } from '../../context'
@@ -76,8 +77,14 @@ function printBranch(
 }
 
 function printContextFiles(context: ChatContext) {
-    // TODO - should only show tool use files visible to current branch
-    const files = Array.from(context.contextState.files.values())
+    const visibleToolUseIds = context.provider.conversationManager
+        .visibleMessages()
+        .flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
+
+    const files = Array.from(context.contextState.files.values()).filter(file =>
+        shouldIncludeFile(file, visibleToolUseIds),
+    )
+
     if (files.length === 0) {
         console.log(chalk.yellow('No files in context.'))
         return
@@ -91,7 +98,7 @@ function printContextFiles(context: ChatContext) {
                 case 'tool_use':
                     return chalk.magenta('tool_use')
                 case 'editor':
-                    return chalk.green(reason.currentlyOpen ? 'editor (open)' : 'editor (previously open)')
+                    return chalk.green('editor')
             }
         })
         console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)

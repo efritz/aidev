@@ -57,3 +57,28 @@ export function createContextState(): ContextState {
 
     return { events, files, addFile }
 }
+
+export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
+    for (const reason of file.inclusionReasons) {
+        switch (reason.type) {
+            case 'explicit':
+                return true
+
+            case 'tool_use':
+                if (visibleToolUses.includes(reason.toolUseId)) {
+                    return true
+                }
+
+                break
+
+            case 'editor':
+                if (reason.currentlyOpen) {
+                    return true
+                }
+
+                break
+        }
+    }
+
+    return false
+}
