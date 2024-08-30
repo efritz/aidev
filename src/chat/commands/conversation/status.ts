@@ -91,7 +91,7 @@ function printContextFiles(context: ChatContext) {
                 case 'tool_use':
                     return chalk.magenta('tool_use')
                 case 'editor':
-                    return chalk.green(reason.currentlyVisible ? 'editor (visible)' : 'editor (hidden)')
+                    return chalk.green(reason.currentlyOpen ? 'editor (open)' : 'editor (previously open)')
             }
         })
         console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)

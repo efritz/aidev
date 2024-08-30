@@ -119,7 +119,7 @@ export function createConversation<T>({
                         break
 
                     case 'editor':
-                        if (reason.currentlyVisible) {
+                        if (reason.currentlyOpen) {
                             return true
                         }
 

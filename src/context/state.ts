@@ -14,7 +14,7 @@ export type ContextFile = {
 export type InclusionReason =
     | { type: 'explicit' }
     | { type: 'tool_use'; toolUseId: string }
-    | { type: 'editor'; currentlyVisible: boolean }
+    | { type: 'editor'; currentlyOpen: boolean }
 
 export function createContextState(): ContextState {
     const events = new EventEmitter()
@@ -46,7 +46,7 @@ export function createContextState(): ContextState {
             const matching = reasons.find(r => r.type === 'editor')
             if (matching) {
                 // Update in-place
-                matching.currentlyVisible = reason.currentlyVisible
+                matching.currentlyOpen = reason.currentlyOpen
                 return
             }
         }
