@@ -1,10 +1,12 @@
 import { Content, Part } from '@google/generative-ai'
+import { ContextState } from '../../context/state'
 import { Conversation, createConversation as createGenericConversation } from '../../conversation/conversation'
 import { AssistantMessage, UserMessage } from '../../messages/messages'
 import { serializeToolResult } from '../../tools/tools'
 
-export function createConversation(): Conversation<Content> {
+export function createConversation(contextState: ContextState): Conversation<Content> {
     return createGenericConversation<Content>({
+        contextState,
         userMessageToParam,
         assistantMessagesToParam,
     })

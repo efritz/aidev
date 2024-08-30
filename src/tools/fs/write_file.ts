@@ -30,7 +30,7 @@ export const writeFile: Tool = {
         console.log()
         console.log(formatContent(contents))
     },
-    execute: async (context: ExecutionContext, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, contents } = args as { path: string; contents: string }
 
         console.log(formatContent(contents))

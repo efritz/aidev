@@ -57,7 +57,7 @@ export const shellExecute: Tool = {
             console.log(chalk.bold.red(error))
         }
     },
-    execute: async (context: ExecutionContext, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { command } = args as { command: string }
 
         console.log(formatCommand(command))

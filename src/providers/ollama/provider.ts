@@ -18,12 +18,13 @@ export const provider: ProviderSpec = {
 }
 
 function createOllamaProvider({
+    contextState,
     model: { model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
 }: ProviderOptions): Provider {
-    const { providerMessages, ...conversationManager } = createConversation(system)
+    const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
         createStream: () =>

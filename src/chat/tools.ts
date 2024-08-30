@@ -25,7 +25,7 @@ async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise
 async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ reprompt: boolean }> {
     const tool = findTool(toolUse.name)
     const args = toolUse.parameters ? JSON.parse(toolUse.parameters) : {}
-    const { result, error, reprompt } = await tool.execute(context, args)
+    const { result, error, reprompt } = await tool.execute(context, toolUse.id, args)
     const toolResult: ToolResult = { type: 'tool_result', toolUse, result, error }
     context.provider.conversationManager.pushUser(toolResult)
     return { reprompt: reprompt ?? false }

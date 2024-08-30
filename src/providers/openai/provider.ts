@@ -28,6 +28,7 @@ export const provider: ProviderSpec = {
 }
 
 function createOpenAIProvider({
+    contextState,
     model: { model },
     system,
     temperature = 0.0,
@@ -35,7 +36,7 @@ function createOpenAIProvider({
 }: ProviderOptions): Provider {
     const apiKey = getKey('openai')
     const client = new OpenAI({ apiKey })
-    const { providerMessages, ...conversationManager } = createConversation(system)
+    const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
         createStream: () =>

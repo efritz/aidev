@@ -14,8 +14,19 @@ export function registerEditorListeners(context: ChatContext, editorEventSource?
         return
     }
 
+    const loaded = new Set<string>()
+
     editorEventSource.addEventListener('message', event => {
-        context.editorState.openFiles = JSON.parse(event.data)
-        context.editorState.events.emit('open-files-changed')
+        for (const file of loaded) {
+            context.contextState.addFile(file, { type: 'editor', currentlyOpen: false })
+        }
+
+        const openFiles: string[] = JSON.parse(event.data)
+        for (const file of openFiles) {
+            loaded.add(file)
+            context.contextState.addFile(file, { type: 'editor', currentlyOpen: true })
+        }
+
+        context.contextState.events.emit('open-files-changed')
     })
 }

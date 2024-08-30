@@ -3,7 +3,7 @@ import { sep } from 'path'
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
 import { expandFilePatterns, expandPrefixes } from '../../../util/fs/glob'
-import { readFileContents } from '../../../util/fs/read'
+import { filterIgnoredPaths } from '../../../util/fs/ignore'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -29,19 +29,27 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
         return
     }
 
-    const result = await readFileContents(expandFilePatterns(patterns).sort())
+    const filePaths = filterIgnoredPaths(expandFilePatterns(patterns)).sort()
 
-    if (result.ok) {
-        context.provider.conversationManager.pushUser({
-            type: 'text',
-            content: JSON.stringify(result),
-            replayContent: result.response
-                .map(({ path }) => `${chalk.dim('ℹ')} Read file "${chalk.red(path)}" into context.`)
-                .join('\n'),
-        })
-    } else {
-        console.log(chalk.red.bold(`Failed to load files: ${result.error}.`))
+    if (filePaths.length === 0) {
+        console.log(chalk.red.bold('No files matched the provided patterns.'))
+        console.log('')
+        return
     }
+
+    for (const path of filePaths) {
+        context.contextState.addFile(path, { type: 'explicit' })
+    }
+
+    const message = filePaths.map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n')
+    console.log(message)
+    console.log('')
+
+    context.provider.conversationManager.pushUser({
+        type: 'text',
+        content: JSON.stringify({ ok: true, response: filePaths.map(path => ({ path })) }),
+        replayContent: message,
+    })
 }
 
 // Expand files for loading that expand the last entry of the current list of files

@@ -22,7 +22,7 @@ export const projectInfo: Tool = {
         properties: {},
         required: [],
     },
-    execute: async (context: ExecutionContext, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         if (!existsSync(manifestPath)) {
             console.log(chalk.yellow(`${chalk.dim('ℹ')} Warning: aidev.yaml does not exist in the current directory.`))
             console.log(

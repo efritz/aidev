@@ -1,3 +1,4 @@
+import { ContextState } from '../context/state'
 import { provider as anthropicProvider } from './anthropic/provider'
 import { provider as googleProvider } from './google/provider'
 import { provider as groqProvider } from './groq/provider'
@@ -8,7 +9,7 @@ import { Provider, ProviderSpec } from './provider'
 const providers: ProviderSpec[] = [anthropicProvider, openAIProvider, googleProvider, groqProvider, ollamaProvider]
 export const modelNames = providers.flatMap(({ models }) => models.map(({ name }) => name)).sort()
 
-export function createProvider(modelName: string, system: string): Provider {
+export function createProvider(contextState: ContextState, modelName: string, system: string): Provider {
     const pairs = providers.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
 
     const pair = pairs.find(({ model: { name } }) => name === modelName)
@@ -17,5 +18,5 @@ export function createProvider(modelName: string, system: string): Provider {
     }
 
     const { factory, model } = pair
-    return factory({ model, system })
+    return factory({ contextState, model, system })
 }

@@ -1,4 +1,6 @@
+import { readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
+import { ContextState, shouldIncludeFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
@@ -36,6 +38,7 @@ export type ConversationManager = {
 }
 
 type ConversationOptions<T> = {
+    contextState: ContextState
     userMessageToParam: (message: UserMessage) => T
     assistantMessagesToParam: (messages: AssistantMessage[]) => T
     initialMessage?: T
@@ -43,6 +46,7 @@ type ConversationOptions<T> = {
 }
 
 export function createConversation<T>({
+    contextState,
     userMessageToParam,
     assistantMessagesToParam,
     initialMessage,
@@ -95,12 +99,39 @@ export function createConversation<T>({
     }
 
     const providerMessages = (): T[] => {
+        const messages = visibleMessages()
+        const contents = new Map<string, string>()
+        const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
+
+        for (const [_, file] of contextState.files.entries()) {
+            if (shouldIncludeFile(file, visibleToolUseIds)) {
+                contents.set(file.path, readFileSync(file.path, 'utf-8').toString())
+            }
+        }
+
+        if (contents.size > 0) {
+            messages.unshift({
+                id: uuidv4(),
+                role: 'user',
+                type: 'text',
+                content:
+                    'The following file paths currently contain the associated content on disk.' +
+                    '\n\n' +
+                    JSON.stringify(
+                        Array.from(contents).reduce((obj: any, [key, value]: [key: string, value: string]) => {
+                            obj[key] = value
+                            return obj
+                        }, {}),
+                    ),
+            })
+        }
+
         const providerMessages: T[] = []
         if (initialMessage) {
             providerMessages.push(initialMessage)
         }
 
-        for (const message of visibleMessages()) {
+        for (const message of messages) {
             switch (message.role) {
                 case 'user':
                     providerMessages.push(userMessageToParam(message))

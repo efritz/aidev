@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { shouldIncludeFile } from '../../../context/state'
 import { Branch } from '../../../conversation/conversation'
 import { Message } from '../../../messages/messages'
 import { ChatContext } from '../../context'
@@ -6,7 +7,7 @@ import { CommandDescription } from '../command'
 
 export const statusCommand: CommandDescription = {
     prefix: ':status',
-    description: 'Display the current branching structure',
+    description: 'Display the current branching structure and context files',
     handler: handleStatus,
 }
 
@@ -19,6 +20,11 @@ async function handleStatus(context: ChatContext, args: string) {
 
     const branchMetadata = context.provider.conversationManager.branchMetadata()
     const currentBranch = context.provider.conversationManager.currentBranch()
+
+    console.log(chalk.bold('Context files:'))
+    console.log()
+    printContextFiles(context)
+    console.log()
 
     console.log(chalk.bold('Branch structure:'))
     console.log()
@@ -68,6 +74,35 @@ function printBranch(
             currentBranch,
         ),
     )
+}
+
+function printContextFiles(context: ChatContext) {
+    const visibleToolUseIds = context.provider.conversationManager
+        .visibleMessages()
+        .flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
+
+    const files = Array.from(context.contextState.files.values()).filter(file =>
+        shouldIncludeFile(file, visibleToolUseIds),
+    )
+
+    if (files.length === 0) {
+        console.log(chalk.yellow('No files in context.'))
+        return
+    }
+
+    files.forEach(file => {
+        const reasons = file.inclusionReasons.map(reason => {
+            switch (reason.type) {
+                case 'explicit':
+                    return chalk.blue('explicit')
+                case 'tool_use':
+                    return chalk.magenta('tool_use')
+                case 'editor':
+                    return chalk.green('editor')
+            }
+        })
+        console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)
+    })
 }
 
 const countUserMessages = (messages: Message[]): number => messages.filter(message => message.role === 'user').length

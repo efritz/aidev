@@ -24,6 +24,7 @@ export const provider: ProviderSpec = {
 }
 
 function createGoogleProvider({
+    contextState,
     model: { model: modelName },
     system,
     temperature = 0.0,
@@ -31,7 +32,7 @@ function createGoogleProvider({
 }: ProviderOptions): Provider {
     const apiKey = getKey('google')
     const client = new GoogleGenerativeAI(apiKey)
-    const { providerMessages, ...conversationManager } = createConversation()
+    const { providerMessages, ...conversationManager } = createConversation(contextState)
 
     return createProvider({
         createStream: () =>

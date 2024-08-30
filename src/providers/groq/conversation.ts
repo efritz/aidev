@@ -6,6 +6,7 @@ import {
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
 } from 'groq-sdk/resources/chat/completions'
+import { ContextState } from '../../context/state'
 import { Conversation, createConversation as createGenericConversation } from '../../conversation/conversation'
 import { AssistantMessage, UserMessage } from '../../messages/messages'
 import { serializeToolResult } from '../../tools/tools'
@@ -13,8 +14,12 @@ import { serializeToolResult } from '../../tools/tools'
 type UserParam = ChatCompletionUserMessageParam | ChatCompletionToolMessageParam
 type AssistantParam = ChatCompletionAssistantMessageParam
 
-export function createConversation(system: string): Conversation<ChatCompletionMessageParam> {
+export function createConversation(
+    contextState: ContextState,
+    system: string,
+): Conversation<ChatCompletionMessageParam> {
     return createGenericConversation<ChatCompletionMessageParam>({
+        contextState,
         userMessageToParam,
         assistantMessagesToParam,
         initialMessage: systemMessageToParam(system),
