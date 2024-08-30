@@ -9,5 +9,5 @@
 ### Context management
 
 -   Include @file tags in user messages as context files.
--   Include up-to-date `read_directories` in the context.
--   Allow users to control the context (remove files, for example).
+-   Include up-to-date `read_directories` output in the context.
+-   Allow users to control the context explicitly (remove files, for example).
