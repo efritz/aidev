@@ -1,20 +1,36 @@
-import { lstatSync } from 'fs'
+import { lstatSync, statSync } from 'fs'
 import { sep } from 'path'
 import { glob } from 'glob'
 
 export function expandFilePatterns(patterns: string[]): string[] {
-    return patterns.flatMap(pattern => (pattern.includes('*') ? glob.sync(pattern, { nodir: true }) : [pattern]))
+    return patterns.flatMap(pattern => {
+        if (pattern.includes('*')) {
+            return glob.sync(pattern, { nodir: true })
+        }
+
+        if (statSync(pattern).isFile()) {
+            return [pattern]
+        }
+
+        return []
+    })
 }
 
 export function expandDirectoryPatterns(patterns: string[]): string[] {
-    return patterns.flatMap(pattern =>
-        pattern.includes('*')
-            ? glob
-                  .sync(pattern, { withFileTypes: true })
-                  .filter(entry => entry.isDirectory())
-                  .map(r => r.relativePosix() + sep)
-            : [pattern],
-    )
+    return patterns.flatMap(pattern => {
+        if (pattern.includes('*')) {
+            return glob
+                .sync(pattern, { withFileTypes: true })
+                .filter(entry => entry.isDirectory())
+                .map(r => r.relativePosix() + sep)
+        }
+
+        if (statSync(pattern).isDirectory()) {
+            return [pattern]
+        }
+
+        return []
+    })
 }
 
 // Expand the given path prefixes to all _immediate_ descendants that match the prefix.
