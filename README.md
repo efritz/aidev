@@ -6,6 +6,7 @@ Available LLM API providers:
 
 -   Anthropic
 -   OpenAI
+-   Google
 -   Groq
 -   Ollama
 
