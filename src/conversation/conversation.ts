@@ -119,8 +119,11 @@ export function createConversation<T>({
                         break
 
                     case 'editor':
-                        const _ = reason.currentlyVisible // TODO - factor this in
-                        return true
+                        if (reason.currentlyVisible) {
+                            return true
+                        }
+
+                        break
                 }
             }
 
