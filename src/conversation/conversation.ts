@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { ContextFile, ContextState, shouldIncludeFile } from '../context/state'
+import { ContextState, shouldIncludeFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
