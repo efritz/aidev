@@ -9,7 +9,7 @@ export type Tool = {
     serialize: Serializer
 }
 
-export type Executor = (context: ExecutionContext, args: Arguments) => Promise<ExecutionResult>
+export type Executor = (context: ExecutionContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult>
 export type Arguments = Record<string, unknown>
 export type ToolResult = { result?: any; error?: Error }
 export type ExecutionResult = ToolResult & { reprompt?: boolean }

@@ -13,7 +13,7 @@ export type ContextFile = {
 
 export type InclusionReason =
     | { type: 'explicit' }
-    | { type: 'tool_use'; messageId: string }
+    | { type: 'tool_use'; toolUseId: string }
     | { type: 'editor'; currentlyVisible: boolean }
 
 export function createContextState(): ContextState {

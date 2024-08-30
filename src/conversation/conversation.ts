@@ -1,4 +1,4 @@
-import { readFile, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import { ContextFile, ContextState } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
@@ -108,7 +108,11 @@ export function createConversation<T>({
                         return true
 
                     case 'tool_use':
-                        if (messages.some(m => m.id === reason.messageId)) {
+                        if (
+                            messages.some(
+                                m => m.type === 'tool_use' && m.tools.some(toolUse => toolUse.id === reason.toolUseId),
+                            )
+                        ) {
                             return true
                         }
 
@@ -133,7 +137,15 @@ export function createConversation<T>({
                 id: uuidv4(),
                 role: 'user',
                 type: 'text',
-                content: JSON.stringify(contents), // TODO - preamble text?
+                content:
+                    'The following file paths currently contain the associated content on disk.' +
+                    '\n\n' +
+                    JSON.stringify(
+                        Array.from(contents).reduce((obj: any, [key, value]: [key: string, value: string]) => {
+                            obj[key] = value
+                            return obj
+                        }, {}),
+                    ),
             })
         }
 

@@ -32,7 +32,7 @@ export const readDirectories: Tool = {
             console.log(`${chalk.dim('ℹ')} Read directory "${chalk.red(path)}" into context.`)
         }
     },
-    execute: async (context: ExecutionContext, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { paths: patterns } = args as { paths: string[] }
 
         const result = await readDirectoryContents(filterIgnoredPaths(expandDirectoryPatterns(patterns)))
