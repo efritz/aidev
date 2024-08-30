@@ -13,3 +13,7 @@
 -   Ensure messages describing file contents are always up to date (and that's clear in the system prompt).
 -   Extract context management from the message flow/branching structure so it's global within a single conversation.
 -   Allow users to control the context (remove files, for example).
+
+### Personas
+
+-   Allow additional assistant personas (defined by the user) to check each other's output.
