@@ -20,15 +20,14 @@ async function handleStatus(context: ChatContext, args: string) {
     const branchMetadata = context.provider.conversationManager.branchMetadata()
     const currentBranch = context.provider.conversationManager.currentBranch()
 
-    console.log(chalk.bold('Branch structure:'))
-    console.log()
-    printBranch(branchMetadata, branchMetadata['main'], '', true, currentBranch)
-    console.log()
-
-    // Add context files information
     console.log(chalk.bold('Context files:'))
     console.log()
     printContextFiles(context)
+    console.log()
+
+    console.log(chalk.bold('Branch structure:'))
+    console.log()
+    printBranch(branchMetadata, branchMetadata['main'], '', true, currentBranch)
     console.log()
 }
 
