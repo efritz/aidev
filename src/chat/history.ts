@@ -1,20 +1,25 @@
 import { readFileSync } from 'fs'
 import chalk from 'chalk'
+import { ContextFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 import { tools } from '../tools/tools'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
 
 export function loadHistory(context: ChatContext, historyFilename: string): void {
-    const messages: Message[] = JSON.parse(readFileSync(historyFilename, 'utf8'), (key: string, value: any) => {
-        if (value && value.type === 'ErrorMessage') {
-            return new Error(value.message)
-        }
-
-        return value
-    })
+    const { messages, contextFiles }: { messages: Message[]; contextFiles: Record<string, ContextFile> } = JSON.parse(
+        readFileSync(historyFilename, 'utf8'),
+        (key: string, value: any) => {
+            if (value && value.type === 'ErrorMessage') {
+                return new Error(value.message)
+            }
+            return value
+        },
+    )
 
     context.provider.conversationManager.setMessages(messages)
+    context.contextState.files = new Map(Object.entries(contextFiles))
+
     replayMessages(context.provider.conversationManager.visibleMessages())
 }
 
