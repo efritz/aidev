@@ -36,7 +36,7 @@ export function createContextState(): ContextState {
 
         if (
             (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
-            (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.messageId === reason.messageId))
+            (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.toolUseId === reason.toolUseId))
         ) {
             // Already exists
             return
