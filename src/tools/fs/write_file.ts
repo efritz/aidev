@@ -10,7 +10,11 @@ type WriteResult = { userCanceled: true } | { userEditedContents?: string }
 
 export const writeFile: Tool = {
     name: 'write_file',
-    description: 'Write file content to disk, creating intermediate directories if necessary.',
+    description: [
+        'Write file contents to disk, creating intermediate directories if necessary.',
+        'The user may choose to modify the file content before writing it to disk.',
+        'If the conversation context already contains the target path, the conversation will be updated to include the new contents.',
+    ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
         description: 'The command payload.',

@@ -8,7 +8,6 @@
 
 ### Context management
 
-- Include up-to-date `read_directories` output in the context.
 - Allow users to control the context explicitly (remove files, for example).
 
 ### Personas

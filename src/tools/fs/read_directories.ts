@@ -1,14 +1,16 @@
 import chalk from 'chalk'
 import { expandDirectoryPatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
-import { DirectoryPayload, readDirectoryContents } from '../../util/fs/read'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 export const readDirectories: Tool = {
     name: 'read_directories',
-    description:
-        'List directory entries. The tool result will contain a list of entries ({name, isFile, isDirectory}) for each valid input path.',
+    description: [
+        'Add directory paths to be included in the conversation context.',
+        'The tool result will contain a list of available concrete paths.',
+        'The tool result will not contain any directory entries, but the directory entries will be included in the conversation context.',
+    ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
         description: 'The command payload.',
@@ -18,29 +20,44 @@ export const readDirectories: Tool = {
                 description: 'A list of target directory paths to list.',
                 items: {
                     type: JSONSchemaDataType.String,
-                    description:
-                        'A target directory path or glob pattern. Glob patterns are expanded into a set of matching paths. Paths that do not exist or refer to a non-directory are ignored.',
+                    description: [
+                        'A target directory path or glob pattern.',
+                        'Glob patterns are expanded into a set of matching paths.',
+                        'Paths that do not exist or refer to a non-directory are ignored.',
+                    ].join(' '),
                 },
             },
         },
         required: ['paths'],
     },
     replay: (args: Arguments, result: ToolResult) => {
-        const { paths } = args as { paths: string[] }
+        const directoryPaths: string[] = result.result || []
 
-        for (const path of paths) {
-            console.log(`${chalk.dim('ℹ')} Read directory "${chalk.red(path)}" into context.`)
-        }
+        const message = directoryPaths
+            .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
+            .join('\n')
+        console.log(message)
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
+        if (!toolUseId) {
+            throw new Error('No ToolUseId supplied.')
+        }
+
         const { paths: patterns } = args as { paths: string[] }
 
-        const result = await readDirectoryContents(filterIgnoredPaths(expandDirectoryPatterns(patterns)))
-        if (result.ok) {
-            return { result: result.response, reprompt: true }
-        } else {
-            return { error: result.error }
+        const directoryPaths = filterIgnoredPaths(expandDirectoryPatterns(patterns)).sort()
+
+        for (const path of directoryPaths) {
+            context.contextState.addDirectory(path, { type: 'tool_use', toolUseId })
         }
+
+        const message = directoryPaths
+            .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
+            .join('\n')
+        console.log(message)
+        console.log('')
+
+        return { result: directoryPaths, reprompt: true }
     },
-    serialize: (result?: any) => JSON.stringify({ contents: result as DirectoryPayload[] }),
+    serialize: (result?: any) => JSON.stringify({ contents: result as string[] }),
 }

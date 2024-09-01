@@ -1,14 +1,16 @@
 import chalk from 'chalk'
 import { expandFilePatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
-import { FilePayload } from '../../util/fs/read'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 export const readFiles: Tool = {
     name: 'read_files',
-    description:
-        'Read file contents. The tool result will contain the list of concrete file paths made available in the context.',
+    description: [
+        'Add file paths to be included in the conversation context.',
+        'The tool result will contain a list of available concrete paths.',
+        'The tool result will not contain any file contents, but the file contents will be included in the conversation context.',
+    ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
         description: 'The command payload.',
@@ -18,8 +20,11 @@ export const readFiles: Tool = {
                 description: 'A list of target file paths to read.',
                 items: {
                     type: JSONSchemaDataType.String,
-                    description:
-                        'A target file path or glob pattern. Glob patterns are expanded into a set of matching paths. Paths that do not exist or refer to a non-file are ignored.',
+                    description: [
+                        'A target file path or glob pattern.',
+                        'Glob patterns are expanded into a set of matching paths.',
+                        'Paths that do not exist or refer to a non-file are ignored.',
+                    ].join(' '),
                 },
             },
         },
@@ -32,16 +37,15 @@ export const readFiles: Tool = {
             .map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`)
             .join('\n')
         console.log(message)
-        console.log('')
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
-        const { paths: patterns } = args as { paths: string[] }
-
-        const filePaths = filterIgnoredPaths(expandFilePatterns(patterns)).sort()
-
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
+
+        const { paths: patterns } = args as { paths: string[] }
+
+        const filePaths = filterIgnoredPaths(expandFilePatterns(patterns)).sort()
 
         for (const path of filePaths) {
             context.contextState.addFile(path, { type: 'tool_use', toolUseId })
@@ -55,5 +59,5 @@ export const readFiles: Tool = {
 
         return { result: filePaths, reprompt: true }
     },
-    serialize: (result?: any) => JSON.stringify({ contents: result as FilePayload[] }),
+    serialize: (result?: any) => JSON.stringify({ contents: result as string[] }),
 }

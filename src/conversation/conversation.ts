@@ -1,6 +1,6 @@
-import { readFileSync } from 'fs'
+import { Dirent, readdirSync, readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { ContextState, shouldIncludeFile } from '../context/state'
+import { ContextState, shouldIncludeDirectory, shouldIncludeFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
@@ -100,35 +100,51 @@ export function createConversation<T>({
 
     const providerMessages = (): T[] => {
         type FileContent = { content: string } | { error: string }
+        type DirectoryEntry = { name: string; isFile: boolean; isDirectory: boolean }
+        type DirectoryContent = { entries: DirectoryEntry[] } | { error: string }
 
         const messages = visibleMessages()
-        const contents = new Map<string, FileContent>()
+        const fileContents = new Map<string, FileContent>()
+        const directoryContents = new Map<string, DirectoryContent>()
         const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
 
         for (const [_, file] of contextState.files.entries()) {
             if (shouldIncludeFile(file, visibleToolUseIds)) {
                 try {
-                    contents.set(file.path, { content: readFileSync(file.path, 'utf-8').toString() })
+                    fileContents.set(file.path, { content: readFileSync(file.path, 'utf-8').toString() })
                 } catch (error: any) {
-                    contents.set(file.path, { error: `Error reading file: ${error.message}` })
+                    fileContents.set(file.path, { error: `Error reading file: ${error.message}` })
                 }
             }
         }
 
-        if (contents.size > 0) {
+        for (const [_, directory] of contextState.directories.entries()) {
+            if (shouldIncludeDirectory(directory, visibleToolUseIds)) {
+                try {
+                    directoryContents.set(directory.path, {
+                        entries: readdirSync(directory.path, { withFileTypes: true }).map((entry: Dirent) => ({
+                            name: entry.name,
+                            isFile: entry.isFile(),
+                            isDirectory: entry.isDirectory(),
+                        })),
+                    })
+                } catch (error: any) {
+                    directoryContents.set(directory.path, { error: `Error reading directory: ${error.message}` })
+                }
+            }
+        }
+
+        if (fileContents.size > 0 || directoryContents.size > 0) {
+            const payload = {
+                files: Object.fromEntries(fileContents),
+                directories: Object.fromEntries(directoryContents),
+            }
+
             messages.unshift({
                 id: uuidv4(),
                 role: 'user',
                 type: 'text',
-                content:
-                    'The following file paths currently contain the associated content on disk.' +
-                    '\n\n' +
-                    JSON.stringify(
-                        Array.from(contents).reduce((obj: any, [key, value]: [key: string, value: FileContent]) => {
-                            obj[key] = value
-                            return obj
-                        }, {}),
-                    ),
+                content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
             })
         }
 

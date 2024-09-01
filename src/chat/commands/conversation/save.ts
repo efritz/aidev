@@ -1,6 +1,6 @@
 import { writeFileSync } from 'fs'
 import chalk from 'chalk'
-import { ContextFile } from '../../../context/state'
+import { ContextFile, ContextDirectory } from '../../../context/state'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -27,11 +27,18 @@ async function handleSave(context: ChatContext, args: string) {
         },
         {},
     )
+    const contextDirectories: Record<string, ContextDirectory> = Array.from(context.contextState.directories).reduce(
+        (obj: any, [key, value]) => {
+            obj[key] = value
+            return obj
+        },
+        {},
+    )
 
     writeFileSync(
         filename,
         JSON.stringify(
-            { messages, contextFiles },
+            { messages, contextFiles, contextDirectories },
             (key: string, value: any): any =>
                 value instanceof Error ? { type: 'ErrorMessage', message: value.message } : value,
             '\t',

@@ -3,10 +3,17 @@ import EventEmitter from 'events'
 export interface ContextState {
     events: EventEmitter
     files: Map<string, ContextFile>
+    directories: Map<string, ContextDirectory>
     addFile: (path: string, reason: InclusionReason) => void
+    addDirectory: (path: string, reason: InclusionReason) => void
 }
 
 export type ContextFile = {
+    path: string
+    inclusionReasons: InclusionReason[]
+}
+
+export type ContextDirectory = {
     path: string
     inclusionReasons: InclusionReason[]
 }
@@ -19,6 +26,7 @@ export type InclusionReason =
 export function createContextState(): ContextState {
     const events = new EventEmitter()
     const files = new Map<string, ContextFile>()
+    const directories = new Map<string, ContextDirectory>()
 
     const getOrCreateFile = (path: string) => {
         const file = files.get(path)
@@ -31,9 +39,28 @@ export function createContextState(): ContextState {
         return newFile
     }
 
+    const getOrCreateDirectory = (path: string) => {
+        const directory = directories.get(path)
+        if (directory) {
+            return directory
+        }
+
+        const newDirectory = { path, inclusionReasons: [] }
+        directories.set(path, newDirectory)
+        return newDirectory
+    }
+
     const addFile = (path: string, reason: InclusionReason) => {
         const { inclusionReasons: reasons } = getOrCreateFile(path)
+        updateInclusionReasons(reasons, reason)
+    }
 
+    const addDirectory = (path: string, reason: InclusionReason) => {
+        const { inclusionReasons: reasons } = getOrCreateDirectory(path)
+        updateInclusionReasons(reasons, reason)
+    }
+
+    const updateInclusionReasons = (reasons: InclusionReason[], reason: InclusionReason) => {
         if (
             (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
             (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.toolUseId === reason.toolUseId))
@@ -55,11 +82,19 @@ export function createContextState(): ContextState {
         reasons.push(reason)
     }
 
-    return { events, files, addFile }
+    return { events, files, directories, addFile, addDirectory }
 }
 
 export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
-    for (const reason of file.inclusionReasons) {
+    return shouldInclude(file.inclusionReasons, visibleToolUses)
+}
+
+export function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
+    return shouldInclude(directory.inclusionReasons, visibleToolUses)
+}
+
+function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): boolean {
+    for (const reason of reasons) {
         switch (reason.type) {
             case 'explicit':
                 return true
