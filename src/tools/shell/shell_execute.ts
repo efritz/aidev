@@ -68,16 +68,6 @@ export const shellExecute: Tool = {
             return { result: { userCanceled: true } }
         }
 
-        const edit: { userEditedCommand?: string } = {}
-        if (editedCommand !== command) {
-            console.log()
-            console.log(`${chalk.dim('ℹ')} Command edited:`)
-            console.log()
-            console.log(`${formatCommand(command)}`)
-
-            edit.userEditedCommand = editedCommand
-        }
-
         const response = await withProgress<OutputLine[]>(update => runCommand(context, editedCommand, update), {
             progress: prefixFormatter('Executing command...', formatOutput),
             success: prefixFormatter('Command succeeded.', formatOutput),
@@ -133,7 +123,12 @@ async function confirmCommand(context: ExecutionContext, command: string): Promi
 
             case 'e':
                 try {
-                    return await editCommand(context, command)
+                    command = await editCommand(context, command)
+
+                    console.log()
+                    console.log(`${chalk.dim('ℹ')} Command edited:`)
+                    console.log()
+                    console.log(`${formatCommand(command)}`)
                 } catch (error: any) {
                     if (error instanceof CancelError) {
                         console.log('User canceled edit')
@@ -169,9 +164,9 @@ async function editCommand(context: ExecutionContext, command: string): Promise<
                         }
                     })
 
-                    spawn('e', [tempPath]).on('error', error =>
-                        reject(new Error(`Failed to open editor: ${error.message}`)),
-                    )
+                    spawn('code', [tempPath, '-w'])
+                        .on('exit', () => reject(new CancelError('User canceled')))
+                        .on('error', error => reject(new Error(`Failed to open editor: ${error.message}`)))
                 }),
         )
     } finally {
