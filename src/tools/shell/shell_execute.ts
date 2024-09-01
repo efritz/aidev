@@ -1,11 +1,9 @@
 import { spawn } from 'child_process'
-import { randomBytes } from 'crypto'
-import { readFileSync, unlinkSync, writeFileSync } from 'fs'
 import chalk from 'chalk'
-import chokidar from 'chokidar'
 import treeKill from 'tree-kill'
 import { CancelError } from '../../util/interrupts/interrupts'
 import { prefixFormatter, Updater, withProgress } from '../../util/progress/progress'
+import { editString } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
@@ -45,7 +43,9 @@ export const shellExecute: Tool = {
         const { command: originalCommand } = args as { command: string }
         const command = shellResult.userEditedCommand ?? originalCommand
 
-        console.log(`${chalk.dim('ℹ')} Executed ${command !== originalCommand ? '(edited) ' : ''}shell command:`)
+        console.log(
+            `${chalk.dim('ℹ')} Executed shell command${command !== originalCommand ? ' (edited by user)' : ''}:`,
+        )
         console.log()
         console.log(formatCommand(command))
         console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Command ${error ? 'failed' : 'succeeded'}.`)
@@ -117,61 +117,27 @@ async function confirmCommand(context: ExecutionContext, command: string): Promi
         switch (choice) {
             case 'y':
                 return command
-
             case 'n':
                 return undefined
 
             case 'e':
                 try {
-                    command = await editCommand(context, command)
+                    command = await editString(context.interruptHandler, tempFile => [tempFile], command)
 
                     console.log()
                     console.log(`${chalk.dim('ℹ')} Command edited:`)
                     console.log()
                     console.log(`${formatCommand(command)}`)
                 } catch (error: any) {
-                    if (error instanceof CancelError) {
-                        console.log('User canceled edit')
-                        continue
+                    if (!(error instanceof CancelError)) {
+                        throw error
                     }
 
-                    throw error
+                    console.log('User canceled edit')
                 }
 
                 break
         }
-    }
-}
-
-async function editCommand(context: ExecutionContext, command: string): Promise<string> {
-    const suffix = randomBytes(16).toString('hex')
-    const tempPath = `/tmp/ai-shell-command-${suffix}`
-    writeFileSync(tempPath, command)
-
-    const watcher = chokidar.watch(tempPath, {
-        persistent: true,
-        ignoreInitial: true,
-    })
-
-    try {
-        return await context.interruptHandler.withInterruptHandler(
-            () =>
-                new Promise<string>((resolve, reject) => {
-                    watcher.on('change', () => {
-                        const newContent = readFileSync(tempPath, 'utf-8')
-                        if (newContent !== command) {
-                            resolve(newContent)
-                        }
-                    })
-
-                    spawn('code', [tempPath, '-w'])
-                        .on('exit', () => reject(new CancelError('User canceled')))
-                        .on('error', error => reject(new Error(`Failed to open editor: ${error.message}`)))
-                }),
-        )
-    } finally {
-        watcher.close()
-        unlinkSync(tempPath)
     }
 }
 

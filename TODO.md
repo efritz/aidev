@@ -6,10 +6,6 @@
 
 -   Add a sub-agent to determine if the AI has more to add after they use a tool. May either replace or complement the current reprompt flag.
 
-### Diff view
-
--   Allow the user to edit diff chunks before writing a file, just like the user can modify commands.
-
 ### Context management
 
 -   Always proactively read aidev.yaml file.
