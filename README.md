@@ -34,6 +34,13 @@ Meta commands:
 - `:rename <from_branch> <to_branch>`: Rename an existing branch.
 - `:remove <branch>`: Remove a branch and all its messages.
 
+Project configuration:
+
+The root of your project (where you launch the CLI) can contain special files to configure the behavior of the assistant.
+
+- aidev.system will be injected verbatim into the system prompt.
+- aidev.ignore can contain gitignore-like patterns that will filter out files or directories from being read into the context.
+
 ## Running
 
 ### CLI

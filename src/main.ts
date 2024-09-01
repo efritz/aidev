@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import readline from 'readline'
 import { program } from 'commander'
 import { completer } from './chat/completer'
@@ -38,7 +39,29 @@ async function main() {
     program.parse(process.argv)
 }
 
-const system = `You are an assistant!`
+const basicSystemPrompt = `
+You are an assistant!
+`
+
+function buildSystemPrompt(): string {
+    const parts = [basicSystemPrompt, buildProjectInstructions()]
+
+    return parts
+        .map(part => part.trim())
+        .filter(part => part !== '')
+        .join('\n\n')
+}
+
+function buildProjectInstructions(): string {
+    try {
+        const projectInstructionsPath = 'aidev.system'
+        const projectInstructions = readFileSync(projectInstructionsPath, 'utf-8')
+
+        return `# Project instructions\n\n${projectInstructions}`
+    } catch (error: any) {}
+
+    return ''
+}
 
 async function chat(model: string, historyFilename?: string, port?: number) {
     if (!process.stdin.setRawMode) {
@@ -46,6 +69,7 @@ async function chat(model: string, historyFilename?: string, port?: number) {
     }
 
     const contextState = createContextState()
+    const system = buildSystemPrompt()
     await chatWithProvider(contextState, createProvider(contextState, model, system), model, historyFilename, port)
 }
 

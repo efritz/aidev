@@ -1,3 +1,0 @@
-build:
-    description: Check for compilation errors
-    command_pattern: yarn build
