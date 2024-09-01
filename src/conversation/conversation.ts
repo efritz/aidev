@@ -99,13 +99,19 @@ export function createConversation<T>({
     }
 
     const providerMessages = (): T[] => {
+        type FileContent = { content: string } | { error: string }
+
         const messages = visibleMessages()
-        const contents = new Map<string, string>()
+        const contents = new Map<string, FileContent>()
         const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
 
         for (const [_, file] of contextState.files.entries()) {
             if (shouldIncludeFile(file, visibleToolUseIds)) {
-                contents.set(file.path, readFileSync(file.path, 'utf-8').toString())
+                try {
+                    contents.set(file.path, { content: readFileSync(file.path, 'utf-8').toString() })
+                } catch (error: any) {
+                    contents.set(file.path, { error: `Error reading file: ${error.message}` })
+                }
             }
         }
 
@@ -118,7 +124,7 @@ export function createConversation<T>({
                     'The following file paths currently contain the associated content on disk.' +
                     '\n\n' +
                     JSON.stringify(
-                        Array.from(contents).reduce((obj: any, [key, value]: [key: string, value: string]) => {
+                        Array.from(contents).reduce((obj: any, [key, value]: [key: string, value: FileContent]) => {
                             obj[key] = value
                             return obj
                         }, {}),
