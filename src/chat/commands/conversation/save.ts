@@ -1,6 +1,6 @@
 import { writeFileSync } from 'fs'
 import chalk from 'chalk'
-import { ContextFile, ContextDirectory } from '../../../context/state'
+import { ContextDirectory, ContextFile } from '../../../context/state'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 

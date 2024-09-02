@@ -23,6 +23,7 @@ Meta commands:
 - `:exit`: Exit the conversation.
 - `:save`: Save the conversation to a file.
 - `:load`: Load file contents into the conversation.
+- `:loaddir`: Load directory entries into the conversation.
 - `:clear`: Clear all messages in the conversation.
 - `:savepoint`: Mark a point in the conversation to which you can rollback.
 - `:rollback`: Rollback to a previously defined savepoint.
