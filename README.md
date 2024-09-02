@@ -58,7 +58,7 @@ Or:
 ```bash
 yarn
 yarn build
-node ./dist/main.js "$@"
+node ./dist/cli.js "$@"
 ```
 
 ### VSCode

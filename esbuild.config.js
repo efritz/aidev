@@ -9,8 +9,8 @@ const commonConfig = {
 const configs = [
     {
         ...commonConfig,
-        entryPoints: ['src/main.ts'],
-        outfile: 'dist/main.mjs',
+        entryPoints: ['src/cli.ts'],
+        outfile: 'dist/cli.mjs',
         format: 'esm',
         banner: {
             js: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",

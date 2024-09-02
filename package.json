@@ -6,7 +6,7 @@
     "license": "MIT",
     "main": "./dist/extension.js",
     "bin": {
-        "ai": "dist/main.mjs"
+        "ai": "dist/cli.mjs"
     },
     "engines": {
         "vscode": "^1.92.0"
@@ -35,7 +35,7 @@
     "scripts": {
         "clean": "rm -rf dist ai-0.0.0.vsix",
         "build": "yarn clean && node esbuild.config.js",
-        "dev": "yarn build && node dist/main.mjs",
+        "dev": "yarn build && node dist/cli.mjs",
         "vsix": "yarn build && yarn vsce package --no-dependencies --allow-missing-repository",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'"
