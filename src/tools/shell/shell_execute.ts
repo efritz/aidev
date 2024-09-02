@@ -93,17 +93,17 @@ export const shellExecute: Tool = {
             return { result }
         }
     },
-    serialize: (result?: any) => {
-        const shellResult = result as ShellResult
-        if ('userCanceled' in shellResult) {
-            return JSON.stringify(shellResult)
-        }
+    serialize: (result?: any) =>
+        result
+            ? JSON.stringify({
+                  ...result,
+                  ...('output' in (result as ShellResult) ? { output: serializeOutput(result.output) } : {}),
+              })
+            : '',
+}
 
-        return JSON.stringify({
-            output: shellResult.output.map(({ content }) => content).join(''),
-            ...(shellResult.userEditedCommand ? { userEditedCommand: shellResult.userEditedCommand } : {}),
-        })
-    },
+function serializeOutput(output?: OutputLine[]): string {
+    return (output || []).map(o => o.content).join('')
 }
 
 async function confirmCommand(context: ExecutionContext, command: string): Promise<string | undefined> {

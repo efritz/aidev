@@ -76,7 +76,7 @@ export const writeFile: Tool = {
 
         return { result, reprompt: true }
     },
-    serialize: (result?: any) => JSON.stringify(result as WriteResult),
+    serialize: (result?: any) => (result ? JSON.stringify(result as WriteResult) : ''),
 }
 
 async function confirmWrite(context: ExecutionContext, path: string, contents: string): Promise<string | undefined> {
