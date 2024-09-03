@@ -5,12 +5,17 @@ import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 
 export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
-    const pairs = await Promise.all(paths.map(async path => [path, await matchingPatterns(path)] as [string, string[]]))
-    const patternsByIgnoredPath = new Map(pairs.filter(([_, patterns]) => patterns.length > 0))
-    const nonIgnoredPaths = pairs.filter(([_, patterns]) => patterns.length === 0).map(([path]) => path)
+    const ignorePatternsPath = 'aidev.ignore'
+    const ignorePatterns = (await safeReadLines(ignorePatternsPath)).map(gitignoreToMinimatch)
+    const pathAndMatchingIgnorePatterns = new Map(
+        paths.map<[string, string[]]>(path => [path, ignorePatterns.filter(pattern => matchPattern(path, pattern))]),
+    )
 
     if (!silent) {
-        for (const { path, pattern, count } of collectMinimalPaths(patternsByIgnoredPath)) {
+        for (const { path, pattern, count } of collectMinimalPaths(
+            // Create path -> patterns map for paths with non-empty patterns
+            filterMap(pathAndMatchingIgnorePatterns, patterns => patterns.length > 0),
+        )) {
             console.log(
                 chalk.yellow(
                     `${chalk.dim('ℹ')} Path ${path} ${count > 1 ? `(${count} occurrences) ` : ''}ignored by ${pattern}.`,
@@ -19,7 +24,8 @@ export async function filterIgnoredPaths(paths: string[], silent = false): Promi
         }
     }
 
-    return nonIgnoredPaths
+    // Extract path from pairs with no patterns
+    return [...filterMap(pathAndMatchingIgnorePatterns, patterns => patterns.length === 0).keys()]
 }
 
 function collectMinimalPaths(
@@ -44,10 +50,6 @@ function collectMinimalPaths(
     return Object.values(counts).sort((a, b) => a.path.localeCompare(b.path))
 }
 
-async function matchingPatterns(path: string): Promise<string[]> {
-    return (await getIgnoredPatterns()).filter(pattern => matchPattern(path, pattern))
-}
-
 function minimizeMatch(path: string, pattern: string): string {
     let current = path
     let parent = dirname(current)
@@ -63,17 +65,6 @@ function matchPattern(path: string, pattern: string): boolean {
     return minimatch(path, pattern, { dot: true, matchBase: true })
 }
 
-const ignoreFilePath = 'aidev.ignore'
-let ignoredPatterns: string[] | undefined = undefined
-
-export async function getIgnoredPatterns(): Promise<string[]> {
-    if (ignoredPatterns === undefined) {
-        ignoredPatterns = (await safeReadLines(ignoreFilePath)).map(gitignoreToMinimatch)
-    }
-
-    return ignoredPatterns
-}
-
 async function safeReadLines(path: string): Promise<string[]> {
     return (await safeReadFile(path))
         .split('\n')
@@ -87,4 +78,8 @@ async function safeReadFile(path: string): Promise<string> {
     } catch (error: any) {
         return ''
     }
+}
+
+function filterMap<K, V>(map: Map<K, V>, predicate: (value: V, key: K) => boolean): Map<K, V> {
+    return new Map([...map.entries()].filter(([key, value]) => predicate(value, key)))
 }
