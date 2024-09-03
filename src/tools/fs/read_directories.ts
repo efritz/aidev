@@ -8,6 +8,7 @@ export const readDirectories: Tool = {
     name: 'read_directories',
     description: [
         'Add directory paths to be included in the conversation context.',
+        'The conversation context is always up-to date. Specifying a directory already in the context will not update the context.',
         'The tool result will contain a list of available concrete paths.',
         'The tool result will not contain any directory entries, but the directory entries will be included in the conversation context.',
     ].join(' '),
@@ -17,7 +18,7 @@ export const readDirectories: Tool = {
         properties: {
             paths: {
                 type: JSONSchemaDataType.Array,
-                description: 'A list of target directory paths to list.',
+                description: 'A list of target directory paths to read.',
                 items: {
                     type: JSONSchemaDataType.String,
                     description: [
