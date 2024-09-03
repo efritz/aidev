@@ -1,4 +1,4 @@
-import { existsSync } from 'fs'
+import { stat } from 'fs/promises'
 import { createServer as _createServer, Server, ServerResponse } from 'http'
 import { AddressInfo } from 'net'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
@@ -28,9 +28,9 @@ export function activate(context: ExtensionContext) {
         (isOpening: boolean) =>
         ({ uri: { fsPath: path } }: TextDocument) => {
             if (isOpening) {
-                if (existsSync(path)) {
-                    openDocumentURIs.add(path)
-                }
+                stat(path)
+                    .then(() => openDocumentURIs.add(path))
+                    .catch(() => {})
             } else {
                 openDocumentURIs.delete(path)
             }
