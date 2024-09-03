@@ -1,24 +1,10 @@
 import { readFile } from 'fs/promises'
 import chalk from 'chalk'
-import { ContextDirectory, ContextFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 import { tools } from '../tools/tools'
+import { reviver, SaveFilePayload } from './commands/conversation/save'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
-
-type SaveFilePayload = {
-    messages: Message[]
-    contextFiles: Record<string, ContextFile>
-    contextDirectories: Record<string, ContextDirectory>
-}
-
-function reviver(key: string, value: any): any {
-    if (value && value.type === 'ErrorMessage') {
-        return new Error(value.message)
-    }
-
-    return value
-}
 
 export async function loadHistory(context: ChatContext, historyFilename: string): Promise<void> {
     const content = await readFile(historyFilename, 'utf8')

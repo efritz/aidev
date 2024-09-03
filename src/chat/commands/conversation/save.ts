@@ -1,6 +1,7 @@
-import { writeFileSync } from 'fs'
+import { writeFile } from 'fs/promises'
 import chalk from 'chalk'
 import { ContextDirectory, ContextFile } from '../../../context/state'
+import { Message } from '../../../messages/messages'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -35,14 +36,26 @@ async function handleSave(context: ChatContext, args: string) {
         {},
     )
 
-    writeFileSync(
-        filename,
-        JSON.stringify(
-            { messages, contextFiles, contextDirectories },
-            (key: string, value: any): any =>
-                value instanceof Error ? { type: 'ErrorMessage', message: value.message } : value,
-            '\t',
-        ),
-    )
+    const contents: SaveFilePayload = { messages, contextFiles, contextDirectories }
+    await writeFile(filename, JSON.stringify(contents, replacer, '\t'))
+
     console.log(`Chat history saved to ${filename}\n`)
+}
+
+export type SaveFilePayload = {
+    messages: Message[]
+    contextFiles: Record<string, ContextFile>
+    contextDirectories: Record<string, ContextDirectory>
+}
+
+function replacer(key: string, value: any): any {
+    return value instanceof Error ? { type: 'ErrorMessage', message: value.message } : value
+}
+
+export function reviver(key: string, value: any): any {
+    if (value && value.type === 'ErrorMessage') {
+        return new Error(value.message)
+    }
+
+    return value
 }
