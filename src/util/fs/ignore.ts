@@ -1,8 +1,8 @@
-import { readFile } from 'fs/promises'
 import { dirname, sep } from 'path'
 import { gitignoreToMinimatch } from '@humanwhocodes/gitignore-to-minimatch'
 import chalk from 'chalk'
 import { minimatch } from 'minimatch'
+import { safeReadFile } from './safe'
 
 export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
     const ignorePatternsPath = 'aidev.ignore'
@@ -70,14 +70,6 @@ async function safeReadLines(path: string): Promise<string[]> {
         .split('\n')
         .map(line => line.trim())
         .filter(line => line !== '')
-}
-
-async function safeReadFile(path: string): Promise<string> {
-    try {
-        return await readFile(path, 'utf-8')
-    } catch (error: any) {
-        return ''
-    }
 }
 
 function filterMap<K, V>(map: Map<K, V>, predicate: (value: V, key: K) => boolean): Map<K, V> {

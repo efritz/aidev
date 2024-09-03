@@ -1,6 +1,6 @@
-import { lstat } from 'fs/promises'
 import { sep } from 'path'
 import { glob } from 'glob'
+import { isDir } from './safe'
 
 export async function expandFilePatterns(patterns: string[]): Promise<string[]> {
     return (
@@ -47,12 +47,4 @@ export async function expandPrefixes(prefixes: string[]): Promise<string[]> {
             // Do not complete directories to themselves
             .filter(path => !(path.endsWith(sep) && prefixes.includes(path)))
     )
-}
-
-async function isDir(path: string): Promise<boolean> {
-    try {
-        return (await lstat(path)).isDirectory()
-    } catch (error: any) {
-        return false
-    }
 }
