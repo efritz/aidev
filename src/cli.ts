@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises'
-import readline from 'readline'
+import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
@@ -120,7 +120,11 @@ async function chatWithProvider(
         input: process.stdin,
         output: process.stdout,
         terminal: true,
-        completer: (line: string) => (context ? completer(context, line) : undefined),
+        completer: (line: string, callback: (err?: null | Error, result?: CompleterResult) => void): void => {
+            if (context) {
+                completer(context, line).then(result => callback(undefined, result))
+            }
+        },
     })
 
     const editorEventSource = createEditorEventSource(port)

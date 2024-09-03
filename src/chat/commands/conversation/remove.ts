@@ -1,3 +1,4 @@
+import { CompleterResult } from 'readline'
 import chalk from 'chalk'
 import { ChatContext } from '../../context'
 import { replayMessages } from '../../history'
@@ -42,7 +43,7 @@ async function handleRemove(context: ChatContext, args: string) {
     }
 }
 
-function completeRemove(context: ChatContext, args: string): [string[], string] {
+async function completeRemove(context: ChatContext, args: string): Promise<CompleterResult> {
     const branches = context.provider.conversationManager.branches()
     return [branches.filter(name => name !== 'main' && name.startsWith(args)), args]
 }

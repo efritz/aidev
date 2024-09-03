@@ -1,3 +1,4 @@
+import { CompleterResult } from 'readline'
 import chalk from 'chalk'
 import { completeDirectoryPaths } from '../../../util/fs/completion'
 import { expandDirectoryPatterns } from '../../../util/fs/glob'
@@ -27,7 +28,7 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
         return
     }
 
-    const directoryPaths = (await filterIgnoredPaths(expandDirectoryPatterns(patterns))).sort()
+    const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
 
     if (directoryPaths.length === 0) {
         console.log(chalk.red.bold('No directories matched the provided patterns.'))
@@ -46,6 +47,6 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
     console.log('')
 }
 
-function completeLoaddir(context: ChatContext, args: string) {
+function completeLoaddir(context: ChatContext, args: string): Promise<CompleterResult> {
     return completeDirectoryPaths(args)
 }

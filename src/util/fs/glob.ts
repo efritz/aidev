@@ -1,14 +1,14 @@
-import { lstatSync, statSync } from 'fs'
+import { lstatSync } from 'fs'
 import { sep } from 'path'
 import { glob } from 'glob'
 
-export function expandFilePatterns(patterns: string[]): string[] {
+export async function expandFilePatterns(patterns: string[]): Promise<string[]> {
     return patterns.flatMap(pattern => {
         if (pattern.includes('*')) {
             return glob.sync(pattern, { nodir: true })
         }
 
-        if (statSync(pattern).isFile()) {
+        if (!isDir(pattern)) {
             return [pattern]
         }
 
@@ -16,7 +16,7 @@ export function expandFilePatterns(patterns: string[]): string[] {
     })
 }
 
-export function expandDirectoryPatterns(patterns: string[]): string[] {
+export async function expandDirectoryPatterns(patterns: string[]): Promise<string[]> {
     return patterns.flatMap(pattern => {
         if (pattern.includes('*')) {
             return glob
@@ -25,7 +25,7 @@ export function expandDirectoryPatterns(patterns: string[]): string[] {
                 .map(r => r.relativePosix() + sep)
         }
 
-        if (statSync(pattern).isDirectory()) {
+        if (isDir(pattern)) {
             return [pattern]
         }
 
@@ -37,7 +37,7 @@ export function expandDirectoryPatterns(patterns: string[]): string[] {
 // This may include both files and directories. Directories will have a trailing slash.
 // This assumes that none of the given prefixes already contain wildcards. If so, they
 // should be expanded independently.
-export function expandPrefixes(prefixes: string[]): string[] {
+export async function expandPrefixes(prefixes: string[]): Promise<string[]> {
     return prefixes.flatMap(prefix =>
         glob
             .sync(prefix + '*')
@@ -50,7 +50,8 @@ export function expandPrefixes(prefixes: string[]): string[] {
 
 function isDir(path: string): boolean {
     try {
-        return lstatSync(path).isDirectory()
+        const stat = lstatSync(path)
+        return stat.isDirectory()
     } catch (error: any) {
         return false
     }

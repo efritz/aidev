@@ -38,6 +38,6 @@ async function handleRollback(context: ChatContext, args: string): Promise<void>
     }
 }
 
-function completeRollback(context: ChatContext, args: string): CompleterResult {
+async function completeRollback(context: ChatContext, args: string): Promise<CompleterResult> {
     return [context.provider.conversationManager.savepoints().filter(name => name.startsWith(args)), args]
 }

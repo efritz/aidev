@@ -4,14 +4,14 @@ import { ChatContext } from './context'
 
 const commandPrefixes = commands.map(({ prefix, expectsArgs }) => prefix + (expectsArgs ? ' ' : ''))
 
-export function completer(context: ChatContext, line: string): CompleterResult {
+export async function completer(context: ChatContext, line: string): Promise<CompleterResult> {
     if (line === '') {
         // Show all meta commands
         return [commandPrefixes, line]
     }
 
     // Complete a specific command (with a fully provided prefix)
-    const commandResult = completeCommand(context, line)
+    const commandResult = await completeCommand(context, line)
     if (commandResult) {
         return commandResult
     }

@@ -52,7 +52,7 @@ export async function handleCommand(context: ChatContext, message: string): Prom
     console.log()
 }
 
-export function completeCommand(context: ChatContext, message: string): CompleterResult | undefined {
+export async function completeCommand(context: ChatContext, message: string): Promise<CompleterResult | undefined> {
     const parts = message.split(' ')
     const command = parts[0]
     const args = parts.slice(1).join(' ').trim()

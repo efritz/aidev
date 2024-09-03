@@ -6,5 +6,5 @@ export type CommandDescription = {
     description: string
     expectsArgs?: boolean
     handler: (context: ChatContext, args: string) => Promise<void>
-    complete?: (context: ChatContext, args: string) => CompleterResult
+    complete?: (context: ChatContext, args: string) => Promise<CompleterResult>
 }

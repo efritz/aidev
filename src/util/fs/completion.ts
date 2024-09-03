@@ -3,15 +3,18 @@ import { sep } from 'path'
 import { CompleterResult } from 'readline'
 import { expandDirectoryPatterns, expandFilePatterns, expandPrefixes } from './glob'
 
-export function completeFilePaths(args: string): CompleterResult {
+export function completeFilePaths(args: string): Promise<CompleterResult> {
     return completePathPatterns(args, expandFilePatterns)
 }
 
-export function completeDirectoryPaths(args: string): CompleterResult {
+export function completeDirectoryPaths(args: string): Promise<CompleterResult> {
     return completePathPatterns(args, expandDirectoryPatterns)
 }
 
-function completePathPatterns(args: string, expandPatterns: (patterns: string[]) => string[]): CompleterResult {
+async function completePathPatterns(
+    args: string,
+    expandPatterns: (patterns: string[]) => Promise<string[]>,
+): Promise<CompleterResult> {
     const last = args.split(' ').pop()!
     const prefix = canonicalizePathPrefix(last)
 
@@ -27,7 +30,7 @@ function completePathPatterns(args: string, expandPatterns: (patterns: string[])
         return [[entries.join(' ') + ' '], last]
     }
 
-    return [expandPrefixes([prefix]), last]
+    return [await expandPrefixes([prefix]), last]
 }
 
 function canonicalizePathPrefix(prefix: string): string {

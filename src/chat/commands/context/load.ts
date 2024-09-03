@@ -1,3 +1,4 @@
+import { CompleterResult } from 'readline'
 import chalk from 'chalk'
 import { completeFilePaths } from '../../../util/fs/completion'
 import { expandFilePatterns } from '../../../util/fs/glob'
@@ -27,7 +28,7 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
         return
     }
 
-    const filePaths = (await filterIgnoredPaths(expandFilePatterns(patterns))).sort()
+    const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
 
     if (filePaths.length === 0) {
         console.log(chalk.red.bold('No files matched the provided patterns.'))
@@ -44,6 +45,6 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
     console.log('')
 }
 
-function completeLoad(context: ChatContext, args: string) {
+function completeLoad(context: ChatContext, args: string): Promise<CompleterResult> {
     return completeFilePaths(args)
 }

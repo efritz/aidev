@@ -1,3 +1,4 @@
+import { CompleterResult } from 'readline'
 import chalk from 'chalk'
 import { ChatContext } from '../../context'
 import { replayMessages } from '../../history'
@@ -30,6 +31,6 @@ async function handleSwitch(context: ChatContext, args: string) {
     replayMessages(context.provider.conversationManager.visibleMessages())
 }
 
-function completeSwitch(context: ChatContext, args: string): [string[], string] {
+async function completeSwitch(context: ChatContext, args: string): Promise<CompleterResult> {
     return [context.provider.conversationManager.branches().filter(name => name.startsWith(args)), args]
 }

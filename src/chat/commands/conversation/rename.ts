@@ -1,3 +1,4 @@
+import { CompleterResult } from 'readline'
 import chalk from 'chalk'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
@@ -41,10 +42,11 @@ async function handleRename(context: ChatContext, args: string) {
     console.log()
 }
 
-function completeRename(context: ChatContext, args: string): [string[], string] {
+async function completeRename(context: ChatContext, args: string): Promise<CompleterResult> {
     const parts = args.split(' ').filter(p => p.trim() !== '')
     if (parts.length === 0) {
         return [context.provider.conversationManager.branches(), args]
     }
+
     return [[], args]
 }
