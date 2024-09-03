@@ -30,4 +30,4 @@ export type ProviderOptions = {
     maxTokens?: number
 }
 
-export type ProviderFactory = (opts: ProviderOptions) => Provider
+export type ProviderFactory = (opts: ProviderOptions) => Promise<Provider>

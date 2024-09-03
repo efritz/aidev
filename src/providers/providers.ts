@@ -9,7 +9,7 @@ import { Provider, ProviderSpec } from './provider'
 const providers: ProviderSpec[] = [anthropicProvider, openAIProvider, googleProvider, groqProvider, ollamaProvider]
 export const modelNames = providers.flatMap(({ models }) => models.map(({ name }) => name)).sort()
 
-export function createProvider(contextState: ContextState, modelName: string, system: string): Provider {
+export function createProvider(contextState: ContextState, modelName: string, system: string): Promise<Provider> {
     const pairs = providers.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
 
     const pair = pairs.find(({ model: { name } }) => name === modelName)

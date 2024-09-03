@@ -27,14 +27,14 @@ export const provider: ProviderSpec = {
     factory: createOpenAIProvider,
 }
 
-function createOpenAIProvider({
+async function createOpenAIProvider({
     contextState,
     model: { model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
-}: ProviderOptions): Provider {
-    const apiKey = getKey('openai')
+}: ProviderOptions): Promise<Provider> {
+    const apiKey = await getKey('openai')
     const client = new OpenAI({ apiKey })
     const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 

@@ -31,14 +31,14 @@ export const provider: ProviderSpec = {
     factory: createAnthropicProvider,
 }
 
-function createAnthropicProvider({
+async function createAnthropicProvider({
     contextState,
     model: { model, options: modelOptions },
     system,
     temperature = 0.0,
     maxTokens = modelOptions?.maxTokens || 4096,
-}: ProviderOptions): Provider {
-    const apiKey = getKey('anthropic')
+}: ProviderOptions): Promise<Provider> {
+    const apiKey = await getKey('anthropic')
     const defaultHeaders = modelOptions?.headers
     const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
     const { providerMessages, ...conversationManager } = createConversation(contextState)

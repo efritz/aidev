@@ -103,7 +103,8 @@ async function chat(model: string, historyFilename?: string, port?: number) {
 
     const contextState = createContextState()
     const system = await buildSystemPrompt()
-    await chatWithProvider(contextState, createProvider(contextState, model, system), model, historyFilename, port)
+    const provider = await createProvider(contextState, model, system)
+    await chatWithProvider(contextState, provider, model, historyFilename, port)
 }
 
 async function chatWithProvider(

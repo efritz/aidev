@@ -23,14 +23,14 @@ export const provider: ProviderSpec = {
     factory: createGoogleProvider,
 }
 
-function createGoogleProvider({
+async function createGoogleProvider({
     contextState,
     model: { model: modelName },
     system,
     temperature = 0.0,
     maxTokens = 4096,
-}: ProviderOptions): Provider {
-    const apiKey = getKey('google')
+}: ProviderOptions): Promise<Provider> {
+    const apiKey = await getKey('google')
     const client = new GoogleGenerativeAI(apiKey)
     const { providerMessages, ...conversationManager } = createConversation(contextState)
 

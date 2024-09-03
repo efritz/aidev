@@ -20,14 +20,14 @@ export const provider: ProviderSpec = {
     factory: createGroqProvider,
 }
 
-function createGroqProvider({
+async function createGroqProvider({
     contextState,
     model: { model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
-}: ProviderOptions): Provider {
-    const apiKey = getKey('groq')
+}: ProviderOptions): Promise<Provider> {
+    const apiKey = await getKey('groq')
     const client = new Groq({ apiKey })
     const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
