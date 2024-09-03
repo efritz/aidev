@@ -1,7 +1,7 @@
-import * as fs from 'fs'
-import * as http from 'http'
+import { existsSync } from 'fs'
+import { createServer as _createServer, Server, ServerResponse } from 'http'
 import { AddressInfo } from 'net'
-import * as vscode from 'vscode'
+import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
 import { modelNames } from './providers/providers'
 
 const sseHeaders = {
@@ -14,8 +14,8 @@ const jsonHeaders = {
     'Content-Type': 'application/json',
 }
 
-export function activate(context: vscode.ExtensionContext) {
-    const sseClients = new Set<http.ServerResponse>()
+export function activate(context: ExtensionContext) {
+    const sseClients = new Set<ServerResponse>()
     const openDocumentURIs = new Set(pathFromTabGroups())
 
     const sendSSEUpdate = () => {
@@ -26,9 +26,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     const onTextDocumentChange =
         (isOpening: boolean) =>
-        ({ uri: { fsPath: path } }: vscode.TextDocument) => {
+        ({ uri: { fsPath: path } }: TextDocument) => {
             if (isOpening) {
-                if (fs.existsSync(path)) {
+                if (existsSync(path)) {
                     openDocumentURIs.add(path)
                 }
             } else {
@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
     const createServer = () =>
-        http.createServer((req, res) => {
+        _createServer((req, res) => {
             try {
                 if (req.url !== '/open-documents') {
                     res.writeHead(404)
@@ -59,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
 
-    const startServer = async (server: http.Server): Promise<number> => {
+    const startServer = async (server: Server): Promise<number> => {
         await new Promise<void>((resolve, reject) => {
             server.on('error', reject)
             server.listen(0, resolve)
@@ -68,8 +68,8 @@ export function activate(context: vscode.ExtensionContext) {
         return (server.address() as AddressInfo).port
     }
 
-    const createTerminal = async (command: string): Promise<vscode.Terminal> => {
-        const terminal = vscode.window.createTerminal('aidev')
+    const createTerminal = async (command: string): Promise<Terminal> => {
+        const terminal = window.createTerminal('aidev')
         await terminal.processId
         terminal.sendText(`${command}; exit`)
         terminal.show()
@@ -84,24 +84,24 @@ export function activate(context: vscode.ExtensionContext) {
             const options = [`--port ${port}`, ...(model ? [`--model ${model}`] : [])]
             const terminal = await createTerminal(`ai ${options.join(' ')}`)
 
-            vscode.window.onDidCloseTerminal(t => {
+            window.onDidCloseTerminal(t => {
                 if (t === terminal) {
                     server.close()
                 }
             })
         } catch (error: any) {
-            vscode.window.showErrorMessage(`Failed to start chat: ${error.message}`)
+            window.showErrorMessage(`Failed to start chat: ${error.message}`)
         }
     }
 
-    const chatModel = async () => chat(await vscode.window.showQuickPick(modelNames))
+    const chatModel = async () => chat(await window.showQuickPick(modelNames))
 
     context.subscriptions.push(
         ...[
-            vscode.commands.registerCommand('aidev.chat', chat),
-            vscode.commands.registerCommand('aidev.chat-model', chatModel),
-            vscode.workspace.onDidOpenTextDocument(onTextDocumentChange(true)),
-            vscode.workspace.onDidCloseTextDocument(onTextDocumentChange(false)),
+            commands.registerCommand('aidev.chat', chat),
+            commands.registerCommand('aidev.chat-model', chatModel),
+            workspace.onDidOpenTextDocument(onTextDocumentChange(true)),
+            workspace.onDidCloseTextDocument(onTextDocumentChange(false)),
         ],
     )
 }
@@ -109,14 +109,14 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 function pathFromTabGroups() {
-    return vscode.window.tabGroups.all
+    return window.tabGroups.all
         .flatMap(tabGroup => tabGroup.tabs)
         .map(tab => pathFromTab(tab) ?? '')
         .filter(path => path !== '')
 }
 
-function pathFromTab(tab: vscode.Tab): string | undefined {
-    if (!(tab.input instanceof vscode.TabInputText)) {
+function pathFromTab(tab: Tab): string | undefined {
+    if (!(tab.input instanceof TabInputText)) {
         return undefined
     }
 
@@ -124,7 +124,7 @@ function pathFromTab(tab: vscode.Tab): string | undefined {
 }
 
 function pathsRelativeToWorkspaceRoot(paths: string[]): string[] {
-    const folders = vscode.workspace.workspaceFolders ?? []
+    const folders = workspace.workspaceFolders ?? []
     if (folders.length !== 1) {
         return []
     }
