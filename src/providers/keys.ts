@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { homedir } from 'os'
 import path from 'path'

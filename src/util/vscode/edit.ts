@@ -1,5 +1,5 @@
 import { spawn } from 'child_process'
-import { readFileSync } from 'fs'
+import { readFile } from 'fs/promises'
 import { withTempFileContents } from '../fs/temp'
 import { withFileWatcher } from '../fs/watch'
 import { CancelError, InterruptHandler } from '../interrupts/interrupts'
@@ -27,10 +27,13 @@ function withEditorOverTempFile(
                 () =>
                     new Promise<string>((resolve, reject) => {
                         watcher.on('change', () => {
-                            const newContent = readFileSync(tempPath, 'utf-8')
-                            if (newContent !== contents) {
-                                resolve(newContent)
-                            }
+                            readFile(tempPath, 'utf-8')
+                                .then(newContent => {
+                                    if (newContent !== contents) {
+                                        resolve(newContent)
+                                    }
+                                })
+                                .catch(() => {})
                         })
 
                         spawn('code', [...args(tempPath), '--wait'])
