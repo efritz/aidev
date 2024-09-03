@@ -12,19 +12,21 @@ export async function handler(context: ChatContext) {
     let restoreState = false
 
     while (true) {
-        const oldRestoreState = restoreState
+        const controller = new AbortController()
+        const previousRestoreState = restoreState
         restoreState = false
 
-        const controller = new AbortController()
-        context.contextState.events.addListener('open-files-changed', () => {
+        const listener = () => {
             controller.abort()
             restoreState = true
-        })
+        }
+
+        context.contextState.events.addListener('open-files-changed', listener)
 
         try {
             const currentBranch = context.provider.conversationManager.currentBranch()
             const prompt = `[${currentBranch}] $ `
-            const message = await context.prompter.question(prompt, controller.signal, oldRestoreState)
+            const message = await context.prompter.question(prompt, controller.signal, previousRestoreState)
             await handle(context, message.trim())
         } catch (error: any) {
             if (error instanceof ExitError) {
@@ -33,7 +35,7 @@ export async function handler(context: ChatContext) {
 
             throw error
         } finally {
-            context.contextState.events.removeAllListeners('open-files-changed')
+            context.contextState.events.removeListener('open-files-changed', listener)
         }
     }
 }

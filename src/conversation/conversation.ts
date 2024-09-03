@@ -1,6 +1,11 @@
-import { Dirent, readdirSync, readFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-import { ContextState, shouldIncludeDirectory, shouldIncludeFile } from '../context/state'
+import {
+    ContextDirectory,
+    ContextFile,
+    ContextState,
+    shouldIncludeDirectory,
+    shouldIncludeFile,
+} from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 
 export type Conversation<T> = ConversationManager & {
@@ -99,38 +104,20 @@ export function createConversation<T>({
     }
 
     const providerMessages = (): T[] => {
-        type FileContent = { content: string } | { error: string }
-        type DirectoryEntry = { name: string; isFile: boolean; isDirectory: boolean }
-        type DirectoryContent = { entries: DirectoryEntry[] } | { error: string }
-
         const messages = visibleMessages()
-        const fileContents = new Map<string, FileContent>()
-        const directoryContents = new Map<string, DirectoryContent>()
+        const fileContents = new Map<string, ContextFile['content']>()
+        const directoryContents = new Map<string, ContextDirectory['entries']>()
         const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
 
-        for (const [_, file] of contextState.files.entries()) {
+        for (const file of contextState.files.values()) {
             if (shouldIncludeFile(file, visibleToolUseIds)) {
-                try {
-                    fileContents.set(file.path, { content: readFileSync(file.path, 'utf-8').toString() })
-                } catch (error: any) {
-                    fileContents.set(file.path, { error: `Error reading file: ${error.message}` })
-                }
+                fileContents.set(file.path, file.content)
             }
         }
 
-        for (const [_, directory] of contextState.directories.entries()) {
+        for (const directory of contextState.directories.values()) {
             if (shouldIncludeDirectory(directory, visibleToolUseIds)) {
-                try {
-                    directoryContents.set(directory.path, {
-                        entries: readdirSync(directory.path, { withFileTypes: true }).map((entry: Dirent) => ({
-                            name: entry.name,
-                            isFile: entry.isFile(),
-                            isDirectory: entry.isDirectory(),
-                        })),
-                    })
-                } catch (error: any) {
-                    directoryContents.set(directory.path, { error: `Error reading directory: ${error.message}` })
-                }
+                directoryContents.set(directory.path, directory.entries)
             }
         }
 
