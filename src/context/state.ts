@@ -40,46 +40,35 @@ export function createContextState(): ContextState {
     const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false })
     const dispose = () => watcher.close()
 
-    const readFileContent = async (path: string): Promise<string | { error: string }> => {
-        try {
-            return (await readFile(path, 'utf-8')).toString()
-        } catch (error: any) {
-            return { error: `Error reading file: ${error.message}` }
-        }
-    }
-
-    const readDirectoryEntries = async (path: string): Promise<DirectoryEntry[] | { error: string }> => {
-        try {
-            return (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
-                name: entry.name,
-                isFile: entry.isFile(),
-                isDirectory: entry.isDirectory(),
-            }))
-        } catch (error: any) {
-            return { error: `Error reading directory: ${error.message}` }
-        }
-    }
-
-    const updateFile = async (path: string) => {
+    watcher.on('all', async (eventName: string, path: string) => {
         const file = files.get(path)
         if (file) {
-            file.content = await readFileContent(path)
+            try {
+                file.content = (await readFile(path, 'utf-8')).toString()
+            } catch (error: any) {
+                file.content = { error: `Error reading file: ${error.message}` }
+            }
+
             events.emit('change', path)
         }
-    }
+    })
 
-    const updateDirectory = async (path: string) => {
+    watcher.on('all', async (eventName: string, path: string) => {
         const directory = directories.get(path)
         if (directory) {
-            directory.entries = await readDirectoryEntries(path)
+            try {
+                directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
+                    name: entry.name,
+                    isFile: entry.isFile(),
+                    isDirectory: entry.isDirectory(),
+                }))
+            } catch (error: any) {
+                directory.entries = { error: `Error reading directory: ${error.message}` }
+            }
+
             events.emit('change', path)
         }
-    }
-
-    watcher.on('change', updateFile)
-    watcher.on('change', updateDirectory)
-    watcher.on('unlink', updateFile)
-    watcher.on('unlinkDir', updateDirectory)
+    })
 
     const files = new Map<string, ContextFile>()
     const directories = new Map<string, ContextDirectory>()
@@ -90,7 +79,11 @@ export function createContextState(): ContextState {
             return file
         }
 
-        const newFile: ContextFile = { path, inclusionReasons: [], content: readFileContent(path) }
+        const newFile: ContextFile = {
+            path,
+            inclusionReasons: [],
+            content: { error: 'File not yet read' },
+        }
         files.set(path, newFile)
         watcher.add(path)
         return newFile
@@ -102,7 +95,11 @@ export function createContextState(): ContextState {
             return directory
         }
 
-        const newDirectory: ContextDirectory = { path, inclusionReasons: [], entries: readDirectoryEntries(path) }
+        const newDirectory: ContextDirectory = {
+            path,
+            inclusionReasons: [],
+            entries: { error: 'Directory not yet read' },
+        }
         directories.set(path, newDirectory)
         watcher.add(path)
         return newDirectory
