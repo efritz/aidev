@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs'
+import { readFile } from 'fs/promises'
 import readline from 'readline'
 import { program } from 'commander'
 import { completer } from './chat/completer'
@@ -76,8 +76,8 @@ Remember:
 Begin your assistance by analyzing the user's query and providing an appropriate response.
 `
 
-function buildSystemPrompt(): string {
-    const parts = [basicSystemPrompt, buildProjectInstructions()]
+async function buildSystemPrompt(): Promise<string> {
+    const parts = [basicSystemPrompt, await buildProjectInstructions()]
 
     return parts
         .map(part => part.trim())
@@ -85,10 +85,10 @@ function buildSystemPrompt(): string {
         .join('\n\n')
 }
 
-function buildProjectInstructions(): string {
+async function buildProjectInstructions(): Promise<string> {
     try {
         const path = 'aidev.system'
-        const instructions = readFileSync(path, 'utf-8')
+        const instructions = await readFile(path, 'utf-8')
 
         return `# Project-specific instructions\n\n${instructions}`
     } catch (error: any) {}
@@ -102,7 +102,7 @@ async function chat(model: string, historyFilename?: string, port?: number) {
     }
 
     const contextState = createContextState()
-    const system = buildSystemPrompt()
+    const system = await buildSystemPrompt()
     await chatWithProvider(contextState, createProvider(contextState, model, system), model, historyFilename, port)
 }
 
