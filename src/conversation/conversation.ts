@@ -356,7 +356,6 @@ export function createConversation<T>({
         saveSnapshot()
         const prunedBranches = doRemoveBranch(name)
         if (newBranchName) {
-            console.log('SWITCHING TO AVAILABLE PARENT')
             pushMeta({ type: 'switch', name: newBranchName })
         }
         return { success: true, prunedBranches }
