@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import { writeFile as _writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import chalk from 'chalk'
 import { CancelError } from '../../util/interrupts/interrupts'
@@ -63,11 +63,9 @@ export const writeFile: Tool = {
         }
 
         const dir = dirname(path)
-        if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true })
-        }
+        await mkdir(dir, { recursive: true })
+        await _writeFile(path, editedContents)
 
-        writeFileSync(path, editedContents)
         console.log(`${chalk.dim('ℹ')} Wrote file.`)
 
         const result = {
