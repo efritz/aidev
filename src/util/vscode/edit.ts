@@ -1,15 +1,27 @@
 import { spawn } from 'child_process'
 import { readFileSync } from 'fs'
-import { withTempFile } from '../fs/temp'
+import { withTempFileContents } from '../fs/temp'
 import { withFileWatcher } from '../fs/watch'
 import { CancelError, InterruptHandler } from '../interrupts/interrupts'
 
-export function editString(
+export function withContentEditor(interruptHandler: InterruptHandler, contents: string): Promise<string> {
+    return withEditorOverTempFile(interruptHandler, contents, tempPath => [tempPath])
+}
+
+export function withDiffEditor(
     interruptHandler: InterruptHandler,
-    args: (tempPath: string) => string[],
+    originalPath: string,
     contents: string,
 ): Promise<string> {
-    return withTempFile(contents, async tempPath =>
+    return withEditorOverTempFile(interruptHandler, contents, tempPath => ['--diff', originalPath, tempPath])
+}
+
+function withEditorOverTempFile(
+    interruptHandler: InterruptHandler,
+    contents: string,
+    args: (tempPath: string) => string[],
+): Promise<string> {
+    return withTempFileContents(contents, tempPath =>
         withFileWatcher(tempPath, watcher =>
             interruptHandler.withInterruptHandler(
                 () =>

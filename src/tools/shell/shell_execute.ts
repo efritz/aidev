@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import treeKill from 'tree-kill'
 import { CancelError } from '../../util/interrupts/interrupts'
 import { prefixFormatter, Updater, withProgress } from '../../util/progress/progress'
-import { editString } from '../../util/vscode/edit'
+import { withContentEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
@@ -122,7 +122,7 @@ async function confirmCommand(context: ExecutionContext, command: string): Promi
 
             case 'e':
                 try {
-                    command = await editString(context.interruptHandler, tempFile => [tempFile], command)
+                    command = await withContentEditor(context.interruptHandler, command)
 
                     console.log()
                     console.log(`${chalk.dim('ℹ')} Command edited:`)

@@ -1,15 +1,25 @@
-import { randomBytes } from 'crypto'
-import { unlink, writeFile } from 'fs/promises'
+import { mkdir, rm, writeFile } from 'fs/promises'
+import path from 'path'
+import { generateRandomName } from '../random/random'
 
-export async function withTempFile<T>(content: string, f: (filename: string) => Promise<T>): Promise<T> {
-    const tempPath = `/tmp/aidev-${randomBytes(16).toString('hex')}`
-    await writeFile(tempPath, content)
+export async function withTempDir<T>(f: (dirPath: string) => Promise<T>): Promise<T> {
+    const tempDir = `.aidev-${generateRandomName()}`
+    await mkdir(tempDir, { recursive: true })
 
     try {
-        return await f(tempPath)
+        return await f(tempDir)
     } finally {
-        try {
-            await unlink(tempPath)
-        } catch (error: any) {}
+        await rm(tempDir, { recursive: true, force: true })
     }
+}
+
+export async function withTempFile<T>(f: (filePath: string) => Promise<T>): Promise<T> {
+    return withTempDir(tempDir => f(path.join(tempDir, generateRandomName())))
+}
+
+export async function withTempFileContents<T>(contents: string, f: (filePath: string) => Promise<T>): Promise<T> {
+    return withTempFile(async filePath => {
+        await writeFile(filePath, contents)
+        return await f(filePath)
+    })
 }

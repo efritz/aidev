@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
 import chalk from 'chalk'
 import { CancelError } from '../../util/interrupts/interrupts'
-import { editString } from '../../util/vscode/edit'
+import { withDiffEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
@@ -95,11 +95,7 @@ async function confirmWrite(context: ExecutionContext, path: string, contents: s
 
             case 'd':
                 try {
-                    contents = await editString(
-                        context.interruptHandler,
-                        tempPath => ['--diff', path, tempPath],
-                        contents,
-                    )
+                    contents = await withDiffEditor(context.interruptHandler, path, contents)
 
                     console.log()
                     console.log(`${chalk.dim('ℹ')} File contents edited:`)
