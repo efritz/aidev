@@ -26,7 +26,8 @@ export async function expandDirectoryPatterns(patterns: string[]): Promise<strin
 
                 return (await glob.glob(pattern, { withFileTypes: true }))
                     .filter(entry => entry.isDirectory())
-                    .map(r => r.relativePosix() + sep)
+                    .map(r => r.relativePosix())
+                    .map(path => (path || '.') + sep)
             }),
         )
     ).flat()
