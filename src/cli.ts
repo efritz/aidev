@@ -177,7 +177,7 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
 
 async function chatWithReadline(context: ChatContext, historyFilename?: string) {
     if (historyFilename) {
-        loadHistory(context, historyFilename)
+        await loadHistory(context, historyFilename)
     }
 
     console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.model}...\n`)

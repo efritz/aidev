@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs'
+import { readFile } from 'fs/promises'
 import chalk from 'chalk'
 import { ContextDirectory, ContextFile } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
@@ -6,22 +6,23 @@ import { tools } from '../tools/tools'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
 
-export function loadHistory(context: ChatContext, historyFilename: string): void {
-    const {
-        messages,
-        contextFiles,
-        contextDirectories,
-    }: {
-        messages: Message[]
-        contextFiles: Record<string, ContextFile>
-        contextDirectories: Record<string, ContextDirectory>
-    } = JSON.parse(readFileSync(historyFilename, 'utf8'), (key: string, value: any) => {
-        if (value && value.type === 'ErrorMessage') {
-            return new Error(value.message)
-        }
+type SaveFilePayload = {
+    messages: Message[]
+    contextFiles: Record<string, ContextFile>
+    contextDirectories: Record<string, ContextDirectory>
+}
 
-        return value
-    })
+function reviver(key: string, value: any): any {
+    if (value && value.type === 'ErrorMessage') {
+        return new Error(value.message)
+    }
+
+    return value
+}
+
+export async function loadHistory(context: ChatContext, historyFilename: string): Promise<void> {
+    const content = await readFile(historyFilename, 'utf8')
+    const { messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
 
     context.provider.conversationManager.setMessages(messages)
     context.contextState.files = new Map(Object.entries(contextFiles))
