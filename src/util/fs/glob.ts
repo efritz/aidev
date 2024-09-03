@@ -3,33 +3,33 @@ import { sep } from 'path'
 import { glob } from 'glob'
 
 export async function expandFilePatterns(patterns: string[]): Promise<string[]> {
-    const expanded: string[] = []
-    for (const pattern of patterns) {
-        if (pattern.includes('*')) {
-            expanded.push(...(await glob.glob(pattern, { nodir: true })))
-        } else if (!(await isDir(pattern))) {
-            expanded.push(pattern)
-        }
-    }
+    return (
+        await Promise.all(
+            patterns.map(async pattern => {
+                if (!pattern.includes('*')) {
+                    return (await isDir(pattern)) ? [] : [pattern]
+                }
 
-    return expanded
+                return await glob.glob(pattern, { nodir: true })
+            }),
+        )
+    ).flat()
 }
 
 export async function expandDirectoryPatterns(patterns: string[]): Promise<string[]> {
-    const expanded: string[] = []
-    for (const pattern of patterns) {
-        if (pattern.includes('*')) {
-            expanded.push(
-                ...(await glob.glob(pattern, { withFileTypes: true }))
-                    .filter(entry => entry.isDirectory())
-                    .map(r => r.relativePosix() + sep),
-            )
-        } else if (await isDir(pattern)) {
-            expanded.push(pattern)
-        }
-    }
+    return (
+        await Promise.all(
+            patterns.map(async pattern => {
+                if (!pattern.includes('*')) {
+                    return (await isDir(pattern)) ? [pattern] : []
+                }
 
-    return expanded
+                return (await glob.glob(pattern, { withFileTypes: true }))
+                    .filter(entry => entry.isDirectory())
+                    .map(r => r.relativePosix() + sep)
+            }),
+        )
+    ).flat()
 }
 
 // Expand the given path prefixes to all _immediate_ descendants that match the prefix.
@@ -37,24 +37,16 @@ export async function expandDirectoryPatterns(patterns: string[]): Promise<strin
 // This assumes that none of the given prefixes already contain wildcards. If so, they
 // should be expanded independently.
 export async function expandPrefixes(prefixes: string[]): Promise<string[]> {
-    const expanded: string[] = []
-    for (const prefix of prefixes) {
-        for (let path of await glob.glob(prefix + '*')) {
-            if (await isDir(path)) {
-                // Add a trailing slash to directories
-                path += sep
+    const paths = (await Promise.all(prefixes.map(async prefix => glob.glob(prefix + '*')))).flat()
+    const categorizedPaths = await Promise.all(paths.map(async path => ({ path, isDir: await isDir(path) })))
 
-                if (path === prefix) {
-                    // Do not complete directories to themselves
-                    continue
-                }
-            }
-
-            expanded.push(path)
-        }
-    }
-
-    return expanded
+    return (
+        categorizedPaths
+            // Add a trailing slash to directories
+            .map(({ path, isDir }) => (isDir ? path + sep : path))
+            // Do not complete directories to themselves
+            .filter(path => !(path.endsWith(sep) && prefixes.includes(path)))
+    )
 }
 
 async function isDir(path: string): Promise<boolean> {

@@ -5,18 +5,9 @@ import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 
 export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
-    const nonIgnoredPaths: string[] = []
-    const patternsByIgnoredPath: Record<string, string[]> = {}
-
-    for (const path of paths) {
-        const patterns = await matchingPatterns(path)
-
-        if (patterns.length === 0) {
-            nonIgnoredPaths.push(path)
-        } else {
-            patternsByIgnoredPath[path] = patterns
-        }
-    }
+    const pairs = await Promise.all(paths.map(async path => [path, await matchingPatterns(path)] as [string, string[]]))
+    const patternsByIgnoredPath = new Map(pairs.filter(([_, patterns]) => patterns.length > 0))
+    const nonIgnoredPaths = pairs.filter(([_, patterns]) => patterns.length === 0).map(([path]) => path)
 
     if (!silent) {
         for (const { path, pattern, count } of collectMinimalPaths(patternsByIgnoredPath)) {
@@ -32,10 +23,10 @@ export async function filterIgnoredPaths(paths: string[], silent = false): Promi
 }
 
 function collectMinimalPaths(
-    ignoredPathsByPattern: Record<string, string[]>,
+    ignoredPathsByPattern: Map<string, string[]>,
 ): { path: string; pattern: string; count: number }[] {
     const groups: Record<string, string> = {}
-    for (const [path, patterns] of Object.entries(ignoredPathsByPattern)) {
+    for (const [path, patterns] of ignoredPathsByPattern.entries()) {
         const candidates = patterns
             .map(pattern => [minimizeMatch(path, pattern), pattern])
             .sort((a, b) => a[0].length - b[0].length || a[1].localeCompare(b[1]))
