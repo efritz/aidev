@@ -19,7 +19,7 @@ async function completePathPatterns(
     const prefix = canonicalizePathPrefix(last)
 
     if (prefix.includes('*')) {
-        const entries = expandPatterns([prefix])
+        const entries = await expandPatterns([prefix])
         if (entries.length === 0) {
             return [[], last]
         }
