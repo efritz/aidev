@@ -40,7 +40,7 @@ export function createContextState(): ContextState {
     const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false })
     const dispose = () => watcher.close()
 
-    watcher.on('all', async (eventName: string, path: string) => {
+    const updateFile = async (path: string) => {
         const file = files.get(path)
         if (file) {
             try {
@@ -51,9 +51,9 @@ export function createContextState(): ContextState {
 
             events.emit('change', path)
         }
-    })
+    }
 
-    watcher.on('all', async (eventName: string, path: string) => {
+    const updateDirectory = async (path: string) => {
         const directory = directories.get(path)
         if (directory) {
             try {
@@ -68,7 +68,10 @@ export function createContextState(): ContextState {
 
             events.emit('change', path)
         }
-    })
+    }
+
+    watcher.on('all', async (eventName: string, path: string) => updateFile(path))
+    watcher.on('all', async (eventName: string, path: string) => updateDirectory(path))
 
     const files = new Map<string, ContextFile>()
     const directories = new Map<string, ContextDirectory>()
@@ -84,8 +87,10 @@ export function createContextState(): ContextState {
             inclusionReasons: [],
             content: { error: 'File not yet read' },
         }
+
         files.set(path, newFile)
         watcher.add(path)
+        updateFile(path)
         return newFile
     }
 
@@ -100,8 +105,10 @@ export function createContextState(): ContextState {
             inclusionReasons: [],
             entries: { error: 'Directory not yet read' },
         }
+
         directories.set(path, newDirectory)
         watcher.add(path)
+        updateDirectory(path)
         return newDirectory
     }
 
