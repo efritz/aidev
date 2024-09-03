@@ -45,7 +45,7 @@ export const readFiles: Tool = {
 
         const { paths: patterns } = args as { paths: string[] }
 
-        const filePaths = filterIgnoredPaths(expandFilePatterns(patterns)).sort()
+        const filePaths = (await filterIgnoredPaths(expandFilePatterns(patterns))).sort()
 
         for (const path of filePaths) {
             context.contextState.addFile(path, { type: 'tool_use', toolUseId })

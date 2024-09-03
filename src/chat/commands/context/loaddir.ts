@@ -27,7 +27,7 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
         return
     }
 
-    const directoryPaths = filterIgnoredPaths(expandDirectoryPatterns(patterns)).sort()
+    const directoryPaths = (await filterIgnoredPaths(expandDirectoryPatterns(patterns))).sort()
 
     if (directoryPaths.length === 0) {
         console.log(chalk.red.bold('No directories matched the provided patterns.'))

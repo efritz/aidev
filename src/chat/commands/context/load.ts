@@ -27,7 +27,7 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
         return
     }
 
-    const filePaths = filterIgnoredPaths(expandFilePatterns(patterns)).sort()
+    const filePaths = (await filterIgnoredPaths(expandFilePatterns(patterns))).sort()
 
     if (filePaths.length === 0) {
         console.log(chalk.red.bold('No files matched the provided patterns.'))

@@ -1,23 +1,25 @@
-import { existsSync, readFileSync } from 'fs'
+import { readFile } from 'fs/promises'
 import { dirname, sep } from 'path'
 import { gitignoreToMinimatch } from '@humanwhocodes/gitignore-to-minimatch'
 import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 
-export function filterIgnoredPaths(paths: string[], silent = false): string[] {
-    const patternsByPath: Record<string, string[]> = {}
-    const filteredPaths = paths.filter(path => {
-        const patterns = matchingPatterns(path)
-        if (patterns.length === 0) {
-            return true
-        }
+export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
+    const nonIgnoredPaths: string[] = []
+    const patternsByIgnoredPath: Record<string, string[]> = {}
 
-        patternsByPath[path] = patterns
-        return false
-    })
+    for (const path of paths) {
+        const patterns = await matchingPatterns(path)
+
+        if (patterns.length === 0) {
+            nonIgnoredPaths.push(path)
+        } else {
+            patternsByIgnoredPath[path] = patterns
+        }
+    }
 
     if (!silent) {
-        for (const { path, pattern, count } of collectMinimalPaths(patternsByPath)) {
+        for (const { path, pattern, count } of collectMinimalPaths(patternsByIgnoredPath)) {
             console.log(
                 chalk.yellow(
                     `${chalk.dim('ℹ')} Path ${path} ${count > 1 ? `(${count} occurrences) ` : ''}ignored by ${pattern}.`,
@@ -26,7 +28,7 @@ export function filterIgnoredPaths(paths: string[], silent = false): string[] {
         }
     }
 
-    return filteredPaths
+    return nonIgnoredPaths
 }
 
 function collectMinimalPaths(
@@ -51,8 +53,8 @@ function collectMinimalPaths(
     return Object.values(counts).sort((a, b) => a.path.localeCompare(b.path))
 }
 
-function matchingPatterns(path: string): string[] {
-    return getIgnoredPatterns().filter(pattern => matchPattern(path, pattern))
+async function matchingPatterns(path: string): Promise<string[]> {
+    return (await getIgnoredPatterns()).filter(pattern => matchPattern(path, pattern))
 }
 
 function minimizeMatch(path: string, pattern: string): string {
@@ -73,14 +75,25 @@ function matchPattern(path: string, pattern: string): boolean {
 const ignoreFilePath = 'aidev.ignore'
 let ignoredPatterns: string[] | undefined = undefined
 
-export function getIgnoredPatterns(): string[] {
+export async function getIgnoredPatterns(): Promise<string[]> {
     if (ignoredPatterns === undefined) {
-        ignoredPatterns = existsSync(ignoreFilePath)
-            ? readFileSync(ignoreFilePath, 'utf-8')
-                  .split('\n')
-                  .map(line => gitignoreToMinimatch(line.trim()))
-            : []
+        ignoredPatterns = (await safeReadLines(ignoreFilePath)).map(gitignoreToMinimatch)
     }
 
     return ignoredPatterns
+}
+
+async function safeReadLines(path: string): Promise<string[]> {
+    return (await safeReadFile(path))
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line !== '')
+}
+
+async function safeReadFile(path: string): Promise<string> {
+    try {
+        return await readFile(path, 'utf-8')
+    } catch (error: any) {
+        return ''
+    }
 }
