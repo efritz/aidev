@@ -1,5 +1,6 @@
 import EventEmitter from 'events'
-import { Dirent, readdirSync, readFileSync } from 'fs'
+import { Dirent } from 'fs'
+import { readdir, readFile } from 'fs/promises'
 import chokidar from 'chokidar'
 
 export interface ContextState {
@@ -39,17 +40,17 @@ export function createContextState(): ContextState {
     const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false })
     const dispose = () => watcher.close()
 
-    const readFileContent = (path: string): string | { error: string } => {
+    const readFileContent = async (path: string): Promise<string | { error: string }> => {
         try {
-            return readFileSync(path, 'utf-8').toString()
+            return (await readFile(path, 'utf-8')).toString()
         } catch (error: any) {
             return { error: `Error reading file: ${error.message}` }
         }
     }
 
-    const readDirectoryEntries = (path: string): DirectoryEntry[] | { error: string } => {
+    const readDirectoryEntries = async (path: string): Promise<DirectoryEntry[] | { error: string }> => {
         try {
-            return readdirSync(path, { withFileTypes: true }).map((entry: Dirent) => ({
+            return (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
                 name: entry.name,
                 isFile: entry.isFile(),
                 isDirectory: entry.isDirectory(),
@@ -59,18 +60,18 @@ export function createContextState(): ContextState {
         }
     }
 
-    const updateFile = (path: string) => {
+    const updateFile = async (path: string) => {
         const file = files.get(path)
         if (file) {
-            file.content = readFileContent(path)
+            file.content = await readFileContent(path)
             events.emit('change', path)
         }
     }
 
-    const updateDirectory = (path: string) => {
+    const updateDirectory = async (path: string) => {
         const directory = directories.get(path)
         if (directory) {
-            directory.entries = readDirectoryEntries(path)
+            directory.entries = await readDirectoryEntries(path)
             events.emit('change', path)
         }
     }
