@@ -6,6 +6,7 @@ import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
+import { shouldReprompt } from './reprompt_agent'
 import { runToolsInMessages } from './tools'
 
 export async function handler(context: ChatContext) {
@@ -68,27 +69,8 @@ async function prompt(context: ChatContext): Promise<void> {
             break
         }
 
-        try {
-            const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
-            if (!ranTools) {
-                break
-            }
-
-            if (!reprompt) {
-                const choice = await context.prompter.choice('Continue current prompt', [
-                    { name: 'y', description: 'Re-prompt model' },
-                    { name: 'n', description: 'Supply a new prompt', isDefault: true },
-                ])
-
-                if (choice === 'n') {
-                    console.log(chalk.dim('ℹ') + ' Ending prompt.')
-                    console.log()
-                    break
-                }
-            }
-        } catch (error: any) {
-            console.log(chalk.red(`Failed to run tools: ${error.message}`))
-            console.log()
+        const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
+        if (!ranTools || (!reprompt && !(await shouldReprompt(context)))) {
             break
         }
     }

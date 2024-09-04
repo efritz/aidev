@@ -72,7 +72,7 @@ export const writeFile: Tool = {
             userEditedContents: editedContents !== contents ? editedContents : undefined,
         }
 
-        return { result, reprompt: true }
+        return { result }
     },
     serialize: (result?: any) => (result ? JSON.stringify(result as WriteResult) : ''),
 }

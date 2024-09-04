@@ -2,10 +2,6 @@
 
 ## Features
 
-### Sub-agents
-
-- Add a sub-agent to determine if the AI has more to add after they use a tool. May either replace or complement the current reprompt flag.
-
 ### Context management
 
 - Allow users to control the context explicitly (remove files, for example).
