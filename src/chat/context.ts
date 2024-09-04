@@ -10,3 +10,8 @@ export type ChatContext = {
     provider: Provider
     contextStateManager: ContextStateManager
 }
+
+export function canReprompt(context: ChatContext): boolean {
+    const messages = context.provider.conversationManager.visibleMessages()
+    return messages.length > 0 && messages[messages.length - 1].role === 'user'
+}
