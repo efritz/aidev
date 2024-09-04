@@ -21,20 +21,19 @@ async function handleSave(context: ChatContext, args: string) {
     const filename = `chat-${Math.floor(Date.now() / 1000)}.json`
 
     const messages = context.provider.conversationManager.messages()
-    const contextFiles: Record<string, ContextFile> = Array.from(context.contextState.files).reduce(
+    const contextFiles: Record<string, ContextFile> = Array.from(context.contextStateManager.files).reduce(
         (obj: any, [key, value]) => {
             obj[key] = value
             return obj
         },
         {},
     )
-    const contextDirectories: Record<string, ContextDirectory> = Array.from(context.contextState.directories).reduce(
-        (obj: any, [key, value]) => {
-            obj[key] = value
-            return obj
-        },
-        {},
-    )
+    const contextDirectories: Record<string, ContextDirectory> = Array.from(
+        context.contextStateManager.directories,
+    ).reduce((obj: any, [key, value]) => {
+        obj[key] = value
+        return obj
+    }, {})
 
     const contents: SaveFilePayload = { messages, contextFiles, contextDirectories }
     await writeFile(filename, JSON.stringify(contents, replacer, '\t'))

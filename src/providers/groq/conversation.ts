@@ -19,7 +19,7 @@ export function createConversation(
     system: string,
 ): Conversation<ChatCompletionMessageParam> {
     return createGenericConversation<ChatCompletionMessageParam>({
-        contextState,
+        contextState: contextState,
         userMessageToParam,
         assistantMessagesToParam,
         initialMessage: systemMessageToParam(system),

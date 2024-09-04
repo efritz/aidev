@@ -81,7 +81,7 @@ function printContextFiles(context: ChatContext) {
         .visibleMessages()
         .flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
 
-    const files = Array.from(context.contextState.files.values()).filter(file =>
+    const files = Array.from(context.contextStateManager.files.values()).filter(file =>
         shouldIncludeFile(file, visibleToolUseIds),
     )
 

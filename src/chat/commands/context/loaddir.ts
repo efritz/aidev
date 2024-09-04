@@ -37,7 +37,7 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
     }
 
     for (const path of directoryPaths) {
-        context.contextState.addDirectory(path, { type: 'explicit' })
+        context.contextStateManager.addDirectory(path, { type: 'explicit' })
     }
 
     const message = directoryPaths

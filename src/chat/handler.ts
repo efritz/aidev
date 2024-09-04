@@ -21,7 +21,7 @@ export async function handler(context: ChatContext) {
             restoreState = true
         }
 
-        context.contextState.events.addListener('open-files-changed', listener)
+        context.contextStateManager.events.addListener('open-files-changed', listener)
 
         try {
             const currentBranch = context.provider.conversationManager.currentBranch()
@@ -35,7 +35,7 @@ export async function handler(context: ChatContext) {
 
             throw error
         } finally {
-            context.contextState.events.removeListener('open-files-changed', listener)
+            context.contextStateManager.events.removeListener('open-files-changed', listener)
         }
     }
 }

@@ -49,7 +49,7 @@ export const readDirectories: Tool = {
         const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
 
         for (const path of directoryPaths) {
-            context.contextState.addDirectory(path, { type: 'tool_use', toolUseId })
+            context.contextStateManager.addDirectory(path, { type: 'tool_use', toolUseId })
         }
 
         const message = directoryPaths

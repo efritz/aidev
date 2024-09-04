@@ -6,7 +6,7 @@ import { ChatContext } from './chat/context'
 import { createEditorEventSource, registerEditorListeners } from './chat/editor'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
-import { ContextState, createContextState } from './context/state'
+import { ContextStateManager, createContextState } from './context/state'
 import { Provider } from './providers/provider'
 import { createProvider, modelNames } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
@@ -104,14 +104,14 @@ async function chat(model: string, historyFilename?: string, port?: number) {
         throw new Error('chat command is not supported in this environment.')
     }
 
-    const contextState = createContextState()
+    const contextStateManager = createContextState()
     const system = await buildSystemPrompt()
-    const provider = await createProvider(contextState, model, system)
-    await chatWithProvider(contextState, provider, model, historyFilename, port)
+    const provider = await createProvider(contextStateManager, model, system)
+    await chatWithProvider(contextStateManager, provider, model, historyFilename, port)
 }
 
 async function chatWithProvider(
-    contextState: ContextState,
+    contextStateManager: ContextStateManager,
     provider: Provider,
     model: string,
     historyFilename?: string,
@@ -142,7 +142,7 @@ async function chatWithProvider(
             interruptHandler,
             prompter,
             provider,
-            contextState,
+            contextStateManager,
         }
 
         registerEditorListeners(context, editorEventSource)
@@ -153,7 +153,7 @@ async function chatWithProvider(
         )
     } finally {
         rl.close()
-        contextState.dispose()
+        contextStateManager.dispose()
         editorEventSource?.close()
     }
 }

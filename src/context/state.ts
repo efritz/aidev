@@ -4,10 +4,12 @@ import { readdir, readFile } from 'fs/promises'
 import chokidar from 'chokidar'
 
 export interface ContextState {
-    events: EventEmitter
-    dispose: () => void
     files: Map<string, ContextFile>
     directories: Map<string, ContextDirectory>
+}
+export interface ContextStateManager extends ContextState {
+    events: EventEmitter
+    dispose: () => void
     addFile: (path: string, reason: InclusionReason) => void
     addDirectory: (path: string, reason: InclusionReason) => void
 }
@@ -35,7 +37,7 @@ export type InclusionReason =
     | { type: 'tool_use'; toolUseId: string }
     | { type: 'editor'; currentlyOpen: boolean }
 
-export function createContextState(): ContextState {
+export function createContextState(): ContextStateManager {
     const events = new EventEmitter()
     const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false })
     const dispose = () => watcher.close()

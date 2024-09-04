@@ -6,7 +6,7 @@ import { serializeToolResult } from '../../tools/tools'
 
 export function createConversation(contextState: ContextState, system: string): Conversation<OllamaMessage> {
     return createGenericConversation({
-        contextState,
+        contextState: contextState,
         userMessageToParam,
         assistantMessagesToParam,
         initialMessage: systemMessageToParam(system),

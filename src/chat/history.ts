@@ -11,8 +11,8 @@ export async function loadHistory(context: ChatContext, historyFilename: string)
     const { messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
 
     context.provider.conversationManager.setMessages(messages)
-    context.contextState.files = new Map(Object.entries(contextFiles))
-    context.contextState.directories = new Map(Object.entries(contextDirectories))
+    context.contextStateManager.files = new Map(Object.entries(contextFiles))
+    context.contextStateManager.directories = new Map(Object.entries(contextDirectories))
 
     replayMessages(context.provider.conversationManager.visibleMessages())
 }
