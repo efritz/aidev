@@ -7,6 +7,14 @@ export interface ContextState {
     files: Map<string, ContextFile>
     directories: Map<string, ContextDirectory>
 }
+
+export function createEmptyContextState(): ContextState {
+    return {
+        files: new Map<string, ContextFile>(),
+        directories: new Map<string, ContextDirectory>(),
+    }
+}
+
 export interface ContextStateManager extends ContextState {
     events: EventEmitter
     dispose: () => void
