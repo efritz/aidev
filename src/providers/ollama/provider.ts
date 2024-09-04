@@ -17,13 +17,13 @@ export const provider: ProviderSpec = {
     factory: createOllamaProvider,
 }
 
-function createOllamaProvider({
+async function createOllamaProvider({
     contextState,
     model: { model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
-}: ProviderOptions): Provider {
+}: ProviderOptions): Promise<Provider> {
     const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
