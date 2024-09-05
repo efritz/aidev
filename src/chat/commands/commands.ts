@@ -4,6 +4,7 @@ import { ChatContext } from '../context'
 import { CommandDescription } from './command'
 import { loadCommand } from './context/load'
 import { loaddirCommand } from './context/loaddir'
+import { unloadCommand } from './context/unload'
 import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
 import { branchCommand } from './conversation/branch'
@@ -24,6 +25,7 @@ export const commands: CommandDescription[] = [
     saveCommand,
     loadCommand,
     loaddirCommand,
+    unloadCommand,
     clearCommand,
     savepointCommand,
     rollbackCommand,

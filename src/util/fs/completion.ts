@@ -1,7 +1,7 @@
 import { homedir } from 'os'
 import { sep } from 'path'
 import { CompleterResult } from 'readline'
-import { expandDirectoryPatterns, expandFilePatterns, expandPrefixes } from './glob'
+import { expandDirectoryPatterns, expandFileAndDirectoryPatterns, expandFilePatterns, expandPrefixes } from './glob'
 
 export function completeFilePaths(args: string): Promise<CompleterResult> {
     return completePathPatterns(args, expandFilePatterns)
@@ -9,6 +9,10 @@ export function completeFilePaths(args: string): Promise<CompleterResult> {
 
 export function completeDirectoryPaths(args: string): Promise<CompleterResult> {
     return completePathPatterns(args, expandDirectoryPatterns)
+}
+
+export function completeFileAndDirectoryPaths(args: string): Promise<CompleterResult> {
+    return completePathPatterns(args, expandFileAndDirectoryPatterns)
 }
 
 async function completePathPatterns(

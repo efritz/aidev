@@ -28,19 +28,20 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
         return
     }
 
-    const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
+    const paths = await filterIgnoredPaths(await expandFilePatterns(patterns))
 
-    if (filePaths.length === 0) {
+    if (paths.length === 0) {
         console.log(chalk.red.bold('No files matched the provided patterns.'))
         console.log('')
         return
     }
 
-    for (const path of filePaths) {
+    for (const path of paths) {
         context.contextStateManager.addFile(path, { type: 'explicit' })
     }
 
-    const message = filePaths.map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n')
+    paths.sort()
+    const message = paths.map(path => `${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`).join('\n')
     console.log(message)
     console.log('')
 }

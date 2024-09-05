@@ -28,21 +28,20 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
         return
     }
 
-    const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
+    const paths = await filterIgnoredPaths(await expandDirectoryPatterns(patterns))
 
-    if (directoryPaths.length === 0) {
+    if (paths.length === 0) {
         console.log(chalk.red.bold('No directories matched the provided patterns.'))
         console.log('')
         return
     }
 
-    for (const path of directoryPaths) {
+    for (const path of paths) {
         context.contextStateManager.addDirectory(path, { type: 'explicit' })
     }
 
-    const message = directoryPaths
-        .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
-        .join('\n')
+    paths.sort()
+    const message = paths.map(path => `${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`).join('\n')
     console.log(message)
     console.log('')
 }

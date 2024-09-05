@@ -76,6 +76,7 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:save`: Save the conversation to a file.
 - `:load <patterns, ...>`: Load file contents into the conversation.
 - `:loaddir <patterns, ...>`: Load directory entries into the conversation.
+- `:unload [<patterns, ...>]`: Remove matching files or directories from the conversation.
 - `:clear`: Clear all messages in the conversation.
 - `:savepoint`: Mark a point in the conversation to which you can rollback.
 - `:rollback <savepoint>`: Rollback to a previously defined savepoint.

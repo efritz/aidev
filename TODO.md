@@ -2,10 +2,17 @@
 
 ## Features
 
-### Context management
+1. Personas: Allow additional assistant personas (defined by the user) to check each other's output.
+2. Use aider-style SEARCH/REPLACE to reduce the amount of unchanged content produced by the model.
+3. 
 
-- Allow users to control the context explicitly (remove files, for example).
+## Improvements
 
-### Personas
+1. Only send the last user-interaction onwards to the reprompter sub-agent.
+2. Pass ignore files to glob
+3. 
 
-- Allow additional assistant personas (defined by the user) to check each other's output.
+## Bugs
+
+1. New files can't use `code --diff ...`; just open the single file instead.
+2. 

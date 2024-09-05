@@ -33,6 +33,10 @@ export async function expandDirectoryPatterns(patterns: string[]): Promise<strin
     ).flat()
 }
 
+export async function expandFileAndDirectoryPatterns(patterns: string[]): Promise<string[]> {
+    return (await Promise.all([expandFilePatterns(patterns), expandDirectoryPatterns(patterns)])).flat()
+}
+
 // Expand the given path prefixes to all _immediate_ descendants that match the prefix.
 // This may include both files and directories. Directories will have a trailing slash.
 // This assumes that none of the given prefixes already contain wildcards. If so, they

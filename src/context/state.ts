@@ -20,6 +20,8 @@ export interface ContextStateManager extends ContextState {
     dispose: () => void
     addFile: (path: string, reason: InclusionReason) => void
     addDirectory: (path: string, reason: InclusionReason) => void
+    removeFile: (path: string) => boolean
+    removeDirectory: (path: string) => boolean
 }
 
 export type ContextFile = {
@@ -132,6 +134,30 @@ export function createContextState(): ContextStateManager {
         updateInclusionReasons(inclusionReasons, reason)
     }
 
+    const removeFile = (path: string): boolean => {
+        const file = files.get(path)
+        if (!file) {
+            return false
+        }
+
+        files.delete(path)
+        watcher.unwatch(path)
+        events.emit('remove', path)
+        return true
+    }
+
+    const removeDirectory = (path: string): boolean => {
+        const directory = directories.get(path)
+        if (!directory) {
+            return false
+        }
+
+        directories.delete(path)
+        watcher.unwatch(path)
+        events.emit('remove', path)
+        return true
+    }
+
     const updateInclusionReasons = (reasons: InclusionReason[], reason: InclusionReason) => {
         if (
             (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
@@ -154,7 +180,7 @@ export function createContextState(): ContextStateManager {
         reasons.push(reason)
     }
 
-    return { events, dispose, files, directories, addFile, addDirectory }
+    return { events, dispose, files, directories, addFile, addDirectory, removeFile, removeDirectory }
 }
 
 export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
