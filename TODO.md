@@ -14,5 +14,4 @@
 
 ## Bugs
 
-1. New files can't use `code --diff ...`; just open the single file instead.
-2. 
+1. 

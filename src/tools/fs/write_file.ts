@@ -1,8 +1,10 @@
+import { existsSync } from 'fs'
 import { writeFile as _writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import chalk from 'chalk'
+import { exists } from '../../util/fs/safe'
 import { CancelError } from '../../util/interrupts/interrupts'
-import { withDiffEditor } from '../../util/vscode/edit'
+import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
@@ -82,32 +84,49 @@ async function confirmWrite(context: ExecutionContext, path: string, contents: s
         const choice = await context.prompter.choice(`Write contents to "${path}"`, [
             { name: 'y', description: 'write file to disk' },
             { name: 'n', description: 'skip write and continue conversation', isDefault: true },
-            { name: 'd', description: 'edit file contents in vscode' },
+            (await exists(path))
+                ? { name: 'd', description: 'edit file contents in vscode (diff mode)' }
+                : { name: 'e', description: 'edit file contents in vscode' },
         ])
 
-        switch (choice) {
-            case 'y':
-                return contents
-            case 'n':
-                return undefined
+        try {
+            switch (choice) {
+                case 'y':
+                    return contents
+                case 'n':
+                    return undefined
 
-            case 'd':
-                try {
-                    contents = await withDiffEditor(context.interruptHandler, path, contents)
-
-                    console.log()
-                    console.log(`${chalk.dim('ℹ')} File contents edited:`)
-                    console.log()
-                    console.log(`${formatContent(contents)}`)
-                } catch (error: any) {
-                    if (!(error instanceof CancelError)) {
-                        throw error
+                case 'd': {
+                    const newContents = await withDiffEditor(context.interruptHandler, path, contents)
+                    if (newContents !== contents) {
+                        contents = newContents
+                        displayNewContents(contents)
                     }
+                    break
                 }
 
-                break
+                case 'e': {
+                    const newContents = await withContentEditor(context.interruptHandler, contents)
+                    if (newContents !== contents) {
+                        contents = newContents
+                        displayNewContents(contents)
+                    }
+                    break
+                }
+            }
+        } catch (error: any) {
+            if (!(error instanceof CancelError)) {
+                throw error
+            }
         }
     }
+}
+
+function displayNewContents(contents: string) {
+    console.log()
+    console.log(`${chalk.dim('ℹ')} File contents edited:`)
+    console.log()
+    console.log(`${formatContent(contents)}`)
 }
 
 function formatContent(contents: string): string {
