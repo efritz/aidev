@@ -54,7 +54,7 @@ The set of files included in this dump may change as the conversation progresses
 
 The contents of the dump always include the most recent contents of files and directories as they exist on-disk.
 If a file is modified on-disk during the conversation, the dump will reflect the updated content.
-Invoking the read_files and read_directories tools on paths that already exist in the dump will have no effect.
+The read_files and read_directories tools must only be invoked to add paths not already present in the dump.
 
 # Working together
 
