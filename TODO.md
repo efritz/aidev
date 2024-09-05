@@ -9,8 +9,8 @@
 ## Improvements
 
 1. Only send the last user-interaction onwards to the reprompter sub-agent.
-2. Pass ignore files to glob
-3. 
+2. Pass ignore files to glob.
+3. Context caching after the project info dump at the beginning of the conversation.
 
 ## Bugs
 
