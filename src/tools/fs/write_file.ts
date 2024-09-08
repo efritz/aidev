@@ -1,4 +1,3 @@
-import { existsSync } from 'fs'
 import { writeFile as _writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import chalk from 'chalk'

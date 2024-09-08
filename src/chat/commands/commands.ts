@@ -9,6 +9,8 @@ import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
 import { branchCommand } from './conversation/branch'
 import { clearCommand } from './conversation/clear'
+import { continueCommand } from './conversation/continue'
+import { promptCommand } from './conversation/prompt'
 import { redoCommand } from './conversation/redo'
 import { removeCommand } from './conversation/remove'
 import { renameCommand } from './conversation/rename'
@@ -22,6 +24,8 @@ import { undoCommand } from './conversation/undo'
 export const commands: CommandDescription[] = [
     helpCommand,
     exitCommand,
+    promptCommand,
+    continueCommand,
     saveCommand,
     loadCommand,
     loaddirCommand,
@@ -38,20 +42,21 @@ export const commands: CommandDescription[] = [
     removeCommand,
 ]
 
-export async function handleCommand(context: ChatContext, message: string): Promise<void> {
+export async function handleCommand(context: ChatContext, message: string): Promise<boolean> {
     const parts = message.split(' ')
     const command = parts[0]
     const args = parts.slice(1).join(' ').trim()
 
-    for (const { prefix, handler } of commands) {
+    for (const { prefix, handler, continuePrompt } of commands) {
         if (command === prefix) {
             await handler(context, args)
-            return
+            return continuePrompt?.(context, args) ?? false
         }
     }
 
     console.log(chalk.red.bold(`Unknown command`))
     console.log()
+    return false
 }
 
 export async function completeCommand(context: ChatContext, message: string): Promise<CompleterResult | undefined> {

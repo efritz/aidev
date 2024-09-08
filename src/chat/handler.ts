@@ -4,7 +4,7 @@ import { ProgressFunction } from '../providers/provider'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'
-import { canReprompt, ChatContext } from './context'
+import { ChatContext } from './context'
 import { formatMessage } from './output'
 import { shouldReprompt } from './reprompt_agent'
 import { runToolsInMessages } from './tools'
@@ -46,17 +46,11 @@ async function handle(context: ChatContext, message: string): Promise<void> {
         return
     }
 
-    if (message == ':continue') {
-        if (!canReprompt(context)) {
-            console.log(chalk.red('Cannot continue assistant response directly after an assistant message.'))
+    if (message.startsWith(':')) {
+        if (!(await handleCommand(context, message))) {
             return
         }
     } else {
-        if (message.startsWith(':')) {
-            await handleCommand(context, message)
-            return
-        }
-
         const prunedBranches = context.provider.conversationManager.pushUser({ type: 'text', content: message })
         if (prunedBranches.length > 0) {
             console.log(chalk.yellow(`${chalk.dim('𐌖')} Pruned branches: ${prunedBranches.join(', ')}`))

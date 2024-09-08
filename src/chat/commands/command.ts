@@ -6,5 +6,7 @@ export type CommandDescription = {
     description: string
     expectsArgs?: boolean
     handler: (context: ChatContext, args: string) => Promise<void>
+    valid?: (context: ChatContext) => boolean
     complete?: (context: ChatContext, args: string) => Promise<CompleterResult>
+    continuePrompt?: (context: ChatContext, args: string) => boolean
 }

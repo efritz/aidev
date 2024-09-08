@@ -72,6 +72,7 @@ The following meta commands have special behaviors to manipulate the context or 
 
 - `:help`: Display available commands.
 - `:exit`: Exit the conversation.
+- `:prompt`: Draft a prompt in VSCode.
 - `:continue`: Re-prompt the agent without a user message.
 - `:save`: Save the conversation to a file.
 - `:load <patterns, ...>`: Load file contents into the conversation.
