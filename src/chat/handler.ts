@@ -27,7 +27,7 @@ export async function handler(context: ChatContext) {
         try {
             const currentBranch = context.provider.conversationManager.currentBranch()
             const prompt = `[${currentBranch}] $ `
-            const message = await context.prompter.question(prompt, controller.signal, previousRestoreState)
+            const message = await context.prompter.question(prompt, 'meta', controller.signal, previousRestoreState)
             await handle(context, message.trim())
         } catch (error: any) {
             if (error instanceof ExitError) {

@@ -2,9 +2,27 @@ import { CompleterResult } from 'readline'
 import { commands, completeCommand } from './commands/commands'
 import { canReprompt, ChatContext } from './context'
 
-const commandPrefixes = commands.map(({ prefix, expectsArgs }) => prefix + (expectsArgs ? ' ' : ''))
+export type CompleterType = 'meta' | 'choice'
+
+let completerType: CompleterType | undefined = undefined
+
+export function setCompleterType(type: CompleterType) {
+    completerType = type
+}
 
 export async function completer(context: ChatContext, line: string): Promise<CompleterResult> {
+    switch (completerType) {
+        case 'meta':
+            return metaCompleter(context, line)
+
+        default:
+            return [[], line]
+    }
+}
+
+const commandPrefixes = commands.map(({ prefix, expectsArgs }) => prefix + (expectsArgs ? ' ' : ''))
+
+async function metaCompleter(context: ChatContext, line: string): Promise<CompleterResult> {
     const prefixes = [...commandPrefixes]
     if (canReprompt(context)) {
         prefixes.push(':continue')

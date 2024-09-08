@@ -1,20 +1,32 @@
 import readline from 'readline'
+import { CompleterType, setCompleterType } from '../../chat/completer'
 import { CancelError, InterruptHandler } from '../interrupts/interrupts'
 
 export interface Questioner {
-    question: (prompt: string, signal?: AbortSignal, restoreState?: boolean) => Promise<string>
+    question: (
+        prompt: string,
+        completerType: CompleterType,
+        signal?: AbortSignal,
+        restoreState?: boolean,
+    ) => Promise<string>
 }
 
 export function createQuestioner(rl: readline.Interface, interruptHandler: InterruptHandler): Questioner {
     let buffer = ''
 
     return {
-        question: async (prompt: string, externalSignal?: AbortSignal, restoreState = false): Promise<string> => {
+        question: async (
+            prompt: string,
+            completerType: CompleterType,
+            externalSignal?: AbortSignal,
+            restoreState = false,
+        ): Promise<string> => {
+            rl.setPrompt(prompt)
+            setCompleterType(completerType)
+
             if (!restoreState) {
                 buffer = ''
             }
-
-            rl.setPrompt(prompt)
 
             try {
                 return await interruptHandler.withInterruptHandler<string>(

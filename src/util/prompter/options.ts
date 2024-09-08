@@ -34,7 +34,7 @@ export function createOptioner(questioner: Questioner): Optioner {
         const colorizedHelpText = chalk.bold.red(helpText)
 
         while (true) {
-            const value = await questioner.question(colorizedPrompt)
+            const value = await questioner.question(colorizedPrompt, 'choice')
 
             const option = opts.find(
                 ({ isDefault, name }) =>
