@@ -1,5 +1,7 @@
+import chalk from 'chalk'
 import { AssistantMessage, ToolResult, ToolUse } from '../messages/messages'
 import { ExecutionContext } from '../tools/context'
+import { ExecutionResult } from '../tools/tool'
 import { findTool } from '../tools/tools'
 
 export async function runToolsInMessages(
@@ -23,10 +25,25 @@ async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise
 }
 
 async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ reprompt: boolean }> {
-    const tool = findTool(toolUse.name)
-    const args = toolUse.parameters ? JSON.parse(toolUse.parameters) : {}
-    const { result, error, reprompt } = await tool.execute(context, toolUse.id, args)
-    const toolResult: ToolResult = { type: 'tool_result', toolUse, result, error }
+    const { reprompt, ...rest } = await executeTool(context, toolUse)
+    const toolResult: ToolResult = { type: 'tool_result', toolUse, ...rest }
+
+    if (toolResult.error) {
+        console.log()
+        console.log(chalk.red(`Error: ${toolResult.error.message}`))
+    }
+
     context.provider.conversationManager.pushUser(toolResult)
     return { reprompt: reprompt ?? false }
+}
+
+async function executeTool(context: ExecutionContext, toolUse: ToolUse): Promise<ExecutionResult> {
+    const tool = findTool(toolUse.name)
+    const args = toolUse.parameters ? JSON.parse(toolUse.parameters) : {}
+
+    try {
+        return await tool.execute(context, toolUse.id, args)
+    } catch (error: any) {
+        return { error }
+    }
 }
