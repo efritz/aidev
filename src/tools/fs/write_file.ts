@@ -1,19 +1,20 @@
 import { writeFile as _writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import chalk from 'chalk'
-import { exists } from '../../util/fs/safe'
+import { diffLines } from 'diff'
+import { safeReadFile } from '../../util/fs/safe'
 import { CancelError } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
-type WriteResult = { userCanceled: true } | { userEditedContents?: string }
+export type WriteResult = { userCanceled: true } | { userEditedContents?: string }
 
 export const writeFile: Tool = {
     name: 'write_file',
     description: [
         'Write file contents to disk, creating intermediate directories if necessary.',
-        'The user may choose to modify the file content before writing it to disk.',
+        'The user may choose to modify the file content before writing it to disk. The tool result will include the user-supplied content, if any.',
         'If the conversation context already contains the target path, the conversation will be updated to include the new contents.',
     ].join(' '),
     parameters: {
@@ -40,52 +41,64 @@ export const writeFile: Tool = {
 
         const { path, contents: originalContents } = args as { path: string; contents: string }
         const contents = writeResult.userEditedContents ?? originalContents
-
-        console.log(
-            `${chalk.dim('ℹ')} Wrote file "${chalk.red(path)}"${contents !== originalContents ? ' (contents edited by user)' : ''}:`,
-        )
-        console.log()
-        console.log(formatContent(contents))
-
-        if (error) {
-            console.log()
-            console.log(chalk.bold.red(error))
-        }
+        replayWriteFile(path, contents, originalContents, error)
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, contents } = args as { path: string; contents: string }
-
-        console.log(formatContent(contents))
-
-        const editedContents = await confirmWrite(context, path, contents)
-        if (!editedContents) {
-            console.log(chalk.dim('ℹ') + ' No file was written.\n')
-            return { result: { userCanceled: true } }
-        }
-
-        const dir = dirname(path)
-        await mkdir(dir, { recursive: true })
-        await _writeFile(path, editedContents)
-
-        console.log(`${chalk.dim('ℹ')} Wrote file.`)
-
-        const result = {
-            userEditedContents: editedContents !== contents ? editedContents : undefined,
-        }
-
+        const result = await executeWriteFile(context, path, contents)
         return { result }
     },
     serialize: (result?: any) => (result ? JSON.stringify(result as WriteResult) : ''),
 }
 
-async function confirmWrite(context: ExecutionContext, path: string, contents: string): Promise<string | undefined> {
+export function replayWriteFile(path: string, contents: string, originalContents: string, error?: Error) {
+    const edited = contents !== originalContents
+
+    console.log(`${chalk.dim('ℹ')} Wrote file "${chalk.red(path)}"${edited ? ' (contents edited by user)' : ''}:`)
+    console.log()
+    console.log(formatDiff(contents, originalContents))
+
+    if (error) {
+        console.log()
+        console.log(chalk.bold.red(error))
+    }
+}
+
+export async function executeWriteFile(
+    context: ExecutionContext,
+    path: string,
+    contents: string,
+): Promise<WriteResult> {
+    const originalContents = await safeReadFile(path)
+    console.log(formatDiff(contents, originalContents))
+
+    const editedContents = await confirmWrite(context, path, contents, originalContents)
+    if (!editedContents) {
+        console.log(chalk.dim('ℹ') + ' No file was written.\n')
+        return { userCanceled: true }
+    }
+
+    const dir = dirname(path)
+    await mkdir(dir, { recursive: true })
+    await _writeFile(path, editedContents)
+    console.log(`${chalk.dim('ℹ')} Wrote file.`)
+
+    return { userEditedContents: contents !== editedContents ? editedContents : undefined }
+}
+
+async function confirmWrite(
+    context: ExecutionContext,
+    path: string,
+    contents: string,
+    originalContents: string,
+): Promise<string | undefined> {
     while (true) {
         const choice = await context.prompter.choice(`Write contents to "${path}"`, [
             { name: 'y', description: 'write file to disk' },
             { name: 'n', description: 'skip write and continue conversation', isDefault: true },
-            (await exists(path))
-                ? { name: 'd', description: 'edit file contents in vscode (diff mode)' }
-                : { name: 'e', description: 'edit file contents in vscode' },
+            originalContents === ''
+                ? { name: 'e', description: 'edit file contents in vscode' }
+                : { name: 'd', description: 'edit file contents in vscode (diff mode)' },
         ])
 
         try {
@@ -99,7 +112,7 @@ async function confirmWrite(context: ExecutionContext, path: string, contents: s
                     const newContents = await withDiffEditor(context.interruptHandler, path, contents)
                     if (newContents !== contents) {
                         contents = newContents
-                        displayNewContents(contents)
+                        displayDiff(contents, originalContents)
                     }
                     break
                 }
@@ -108,7 +121,7 @@ async function confirmWrite(context: ExecutionContext, path: string, contents: s
                     const newContents = await withContentEditor(context.interruptHandler, contents)
                     if (newContents !== contents) {
                         contents = newContents
-                        displayNewContents(contents)
+                        displayDiff(contents, originalContents)
                     }
                     break
                 }
@@ -121,16 +134,58 @@ async function confirmWrite(context: ExecutionContext, path: string, contents: s
     }
 }
 
-function displayNewContents(contents: string) {
+function displayDiff(contents: string, originalContents: string) {
     console.log()
     console.log(`${chalk.dim('ℹ')} File contents edited:`)
     console.log()
-    console.log(`${formatContent(contents)}`)
+    console.log(formatDiff(contents, originalContents))
 }
 
-function formatContent(contents: string): string {
-    return contents
-        .split('\n')
-        .map(line => `> ${chalk.red(line)}`)
+const contextSize = 5
+
+function formatDiff(contents: string, originalContents: string): string {
+    const changes = diffLines(originalContents, contents).flatMap(
+        (change): { lines: string[]; added?: boolean; removed?: boolean; header?: boolean }[] => {
+            const lines = trimFinalNewline(change.value).split('\n')
+
+            if (change.added || change.removed || lines.length <= 2 * contextSize) {
+                return [{ lines, added: change.added, removed: change.removed }]
+            }
+
+            return [
+                { lines: lines.slice(0, contextSize) },
+                { lines: ['', '@@ ... @@', ''], header: true },
+                { lines: lines.slice(-contextSize) },
+            ]
+        },
+    )
+
+    // Remove leading context
+    if (changes.length >= 2 && changes[1].header) {
+        changes.splice(0, 2)
+    }
+
+    // Remove trailing context
+    if (changes.length >= 2 && changes[changes.length - 2].header) {
+        changes.splice(-2)
+    }
+
+    return changes
+        .flatMap(change => {
+            if (change.header) {
+                return change.lines.map(line => chalk.magenta(line))
+            } else if (change.added) {
+                return change.lines.map(line => chalk.green(`+ ${line}`))
+            } else if (change.removed) {
+                return change.lines.map(line => chalk.red(`- ${line}`))
+            } else {
+                return change.lines.map(line => chalk.grey(`  ${line}`))
+            }
+        })
         .join('\n')
+        .trim()
+}
+
+function trimFinalNewline(line: string): string {
+    return line.endsWith('\n') ? line.slice(0, -1) : line
 }
