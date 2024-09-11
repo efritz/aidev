@@ -64,7 +64,8 @@ Tools available to the LLMs:
 - `shell_execute`: Execute a `zsh` command.
 - `read_directories`: Reads the contents of directories into the conversation.
 - `read_files`: Reads the contents of files into the conversation.
-- `write_file`: Writes contents to a file on disk.
+- `write_file`: Writes contents to a file.
+- `edit_file`: Modifies the contents of an existing file.
 
 ### Meta Commands
 

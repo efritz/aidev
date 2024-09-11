@@ -3,8 +3,7 @@
 ## Features
 
 1. Personas: Allow additional assistant personas (defined by the user) to check each other's output.
-2. Use aider-style SEARCH/REPLACE to reduce the amount of unchanged content produced by the model.
-3. 
+2. 
 
 ## Improvements
 
