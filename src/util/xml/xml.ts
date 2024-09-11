@@ -2,12 +2,12 @@
 // with the given name. The capture groups are the opening tag, content,
 // and closing tag. If requireClosingTag is false, content will extend
 // to the end of the text if no paired closing tag can be found.
-export function createXmlPattern(name: string, requireClosingTag: boolean = false): RegExp {
+export function createXmlPattern(name: string): RegExp {
     return new RegExp(
         [
-            `(<${name}(?: [^>]*)?)>`, // opening tag
+            `(<${name}(?: [^>]*)?>)`, // opening tag
             '([\\s\\S]*?)', // content
-            `(</${name}>${requireClosingTag ? '' : '|$'})`, // closing tag
+            `(</${name}>|$)`, // closing tag
         ].join(''),
         'g',
     )
@@ -35,7 +35,7 @@ function createSuffixPattern(patterns: string[]): RegExp {
 
 function prefixes(text: string): string[] {
     const prefixes = []
-    for (let i = 0; i <= text.length; i++) {
+    for (let i = 1; i <= text.length; i++) {
         prefixes.push(text.substring(0, i))
     }
 
