@@ -16,8 +16,8 @@ export async function runToolsInMessages(
 
 async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise<{ reprompt: boolean }> {
     let repromptAny = false
-    for (const t of toolUses) {
-        const { reprompt } = await runTool(context, t)
+    for (const toolUse of toolUses) {
+        const { reprompt } = await runTool(context, toolUse)
         repromptAny = repromptAny || reprompt
     }
 

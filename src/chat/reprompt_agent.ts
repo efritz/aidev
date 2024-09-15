@@ -16,7 +16,6 @@ export async function shouldReprompt(context: ChatContext): Promise<boolean> {
 
     const response = await provider.prompt()
     const answer = response.messages[0].type === 'text' && response.messages[0].content.toLowerCase().trim()
-    console.log({ system, answer })
     return answer === 'reprompt'
 }
 
