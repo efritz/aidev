@@ -3,7 +3,8 @@
 ## Features
 
 1. Personas: Allow additional assistant personas (defined by the user) to check each other's output.
-2. 
+2. Add a way to "stash" created files to iterate on them individually after seeing more of the plan.
+3. 
 
 ## Improvements
 
