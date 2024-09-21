@@ -6,7 +6,7 @@ import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from
 import { executeWriteFile, replayWriteFile, WriteResult } from './write_file'
 
 type Edit = { search: string; replacement: string }
-type EditResult = { userCanceled: true } | { originalContents: string; userEdits?: Edit[] }
+type EditResult = { userCanceled: true } | { stashed: boolean; originalContents: string; userEdits?: Edit[] }
 
 export const editFile: Tool = {
     name: 'edit_file',
@@ -66,7 +66,7 @@ export const editFile: Tool = {
         const edits = editResult.userEdits ?? originalEdits
         const originalContents = editResult.originalContents
         const contents = applyEdits(originalContents, edits)
-        replayWriteFile(path, contents, originalContents, error)
+        replayWriteFile(path, contents, originalContents, editResult.stashed, error)
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, edits } = args as { path: string; edits: Edit[] }
@@ -82,7 +82,7 @@ export const editFile: Tool = {
         const editResult = result as EditResult
         return 'userCanceled' in editResult
             ? JSON.stringify(editResult)
-            : JSON.stringify({ userEdits: editResult.userEdits })
+            : JSON.stringify({ stashed: editResult.stashed, userEdits: editResult.userEdits })
     },
 }
 
@@ -92,6 +92,7 @@ function editResultFromWriteResult(writeResult: WriteResult, originalContents: s
     }
 
     return {
+        stashed: writeResult.stashed,
         originalContents,
         ...(writeResult.userEditedContents
             ? { userEdits: editsFromDiff(originalContents, writeResult.userEditedContents) }

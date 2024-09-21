@@ -2,8 +2,8 @@
 
 ## Core Functionality
 - [x] Implement a stash data structure to store file contents (src/context/state.ts)
-- [ ] Modify write_file and edit_file tools to support stashing (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
-- [ ] Update tool execution responses to indicate when a file is stashed (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
+- [x] Modify write_file and edit_file tools to support stashing (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
+- [x] Update tool execution responses to indicate when a file is stashed (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
 
 ## Context and Command Updates
 - [ ] Make stash accessible in exec and chat contexts (src/chat/context.ts, src/tools/context.ts)

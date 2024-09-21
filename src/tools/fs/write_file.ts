@@ -8,7 +8,7 @@ import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
-export type WriteResult = { userCanceled: true } | { userEditedContents?: string }
+export type WriteResult = { userCanceled: true } | { stashed: boolean; userEditedContents?: string }
 
 export const writeFile: Tool = {
     name: 'write_file',
@@ -41,7 +41,7 @@ export const writeFile: Tool = {
 
         const { path, contents: originalContents } = args as { path: string; contents: string }
         const contents = writeResult.userEditedContents ?? originalContents
-        replayWriteFile(path, contents, originalContents, error)
+        replayWriteFile(path, contents, originalContents, writeResult.stashed, error)
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, contents } = args as { path: string; contents: string }
@@ -51,10 +51,17 @@ export const writeFile: Tool = {
     serialize: (result?: any) => (result ? JSON.stringify(result as WriteResult) : ''),
 }
 
-export function replayWriteFile(path: string, contents: string, originalContents: string, error?: Error) {
+export function replayWriteFile(
+    path: string,
+    contents: string,
+    originalContents: string,
+    stashed: boolean,
+    error?: Error,
+) {
+    const verb = stashed ? 'Stashed' : 'Wrote'
     const edited = contents !== originalContents
 
-    console.log(`${chalk.dim('ℹ')} Wrote file "${chalk.red(path)}"${edited ? ' (contents edited by user)' : ''}:`)
+    console.log(`${chalk.dim('ℹ')} ${verb} file "${chalk.red(path)}"${edited ? ' (contents edited by user)' : ''}:`)
     console.log()
     console.log(formatDiff(contents, originalContents))
 
@@ -72,18 +79,27 @@ export async function executeWriteFile(
     const originalContents = await safeReadFile(path)
     console.log(formatDiff(contents, originalContents))
 
-    const editedContents = await confirmWrite(context, path, contents, originalContents)
-    if (!editedContents) {
+    const result = await confirmWrite(context, path, contents, originalContents)
+    if (!result) {
         console.log(chalk.dim('ℹ') + ' No file was written.\n')
         return { userCanceled: true }
     }
+    const { contents: editedContents, stash } = result
 
-    const dir = dirname(path)
-    await mkdir(dir, { recursive: true })
-    await _writeFile(path, editedContents)
-    console.log(`${chalk.dim('ℹ')} Wrote file.`)
+    if (stash) {
+        context.contextStateManager.stashFile(path, originalContents)
+        console.log(`${chalk.dim('ℹ')} Stashed file.`)
+    } else {
+        const dir = dirname(path)
+        await mkdir(dir, { recursive: true })
+        await _writeFile(path, editedContents)
+        console.log(`${chalk.dim('ℹ')} Wrote file.`)
+    }
 
-    return { userEditedContents: contents !== editedContents ? editedContents : undefined }
+    return {
+        stashed: stash,
+        userEditedContents: contents !== editedContents ? editedContents : undefined,
+    }
 }
 
 async function confirmWrite(
@@ -91,7 +107,7 @@ async function confirmWrite(
     path: string,
     contents: string,
     originalContents: string,
-): Promise<string | undefined> {
+): Promise<{ contents: string; stash: boolean } | undefined> {
     while (true) {
         const choice = await context.prompter.choice(`Write contents to "${path}"`, [
             { name: 'y', description: 'write file to disk' },
@@ -99,14 +115,17 @@ async function confirmWrite(
             originalContents === ''
                 ? { name: 'e', description: 'edit file contents in vscode' }
                 : { name: 'd', description: 'edit file contents in vscode (diff mode)' },
+            { name: 's', description: 'stash file contents' },
         ])
 
         try {
             switch (choice) {
                 case 'y':
-                    return contents
+                    return { contents, stash: false }
                 case 'n':
                     return undefined
+                case 's':
+                    return { contents, stash: true }
 
                 case 'd': {
                     const newContents = await withDiffEditor(context.interruptHandler, path, contents)
