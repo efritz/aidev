@@ -87,12 +87,13 @@ export async function executeWriteFile(
     const { contents: editedContents, stash } = result
 
     if (stash) {
-        context.contextStateManager.stashFile(path, originalContents)
+        context.contextStateManager.stashFile(path, editedContents)
         console.log(`${chalk.dim('ℹ')} Stashed file.`)
     } else {
         const dir = dirname(path)
         await mkdir(dir, { recursive: true })
         await _writeFile(path, editedContents)
+        context.contextStateManager.stashedFiles.delete(path)
         console.log(`${chalk.dim('ℹ')} Wrote file.`)
     }
 
