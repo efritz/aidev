@@ -8,7 +8,7 @@
 ## Context and Command Updates
 - [x] Make stash accessible in exec and chat contexts (src/chat/context.ts, src/tools/context.ts)
 - [x] Update :status command to display stashed files (src/chat/commands/conversation/status.ts)
-- [ ] Implement :unstash command to drop stashed files (new file: src/chat/commands/context/unstash.ts)
+- [x] Implement :unstash command to drop stashed files (new file: src/chat/commands/context/unstash.ts)
 - [ ] Implement :write command to write stashed files to disk (new file: src/chat/commands/context/write.ts)
 
 ## Provider and System Prompt Updates

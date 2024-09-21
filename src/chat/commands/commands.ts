@@ -5,6 +5,7 @@ import { CommandDescription } from './command'
 import { loadCommand } from './context/load'
 import { loaddirCommand } from './context/loaddir'
 import { unloadCommand } from './context/unload'
+import { unstashCommand } from './context/unstash'
 import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
 import { branchCommand } from './conversation/branch'
@@ -40,6 +41,7 @@ export const commands: CommandDescription[] = [
     switchCommand,
     renameCommand,
     removeCommand,
+    unstashCommand,
 ]
 
 export async function handleCommand(context: ChatContext, message: string): Promise<boolean> {
