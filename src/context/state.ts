@@ -6,14 +6,14 @@ import chokidar from 'chokidar'
 export interface ContextState {
     files: Map<string, ContextFile>
     directories: Map<string, ContextDirectory>
-    stash: Map<string, string>
+    stashedFiles: Map<string, string>
 }
 
 export function createEmptyContextState(): ContextState {
     return {
         files: new Map<string, ContextFile>(),
         directories: new Map<string, ContextDirectory>(),
-        stash: new Map<string, string>(),
+        stashedFiles: new Map<string, string>(),
     }
 }
 
@@ -209,7 +209,7 @@ export function createContextState(): ContextStateManager {
         addDirectory,
         removeFile,
         removeDirectory,
-        stash,
+        stashedFiles: stash,
         stashFile,
         removeStashedFile,
     }

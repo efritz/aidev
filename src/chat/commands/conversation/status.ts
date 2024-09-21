@@ -112,7 +112,7 @@ function printContextFiles(context: ChatContext) {
 }
 
 function printStashedFiles(context: ChatContext) {
-    const stashedFiles = Array.from(context.contextStateManager.stash.keys())
+    const stashedFiles = Array.from(context.contextStateManager.stashedFiles.keys())
     if (stashedFiles.length === 0) {
         console.log(chalk.yellow('No files are currently stashed.'))
         return

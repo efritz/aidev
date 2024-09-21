@@ -8,11 +8,12 @@ import { formatMessage } from './output'
 
 export async function loadHistory(context: ChatContext, historyFilename: string): Promise<void> {
     const content = await readFile(historyFilename, 'utf8')
-    const { messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
+    const { messages, contextFiles, contextDirectories, stashedFiles }: SaveFilePayload = JSON.parse(content, reviver)
 
     context.provider.conversationManager.setMessages(messages)
     context.contextStateManager.files = new Map(Object.entries(contextFiles))
     context.contextStateManager.directories = new Map(Object.entries(contextDirectories))
+    context.contextStateManager.stashedFiles = new Map(Object.entries(stashedFiles))
 
     replayMessages(context.provider.conversationManager.visibleMessages())
 }
