@@ -15,21 +15,5 @@
 - [ ] Modify provider messages to include stashed file versions (src/providers/*/conversation.ts)
 - [ ] Update system prompt to describe the new stashed files field (src/cli.ts)
 
-## User Interface Enhancements
-- [ ] Implement diff view and editing for :write command (src/chat/commands/context/write.ts, src/util/vscode/edit.ts)
-- [ ] Add user prompts for confirmation before stashing or writing files (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts, src/chat/commands/context/write.ts)
-
 ## Testing and Documentation
-- [ ] Write unit tests for new stash functionality (new files in test/ directory)
-- [ ] Update existing tests to account for stashed files (various files in test/ directory)
-- [ ] Document new commands and functionality in README or user guide (README.md)
-
-## Integration and Refinement
-- [ ] Integrate stash feature with existing file management tools (src/tools/fs/*.ts)
-- [ ] Perform end-to-end testing of the stash workflow (manual testing)
-- [ ] Refine user experience based on testing feedback (various files)
-
-## Final Steps
-- [ ] Review and update all affected documentation (README.md, other docs)
-- [ ] Prepare release notes for the new feature (new file: RELEASE_NOTES.md)
-- [ ] Plan for any necessary user communications or tutorials (external process)
+- [x] Document new commands and functionality in README or user guide (README.md)

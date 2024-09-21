@@ -80,7 +80,7 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:loaddir <patterns, ...>`: Load directory entries into the conversation.
 - `:unload [<patterns, ...>]`: Remove matching files or directories from the conversation.
 - `:clear`: Clear all messages in the conversation.
-- `:savepoint`: Mark a point in the conversation to which you can rollback.
+- `:savepoint <name>`: Mark a point in the conversation to which you can rollback.
 - `:rollback <savepoint>`: Rollback to a previously defined savepoint.
 - `:undo`: Undo the last user action.
 - `:redo`: Redo the last undone action.
@@ -89,6 +89,8 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:switch <branch>`: Switch to an existing branch.
 - `:rename <from_branch> <to_branch>`: Rename an existing branch.
 - `:remove <branch>`: Remove a branch and all its messages.
+- `:write <path>`: Write a stashed file to disk.
+- `:unstash [<patterns, ...>]`: Remove stashed file(s) from the chat context.
 
 ### Project Configuration
 
