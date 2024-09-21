@@ -1,7 +1,7 @@
 # File Edit Stash Feature Implementation Plan
 
 ## Core Functionality
-- [ ] Implement a stash data structure to store file contents (src/context/state.ts)
+- [x] Implement a stash data structure to store file contents (src/context/state.ts)
 - [ ] Modify write_file and edit_file tools to support stashing (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
 - [ ] Update tool execution responses to indicate when a file is stashed (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
 
