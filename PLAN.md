@@ -6,8 +6,8 @@
 - [x] Update tool execution responses to indicate when a file is stashed (src/tools/fs/write_file.ts, src/tools/fs/edit_file.ts)
 
 ## Context and Command Updates
-- [ ] Make stash accessible in exec and chat contexts (src/chat/context.ts, src/tools/context.ts)
-- [ ] Update :status command to display stashed files (src/chat/commands/conversation/status.ts)
+- [x] Make stash accessible in exec and chat contexts (src/chat/context.ts, src/tools/context.ts)
+- [x] Update :status command to display stashed files (src/chat/commands/conversation/status.ts)
 - [ ] Implement :unstash command to drop stashed files (new file: src/chat/commands/context/unstash.ts)
 - [ ] Implement :write command to write stashed files to disk (new file: src/chat/commands/context/write.ts)
 
