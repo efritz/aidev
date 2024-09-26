@@ -1,6 +1,7 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { executeWriteFile } from '../../../tools/fs/write_file'
+import { safeReadFile } from '../../../util/fs/safe'
+import { executeWriteFile } from '../../../util/fs/write'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -20,19 +21,19 @@ async function handleWrite(context: ChatContext, args: string): Promise<void> {
         return
     }
 
-    const stashedContent = context.contextStateManager.stashedFiles.get(path)
+    const stashedContent = context.provider.conversationManager.stashedFiles().get(path)
     if (!stashedContent) {
         console.log(chalk.red.bold(`No stashed content found for "${path}".`))
         console.log()
         return
     }
 
-    const result = await executeWriteFile(context, path, stashedContent)
-    const _ = result // TODO
+    const originalContents = await safeReadFile(path)
+    await executeWriteFile({ ...context, path, contents: stashedContent, originalContents, fromStash: true })
 }
 
 async function completeWrite(context: ChatContext, args: string): Promise<CompleterResult> {
-    const stashedPaths = Array.from(context.contextStateManager.stashedFiles.keys())
+    const stashedPaths = Array.from(context.provider.conversationManager.stashedFiles().keys())
     if (args === '') {
         return [stashedPaths, args]
     }

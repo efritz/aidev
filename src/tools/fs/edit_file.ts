@@ -1,9 +1,9 @@
-import { readFile } from 'fs/promises'
 import chalk from 'chalk'
 import { structuredPatch } from 'diff'
+import { safeReadFile } from '../../util/fs/safe'
+import { executeWriteFile, replayWriteFile, WriteResult } from '../../util/fs/write'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
-import { executeWriteFile, replayWriteFile, WriteResult } from './write_file'
 
 type Edit = { search: string; replacement: string }
 type EditResult = { userCanceled: true } | { stashed: boolean; originalContents: string; userEdits?: Edit[] }
@@ -56,23 +56,30 @@ export const editFile: Tool = {
         required: ['path', 'edits'],
     },
     replay: (args: Arguments, { result, error }: ToolResult) => {
-        const editResult = result as EditResult
-        if ('userCanceled' in editResult) {
-            console.log(chalk.dim('ℹ') + ' No file was written.')
+        if (error) {
+            console.log(chalk.red.bold('An error occurred while writing the file.'))
+            console.log()
             return
         }
 
-        const { path, edits: originalEdits } = args as { path: string; edits: Edit[] }
-        const edits = editResult.userEdits ?? originalEdits
-        const originalContents = editResult.originalContents
-        const contents = applyEdits(originalContents, edits)
-        replayWriteFile(path, contents, originalContents, editResult.stashed, error)
+        const editResult = result as EditResult
+        if ('userCanceled' in editResult) {
+            console.log(chalk.dim('ℹ') + ' No file was written.')
+            console.log()
+            return
+        }
+
+        const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
+        const contents = applyEdits(editResult.originalContents, editResult.userEdits ?? proposedEdits)
+        const proposedContents = applyEdits(editResult.originalContents, proposedEdits)
+        replayWriteFile({ ...editResult, path, contents, proposedContents, error })
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, edits } = args as { path: string; edits: Edit[] }
-        const originalContents = await readFile(path, 'utf8')
-        const result = await executeWriteFile(context, path, applyEdits(originalContents, edits))
-        return { result: editResultFromWriteResult(result, originalContents) }
+        const originalContents = await safeReadFile(path)
+        const contents = applyEdits(originalContents, edits)
+        const result = await executeWriteFile({ ...context, path, contents, originalContents })
+        return { result: editResultFromWriteResult(result) }
     },
     serialize: (result?: any) => {
         if (!result) {
@@ -82,22 +89,27 @@ export const editFile: Tool = {
         const editResult = result as EditResult
         return 'userCanceled' in editResult
             ? JSON.stringify(editResult)
-            : JSON.stringify({ stashed: editResult.stashed, userEdits: editResult.userEdits })
+            : JSON.stringify({
+                  stashed: editResult.stashed,
+                  userEdits: editResult.userEdits,
+              })
     },
 }
 
-function editResultFromWriteResult(writeResult: WriteResult, originalContents: string): EditResult {
+function editResultFromWriteResult(writeResult: WriteResult): EditResult {
     if ('userCanceled' in writeResult) {
         return writeResult
     }
 
-    return {
+    const editResult: EditResult = {
         stashed: writeResult.stashed,
-        originalContents,
-        ...(writeResult.userEditedContents
-            ? { userEdits: editsFromDiff(originalContents, writeResult.userEditedContents) }
-            : {}),
+        originalContents: writeResult.originalContents,
     }
+    if (writeResult.userEditedContents) {
+        editResult.userEdits = editsFromDiff(writeResult.originalContents, writeResult.userEditedContents)
+    }
+
+    return editResult
 }
 
 function applyEdits(content: string, edits: Edit[]): string {

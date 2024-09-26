@@ -30,6 +30,11 @@ export type ConversationManager = {
     addSavepoint(name: string): boolean
     rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
 
+    stashedFiles(): Map<string, string>
+    stashFile(path: string, content: string, originalContent: string, fromStash: boolean): void
+    unstashFile(path: string): boolean
+    applyStashedFile(path: string, content: string, originalContents: string): void
+
     undo(): boolean
     redo(): boolean
 
@@ -190,6 +195,43 @@ export function createConversation<T>({
         }
 
         pushMeta({ type: 'savepoint', name })
+        return true
+    }
+
+    const stashedFiles = (): Map<string, string> => {
+        const stash = new Map<string, string>()
+        for (const message of visibleMessages()) {
+            if (message.role === 'meta') {
+                if (message.type === 'stash') {
+                    stash.set(message.path, message.content)
+                } else if (message.type === 'unstash' || message.type === 'applyStash') {
+                    stash.delete(message.path)
+                }
+            }
+        }
+        return stash
+    }
+
+    const stashFile = (path: string, content: string, originalContent: string, fromStash: boolean) => {
+        pushMeta({ type: 'stash', path, content, originalContent, fromStash })
+        return true
+    }
+
+    const unstashFile = (path: string): boolean => {
+        if (!stashedFiles().has(path)) {
+            return false
+        }
+
+        pushMeta({ type: 'unstash', path })
+        return true
+    }
+
+    const applyStashedFile = (path: string, content: string, originalContent: string): boolean => {
+        if (!stashedFiles().has(path)) {
+            return false
+        }
+
+        pushMeta({ type: 'applyStash', path, content, originalContent })
         return true
     }
 
@@ -400,6 +442,10 @@ export function createConversation<T>({
         savepoints,
         addSavepoint,
         rollbackToSavepoint,
+        stashedFiles,
+        stashFile,
+        unstashFile,
+        applyStashedFile,
         undo,
         redo,
         branchMetadata,

@@ -22,7 +22,6 @@ async function handleSave(context: ChatContext, args: string) {
         messages: context.provider.conversationManager.messages(),
         contextFiles: mapToRecord(context.contextStateManager.files),
         contextDirectories: mapToRecord(context.contextStateManager.directories),
-        stashedFiles: mapToRecord(context.contextStateManager.stashedFiles),
     }
 
     const filename = `chat-${Math.floor(Date.now() / 1000)}.json`
@@ -41,7 +40,6 @@ export type SaveFilePayload = {
     messages: Message[]
     contextFiles: Record<string, ContextFile>
     contextDirectories: Record<string, ContextDirectory>
-    stashedFiles: Record<string, string>
 }
 
 function replacer(key: string, value: any): any {

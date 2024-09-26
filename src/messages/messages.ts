@@ -36,7 +36,16 @@ export type ToolResult = {
     error?: Error
 }
 
-export type MetaMessage = UndoMessage | RedoMessage | SavepointMessage | RollbackMessage | BranchMessage | SwitchMessage
+export type MetaMessage =
+    | UndoMessage
+    | RedoMessage
+    | SavepointMessage
+    | RollbackMessage
+    | BranchMessage
+    | SwitchMessage
+    | StashMessage
+    | UnstashMessage
+    | ApplyStashMessage
 
 export type UndoMessage = { type: 'undo' }
 export type RedoMessage = { type: 'redo' }
@@ -44,3 +53,6 @@ export type SavepointMessage = { type: 'savepoint'; name: string }
 export type RollbackMessage = { type: 'rollback'; target: string }
 export type BranchMessage = { type: 'branch'; name: string }
 export type SwitchMessage = { type: 'switch'; name: string }
+export type StashMessage = { type: 'stash'; path: string; content: string; originalContent: string; fromStash: boolean }
+export type UnstashMessage = { type: 'unstash'; path: string }
+export type ApplyStashMessage = { type: 'applyStash'; path: string; content: string; originalContent: string }

@@ -6,14 +6,12 @@ import chokidar from 'chokidar'
 export interface ContextState {
     files: Map<string, ContextFile>
     directories: Map<string, ContextDirectory>
-    stashedFiles: Map<string, string>
 }
 
 export function createEmptyContextState(): ContextState {
     return {
         files: new Map<string, ContextFile>(),
         directories: new Map<string, ContextDirectory>(),
-        stashedFiles: new Map<string, string>(),
     }
 }
 
@@ -24,8 +22,6 @@ export interface ContextStateManager extends ContextState {
     addDirectory: (path: string, reason: InclusionReason) => void
     removeFile: (path: string) => boolean
     removeDirectory: (path: string) => boolean
-    stashFile: (path: string, content: string) => void
-    removeStashedFile: (path: string) => boolean
 }
 
 export type ContextFile = {
@@ -162,22 +158,6 @@ export function createContextState(): ContextStateManager {
         return true
     }
 
-    const stash = new Map<string, string>()
-
-    const stashFile = (path: string, content: string) => {
-        stash.set(path, content)
-        events.emit('change', path)
-    }
-
-    const removeStashedFile = (path: string): boolean => {
-        if (!stash.delete(path)) {
-            return false
-        }
-
-        events.emit('remove', path)
-        return true
-    }
-
     const updateInclusionReasons = (reasons: InclusionReason[], reason: InclusionReason) => {
         if (
             (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
@@ -209,9 +189,6 @@ export function createContextState(): ContextStateManager {
         addDirectory,
         removeFile,
         removeDirectory,
-        stashedFiles: stash,
-        stashFile,
-        removeStashedFile,
     }
 }
 

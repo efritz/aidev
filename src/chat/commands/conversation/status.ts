@@ -112,15 +112,15 @@ function printContextFiles(context: ChatContext) {
 }
 
 function printStashedFiles(context: ChatContext) {
-    const stashedFiles = Array.from(context.contextStateManager.stashedFiles.keys())
+    const stashedFiles = Array.from(context.provider.conversationManager.stashedFiles().keys())
     if (stashedFiles.length === 0) {
         console.log(chalk.yellow('No files are currently stashed.'))
         return
     }
 
-    stashedFiles.forEach(file => {
-        console.log(`${chalk.cyan(file)} - ${chalk.magenta('stashed')}`)
-    })
+    for (const file of stashedFiles) {
+        console.log(chalk.cyan(file))
+    }
 }
 
 const countUserMessages = (messages: Message[]): number => messages.filter(message => message.role === 'user').length

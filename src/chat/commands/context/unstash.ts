@@ -1,7 +1,5 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { expandFileAndDirectoryPatterns } from '../../../util/fs/glob'
-import { filterIgnoredPaths } from '../../../util/fs/ignore'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -21,33 +19,24 @@ async function handleUnstash(context: ChatContext, args: string): Promise<void> 
 }
 
 export async function handleUnstashPatterns(context: ChatContext, patterns: string[]): Promise<void> {
-    const matchedPaths =
-        patterns.length > 0
-            ? await filterIgnoredPaths(await expandFileAndDirectoryPatterns(patterns))
-            : [...context.contextStateManager.stashedFiles.keys()]
-
-    const unstashedPaths: string[] = []
-    for (const path of matchedPaths) {
-        if (context.contextStateManager.stashedFiles.has(path)) {
-            context.contextStateManager.stashedFiles.delete(path)
-            unstashedPaths.push(path)
+    const stashedFiles = context.provider.conversationManager.stashedFiles()
+    const mismatchedPaths = patterns.filter(p => !stashedFiles.has(p))
+    if (mismatchedPaths.length > 0) {
+        for (const path of mismatchedPaths) {
+            console.log(chalk.red.bold(`No stashed file matching: ${path}`))
+        }
+    } else {
+        for (const path of patterns) {
+            context.provider.conversationManager.unstashFile(path)
+            console.log(`${chalk.dim('ℹ')} Unstashed file "${chalk.red(path)}"`)
         }
     }
 
-    if (unstashedPaths.length === 0) {
-        console.log(chalk.red.bold('No stashed files matched the provided patterns.'))
-        console.log('')
-        return
-    }
-
-    unstashedPaths.sort()
-    const message = unstashedPaths.map(path => `${chalk.dim('ℹ')} Unstashed "${chalk.red(path)}".`).join('\n')
-    console.log(message)
     console.log('')
 }
 
 async function completeUnstash(context: ChatContext, args: string): Promise<CompleterResult> {
-    const stashedPaths = Array.from(context.contextStateManager.stashedFiles.keys())
+    const stashedPaths = Array.from(context.provider.conversationManager.stashedFiles().keys())
     if (args === '') {
         return [stashedPaths, args]
     }

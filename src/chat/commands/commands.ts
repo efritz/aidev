@@ -72,7 +72,12 @@ export async function completeCommand(context: ChatContext, message: string): Pr
         return undefined
     }
 
-    for (const { prefix, complete } of commands) {
+    for (const { prefix, expectsArgs, complete } of commands) {
+        if (expectsArgs && command === prefix && prefix === message) {
+            // Force insert missing space after command
+            return [[command + ' '], command]
+        }
+
         if (complete && command === prefix) {
             return complete(context, args)
         }
