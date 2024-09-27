@@ -3,8 +3,7 @@
 ## Features
 
 1. Personas: Allow additional assistant personas (defined by the user) to check each other's output.
-2. Add a way to "stash" created files to iterate on them individually after seeing more of the plan.
-3. 
+2.
 
 ## Improvements
 
@@ -13,7 +12,9 @@
 3. Intelligent file inclusions based on the query.
 4. Automatic context squashing to optimize token counts (remove thinking, have user modifications directly overwrite tool uses).
 5. Even more intelligent re-prompt agent - capture conversation from the current ask, not the last user text message (which could be clarification).
+6. Expand the write_tool and edit_tool responses to say that the context has been updated.
+7.
 
 ## Bugs
 
-1. 
+1.

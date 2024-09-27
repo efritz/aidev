@@ -26,6 +26,11 @@ async function handleStatus(context: ChatContext, args: string) {
     printContextFiles(context)
     console.log()
 
+    console.log(chalk.bold('Stashed files:'))
+    console.log()
+    printStashedFiles(context)
+    console.log()
+
     console.log(chalk.bold('Branch structure:'))
     console.log()
     printBranch(branchMetadata, branchMetadata['main'], '', true, currentBranch)
@@ -101,8 +106,21 @@ function printContextFiles(context: ChatContext) {
                     return chalk.green('editor')
             }
         })
+
         console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)
     })
+}
+
+function printStashedFiles(context: ChatContext) {
+    const stashedFiles = Array.from(context.provider.conversationManager.stashedFiles().keys())
+    if (stashedFiles.length === 0) {
+        console.log(chalk.yellow('No files are currently stashed.'))
+        return
+    }
+
+    for (const file of stashedFiles) {
+        console.log(chalk.cyan(file))
+    }
 }
 
 const countUserMessages = (messages: Message[]): number => messages.filter(message => message.role === 'user').length

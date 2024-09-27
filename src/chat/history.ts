@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises'
 import chalk from 'chalk'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
 import { tools } from '../tools/tools'
+import { replayWriteFile } from '../util/fs/write'
 import { reviver, SaveFilePayload } from './commands/conversation/save'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
@@ -44,6 +45,30 @@ function replayMetaMessage(message: MetaMessage): void {
 
         case 'savepoint':
             console.log(`${chalk.dim('📌')} Saved state as "${message.name}"`)
+            console.log()
+            break
+
+        case 'stash':
+            if (message.fromStash) {
+                // fallthrough
+            } else {
+                // skip; replayed via tool_result message
+                break
+            }
+
+        case 'applyStash':
+            replayWriteFile({
+                path: message.path,
+                contents: message.content,
+                proposedContents: message.content,
+                originalContents: message.originalContent,
+                stashed: message.type === 'stash',
+                fromStash: true,
+            })
+            break
+
+        case 'unstash':
+            console.log(`${chalk.dim('ℹ')} Unstashed file "${chalk.red(message.path)}"`)
             console.log()
             break
     }

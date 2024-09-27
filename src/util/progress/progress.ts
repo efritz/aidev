@@ -16,6 +16,7 @@ export async function withProgress<T>(f: ProgressSubject<T>, options: ProgressOp
     const spinner = ora({
         text: options.progress(undefined),
         discardStdin: false,
+        spinner: 'sand',
     })
 
     let snapshot: T | undefined

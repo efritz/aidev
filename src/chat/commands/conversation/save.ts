@@ -18,27 +18,22 @@ async function handleSave(context: ChatContext, args: string) {
         return
     }
 
-    const filename = `chat-${Math.floor(Date.now() / 1000)}.json`
+    const contents: SaveFilePayload = {
+        messages: context.provider.conversationManager.messages(),
+        contextFiles: mapToRecord(context.contextStateManager.files),
+        contextDirectories: mapToRecord(context.contextStateManager.directories),
+    }
 
-    const messages = context.provider.conversationManager.messages()
-    const contextFiles: Record<string, ContextFile> = Array.from(context.contextStateManager.files).reduce(
-        (obj: any, [key, value]) => {
-            obj[key] = value
-            return obj
-        },
-        {},
-    )
-    const contextDirectories: Record<string, ContextDirectory> = Array.from(
-        context.contextStateManager.directories,
-    ).reduce((obj: any, [key, value]) => {
+    const filename = `chat-${Math.floor(Date.now() / 1000)}.json`
+    await writeFile(filename, JSON.stringify(contents, replacer, '\t'))
+    console.log(`Chat history saved to ${filename}\n`)
+}
+
+function mapToRecord<K extends string | number | symbol, V>(map: Map<K, V>): Record<K, V> {
+    return Array.from(map).reduce((obj: any, [key, value]) => {
         obj[key] = value
         return obj
     }, {})
-
-    const contents: SaveFilePayload = { messages, contextFiles, contextDirectories }
-    await writeFile(filename, JSON.stringify(contents, replacer, '\t'))
-
-    console.log(`Chat history saved to ${filename}\n`)
 }
 
 export type SaveFilePayload = {

@@ -5,6 +5,8 @@ import { CommandDescription } from './command'
 import { loadCommand } from './context/load'
 import { loaddirCommand } from './context/loaddir'
 import { unloadCommand } from './context/unload'
+import { unstashCommand } from './context/unstash'
+import { writeCommand } from './context/write'
 import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
 import { branchCommand } from './conversation/branch'
@@ -40,6 +42,8 @@ export const commands: CommandDescription[] = [
     switchCommand,
     renameCommand,
     removeCommand,
+    unstashCommand,
+    writeCommand,
 ]
 
 export async function handleCommand(context: ChatContext, message: string): Promise<boolean> {
@@ -68,7 +72,12 @@ export async function completeCommand(context: ChatContext, message: string): Pr
         return undefined
     }
 
-    for (const { prefix, complete } of commands) {
+    for (const { prefix, expectsArgs, complete } of commands) {
+        if (expectsArgs && command === prefix && prefix === message) {
+            // Force insert missing space after command
+            return [[command + ' '], command]
+        }
+
         if (complete && command === prefix) {
             return complete(context, args)
         }

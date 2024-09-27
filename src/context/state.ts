@@ -180,7 +180,16 @@ export function createContextState(): ContextStateManager {
         reasons.push(reason)
     }
 
-    return { events, dispose, files, directories, addFile, addDirectory, removeFile, removeDirectory }
+    return {
+        events,
+        dispose,
+        files,
+        directories,
+        addFile,
+        addDirectory,
+        removeFile,
+        removeDirectory,
+    }
 }
 
 export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
