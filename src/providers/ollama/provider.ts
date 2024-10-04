@@ -8,7 +8,7 @@ import { createStreamReducer } from './reducer'
 const models: Model[] = [
     {
         name: 'llama3',
-        model: 'llama3.1',
+        model: 'llama3.2',
     },
 ]
 
