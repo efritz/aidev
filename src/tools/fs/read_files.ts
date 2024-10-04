@@ -31,13 +31,12 @@ export const readFiles: Tool = {
         },
         required: ['paths'],
     },
-    replay: (args: Arguments, result: ToolResult) => {
-        const filePaths: string[] = result.result || []
-
-        const message = filePaths
-            .map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`)
-            .join('\n')
-        console.log(message)
+    replay: (args: Arguments, { result }: ToolResult) => {
+        console.log(
+            ((result ?? []) as string[])
+                .map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`)
+                .join('\n'),
+        )
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         if (!toolUseId) {
@@ -45,20 +44,18 @@ export const readFiles: Tool = {
         }
 
         const { paths: patterns } = args as { paths: string[] }
-
         const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
 
         for (const path of filePaths) {
             context.contextStateManager.addFile(path, { type: 'tool_use', toolUseId })
         }
 
-        const message = filePaths
-            .map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`)
-            .join('\n')
-        console.log(message)
+        console.log(
+            filePaths.map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),
+        )
         console.log('')
 
         return { result: filePaths, reprompt: true }
     },
-    serialize: (result?: any) => (result ? JSON.stringify({ paths: result as string[] }) : ''),
+    serialize: ({ result: paths }: ToolResult) => JSON.stringify({ paths }),
 }

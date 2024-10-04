@@ -17,7 +17,7 @@ export function findTool(name: string): Tool {
 }
 
 export function serializeToolResult(name: string, message: ToolResult): string {
-    let result = findTool(name).serialize(message.result)
+    let result = findTool(name).serialize(message)
     if (message.error) {
         return (result += `\n\nError: ${message.error.message}`)
     }

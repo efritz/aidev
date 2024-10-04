@@ -1,12 +1,12 @@
 import chalk from 'chalk'
 import { structuredPatch } from 'diff'
 import { safeReadFile } from '../../util/fs/safe'
-import { executeWriteFile, replayWriteFile, WriteResult } from '../../util/fs/write'
+import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 type Edit = { search: string; replacement: string }
-type EditResult = { userCanceled: true } | { stashed: boolean; originalContents: string; userEdits?: Edit[] }
+type EditResult = { stashed: boolean; originalContents: string; userEdits?: Edit[] }
 
 export const editFile: Tool = {
     name: 'edit_file',
@@ -55,16 +55,11 @@ export const editFile: Tool = {
         },
         required: ['path', 'edits'],
     },
-    replay: (args: Arguments, { result, error }: ToolResult) => {
-        if (error) {
-            console.log(chalk.red.bold('An error occurred while writing the file.'))
+    replay: (args: Arguments, { result, error, canceled }: ToolResult) => {
+        const editResult = result as EditResult | undefined
+        if (!editResult) {
             console.log()
-            return
-        }
-
-        const editResult = result as EditResult
-        if ('userCanceled' in editResult) {
-            console.log(chalk.dim('ℹ') + ' No file was written.')
+            console.log(chalk.bold.red(error))
             console.log()
             return
         }
@@ -72,44 +67,38 @@ export const editFile: Tool = {
         const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
         const contents = applyEdits(editResult.originalContents, editResult.userEdits ?? proposedEdits)
         const proposedContents = applyEdits(editResult.originalContents, proposedEdits)
-        replayWriteFile({ ...editResult, path, contents, proposedContents, error })
+        replayWriteFile({ ...editResult, path, contents, proposedContents, error, canceled })
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, edits } = args as { path: string; edits: Edit[] }
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
-        return { result: editResultFromWriteResult(result) }
+        return editExecutionResultFromWriteResult(result)
     },
-    serialize: (result?: any) => {
-        if (!result) {
-            return ''
+    serialize: ({ result, canceled }: ToolResult) => {
+        if (canceled) {
+            return JSON.stringify({ canceled: true })
         }
 
         const editResult = result as EditResult
-        return 'userCanceled' in editResult
-            ? JSON.stringify(editResult)
-            : JSON.stringify({
-                  stashed: editResult.stashed,
-                  userEdits: editResult.userEdits,
-              })
+        return JSON.stringify({
+            stashed: editResult.stashed,
+            userEdits: editResult.userEdits,
+        })
     },
 }
 
-function editResultFromWriteResult(writeResult: WriteResult): EditResult {
-    if ('userCanceled' in writeResult) {
-        return writeResult
-    }
-
+function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult {
     const editResult: EditResult = {
-        stashed: writeResult.stashed,
+        stashed: writeResult.stashed ?? false,
         originalContents: writeResult.originalContents,
     }
     if (writeResult.userEditedContents) {
         editResult.userEdits = editsFromDiff(writeResult.originalContents, writeResult.userEditedContents)
     }
 
-    return editResult
+    return { result: editResult, canceled: writeResult?.canceled }
 }
 
 function applyEdits(content: string, edits: Edit[]): string {

@@ -12,12 +12,10 @@ type OutputLine = {
     content: string
 }
 
-type ShellResult =
-    | { userCanceled: true }
-    | {
-          userEditedCommand?: string
-          output: OutputLine[]
-      }
+type ShellResult = {
+    userEditedCommand?: string
+    output: OutputLine[]
+}
 
 export const shellExecute: Tool = {
     name: 'shell_execute',
@@ -33,14 +31,24 @@ export const shellExecute: Tool = {
         },
         required: ['command'],
     },
-    replay: (args: Arguments, { result, error }: ToolResult) => {
-        const shellResult = result as ShellResult
-        if ('userCanceled' in shellResult) {
+    replay: (args: Arguments, { result, error, canceled }: ToolResult) => {
+        const { command: originalCommand } = args as { command: string }
+
+        if (canceled) {
+            console.log(formatCommand(originalCommand))
+            console.log()
             console.log(chalk.dim('ℹ') + ' No code was executed.')
             return
         }
 
-        const { command: originalCommand } = args as { command: string }
+        const shellResult = result as ShellResult | undefined
+        if (!shellResult) {
+            console.log()
+            console.log(chalk.bold.red(error))
+            console.log()
+            return
+        }
+
         const command = shellResult.userEditedCommand ?? originalCommand
 
         console.log(
@@ -59,13 +67,12 @@ export const shellExecute: Tool = {
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { command } = args as { command: string }
-
         console.log(formatCommand(command))
 
         const editedCommand = await confirmCommand(context, command)
         if (!editedCommand) {
             console.log(chalk.dim('ℹ') + ' No code was executed.\n')
-            return { result: { userCanceled: true } }
+            return { canceled: true }
         }
 
         const response = await withProgress<OutputLine[]>(update => runCommand(context, editedCommand, update), {
@@ -74,32 +81,28 @@ export const shellExecute: Tool = {
             failure: prefixFormatter('Command failed.', formatOutput),
         })
 
+        const userEditedCommand = editedCommand !== command ? editedCommand : undefined
+
         if (!response.ok) {
             console.log(chalk.bold.red(response.error))
             console.log()
 
-            const result = {
-                userEditedCommand: editedCommand !== command ? editedCommand : undefined,
-                output: response.snapshot,
-            }
-
-            return { result, error: response.error }
+            return { result: { userEditedCommand, output: response.snapshot ?? [] }, error: response.error }
         } else {
-            const result = {
-                userEditedCommand: editedCommand !== command ? editedCommand : undefined,
-                output: response.response,
-            }
-
-            return { result }
+            return { result: { userEditedCommand, output: response.response } }
         }
     },
-    serialize: (result?: any) =>
-        result
-            ? JSON.stringify({
-                  ...result,
-                  ...('output' in (result as ShellResult) ? { output: serializeOutput(result.output) } : {}),
-              })
-            : '',
+    serialize: ({ result, canceled }: ToolResult) => {
+        if (canceled) {
+            return JSON.stringify({ canceled: true })
+        }
+
+        const shellResult = result as ShellResult
+        return JSON.stringify({
+            userEditedCommand: shellResult.userEditedCommand,
+            output: serializeOutput(shellResult.output),
+        })
+    },
 }
 
 function serializeOutput(output?: OutputLine[]): string {

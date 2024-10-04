@@ -89,7 +89,7 @@ function replayUserMessage(message: UserMessage): void {
             }
 
             const args = message.toolUse.parameters ? JSON.parse(message.toolUse.parameters) : {}
-            tool.replay(args, { result: message.result, error: message.error })
+            tool.replay(args, message)
             console.log()
             break
         }

@@ -11,10 +11,10 @@ export type Tool = {
 
 export type Executor = (context: ExecutionContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult>
 export type Arguments = Record<string, unknown>
-export type ToolResult = { result?: any; error?: Error }
+export type ToolResult = { result?: any; error?: Error; canceled?: boolean }
 export type ExecutionResult = ToolResult & { reprompt?: boolean }
 export type Replayer = (args: Arguments, result: ToolResult) => void
-export type Serializer = (result?: any) => string
+export type Serializer = (result: ToolResult) => string
 
 export enum JSONSchemaDataType {
     Object = 'object',

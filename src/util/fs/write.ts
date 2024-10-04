@@ -7,9 +7,12 @@ import { CancelError, InterruptHandler } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { Prompter } from '../prompter/prompter'
 
-export type WriteResult =
-    | { userCanceled: true }
-    | { stashed: boolean; originalContents: string; userEditedContents?: string }
+export type WriteResult = {
+    stashed?: boolean
+    originalContents: string
+    userEditedContents?: string
+    canceled?: boolean
+}
 
 export async function executeWriteFile({
     provider,
@@ -34,7 +37,7 @@ export async function executeWriteFile({
     if (!result) {
         console.log(`${chalk.dim('ℹ')} No file was written.`)
         console.log()
-        return { userCanceled: true }
+        return { originalContents, canceled: true }
     }
     const { contents: editedContents, stash } = result
 
@@ -69,6 +72,7 @@ export function replayWriteFile({
     stashed,
     fromStash = false,
     error = undefined,
+    canceled = false,
 }: {
     path: string
     contents: string
@@ -77,15 +81,25 @@ export function replayWriteFile({
     stashed: boolean
     fromStash?: boolean
     error?: Error
+    canceled?: boolean
 }) {
-    replayWriteFileHeader({ path, contents, proposedContents, stashed, fromStash })
-
-    console.log()
-    console.log(formatDiff(contents, originalContents))
-
-    if (error) {
+    if (canceled) {
+        console.log(`${chalk.dim('ℹ')} Proposed edits to "${chalk.red(path)}" `)
         console.log()
-        console.log(chalk.bold.red(error))
+        console.log(formatDiff(contents, originalContents))
+        console.log()
+        console.log(`${chalk.dim('ℹ')} No file was written.`)
+    } else {
+        replayWriteFileHeader({ path, contents, proposedContents, stashed, fromStash })
+
+        console.log()
+        console.log(formatDiff(contents, originalContents))
+
+        if (error) {
+            console.log()
+            console.log(chalk.bold.red(error))
+            console.log()
+        }
     }
 }
 

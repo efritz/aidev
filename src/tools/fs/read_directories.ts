@@ -31,13 +31,12 @@ export const readDirectories: Tool = {
         },
         required: ['paths'],
     },
-    replay: (args: Arguments, result: ToolResult) => {
-        const directoryPaths: string[] = result.result || []
-
-        const message = directoryPaths
-            .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
-            .join('\n')
-        console.log(message)
+    replay: (args: Arguments, { result }: ToolResult) => {
+        console.log(
+            ((result ?? []) as string[])
+                .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
+                .join('\n'),
+        )
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         if (!toolUseId) {
@@ -45,20 +44,20 @@ export const readDirectories: Tool = {
         }
 
         const { paths: patterns } = args as { paths: string[] }
-
         const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
 
         for (const path of directoryPaths) {
             context.contextStateManager.addDirectory(path, { type: 'tool_use', toolUseId })
         }
 
-        const message = directoryPaths
-            .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
-            .join('\n')
-        console.log(message)
+        console.log(
+            directoryPaths
+                .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
+                .join('\n'),
+        )
         console.log('')
 
         return { result: directoryPaths, reprompt: true }
     },
-    serialize: (result?: any) => (result ? JSON.stringify({ paths: result as string[] }) : ''),
+    serialize: ({ result: paths }: ToolResult) => JSON.stringify({ paths }),
 }

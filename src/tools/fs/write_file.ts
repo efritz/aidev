@@ -1,8 +1,10 @@
 import chalk from 'chalk'
 import { safeReadFile } from '../../util/fs/safe'
-import { executeWriteFile, replayWriteFile, WriteResult } from '../../util/fs/write'
+import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+
+type WriteResult = { stashed: boolean; originalContents: string; userEditedContents?: string }
 
 export const writeFile: Tool = {
     name: 'write_file',
@@ -26,35 +28,44 @@ export const writeFile: Tool = {
         },
         required: ['path', 'contents'],
     },
-    replay: (args: Arguments, { result, error }: ToolResult) => {
-        const writeResult = result as WriteResult
-        if ('userCanceled' in writeResult) {
-            console.log(`${chalk.dim('ℹ')} No file was written.`)
+    replay: (args: Arguments, { result, error, canceled }: ToolResult) => {
+        const writeResult = result as WriteResult | undefined
+        if (!writeResult) {
+            console.log()
+            console.log(chalk.bold.red(error))
             console.log()
             return
         }
 
         const { path, contents: proposedContents } = args as { path: string; contents: string }
         const contents = writeResult.userEditedContents ?? proposedContents
-        replayWriteFile({ ...writeResult, path, contents, proposedContents, error })
+        replayWriteFile({ ...writeResult, path, contents, proposedContents, error, canceled })
     },
     execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
         const { path, contents } = args as { path: string; contents: string }
         const originalContents = await safeReadFile(path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
-        return { result }
+        return writeExecutionResultFromWriteResult(result)
     },
-    serialize: (result?: any) => {
-        if (!result) {
-            return ''
+    serialize: ({ result, canceled }: ToolResult) => {
+        if (canceled) {
+            return JSON.stringify({ canceled: true })
         }
 
-        const writeResult = result as WriteResult
-        return 'userCanceled' in writeResult
-            ? JSON.stringify(writeResult)
-            : JSON.stringify({
-                  stashed: writeResult.stashed,
-                  userEditedContents: writeResult.userEditedContents,
-              })
+        const writeResult = result as InternalWriteResult
+        return JSON.stringify({
+            stashed: writeResult.stashed,
+            userEditedContents: writeResult.userEditedContents,
+        })
     },
+}
+
+function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult {
+    const result: WriteResult = {
+        stashed: writeResult.stashed ?? false,
+        originalContents: writeResult.originalContents,
+        userEditedContents: writeResult.userEditedContents,
+    }
+
+    return { result, canceled: writeResult?.canceled }
 }
