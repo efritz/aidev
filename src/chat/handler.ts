@@ -71,7 +71,13 @@ async function prompt(context: ChatContext): Promise<void> {
         }
 
         const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
-        if (!ranTools || (!reprompt && !(await shouldReprompt(context)))) {
+
+        if (ranTools && (reprompt === true || (reprompt === undefined && (await shouldReprompt(context))))) {
+            // Re-prompt if we ran tools and either (a) any tool requested we should explicitly re-prompt,
+            // or (b) no tool requested we should NOT explicitly reprompt and our reprompt sub-agent indicates
+            // we should continue.
+            continue
+        } else {
             break
         }
     }

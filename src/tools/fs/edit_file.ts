@@ -78,17 +78,13 @@ export const editFile: Tool<EditResult> = {
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
         return editExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, canceled }: ToolResult<EditResult>) => {
-        if (canceled) {
-            return JSON.stringify({ canceled: true })
-        }
-
-        const editResult = result!
-        return JSON.stringify({
-            stashed: editResult.stashed,
-            userEdits: editResult.userEdits,
-        })
-    },
+    serialize: ({ result, error, canceled }: ToolResult<EditResult>) =>
+        JSON.stringify({
+            error,
+            canceled,
+            stashed: result?.stashed ?? false,
+            userEdits: result?.userEdits,
+        }),
 }
 
 function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<EditResult> {
@@ -100,7 +96,11 @@ function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): E
         editResult.userEdits = editsFromDiff(writeResult.originalContents, writeResult.userEditedContents)
     }
 
-    return { result: editResult, canceled: writeResult?.canceled }
+    return {
+        result: editResult,
+        canceled: writeResult?.canceled,
+        reprompt: writeResult?.canceled ? false : undefined,
+    }
 }
 
 function applyEdits(content: string, edits: Edit[]): string {

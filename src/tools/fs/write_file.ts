@@ -49,17 +49,13 @@ export const writeFile: Tool<WriteResult> = {
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
         return writeExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, canceled }: ToolResult<WriteResult>) => {
-        if (canceled) {
-            return JSON.stringify({ canceled: true })
-        }
-
-        const writeResult = result as InternalWriteResult
-        return JSON.stringify({
-            stashed: writeResult.stashed,
-            userEditedContents: writeResult.userEditedContents,
-        })
-    },
+    serialize: ({ result, error, canceled }: ToolResult<WriteResult>) =>
+        JSON.stringify({
+            error,
+            canceled,
+            stashed: result?.stashed ?? false,
+            userEditedContents: result?.userEditedContents,
+        }),
 }
 
 function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<WriteResult> {
@@ -69,5 +65,9 @@ function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): 
         userEditedContents: writeResult.userEditedContents,
     }
 
-    return { result, canceled: writeResult?.canceled }
+    return {
+        result,
+        canceled: writeResult?.canceled,
+        reprompt: writeResult?.canceled ? false : undefined,
+    }
 }

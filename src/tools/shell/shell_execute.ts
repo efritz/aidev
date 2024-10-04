@@ -67,7 +67,7 @@ export const shellExecute: Tool<ShellResult> = {
         const editedCommand = await confirmCommand(context, command)
         if (!editedCommand) {
             console.log(chalk.dim('ℹ') + ' No code was executed.\n')
-            return { canceled: true }
+            return { canceled: true, reprompt: false }
         }
 
         const response = await withProgress<OutputLine[]>(update => runCommand(context, editedCommand, update), {
@@ -87,17 +87,13 @@ export const shellExecute: Tool<ShellResult> = {
             return { result: { userEditedCommand, output: response.response } }
         }
     },
-    serialize: ({ result, canceled }: ToolResult<ShellResult>) => {
-        if (canceled) {
-            return JSON.stringify({ canceled: true })
-        }
-
-        const shellResult = result!
-        return JSON.stringify({
-            userEditedCommand: shellResult.userEditedCommand,
-            output: serializeOutput(shellResult.output),
-        })
-    },
+    serialize: ({ result, error, canceled }: ToolResult<ShellResult>) =>
+        JSON.stringify({
+            error,
+            canceled,
+            userEditedCommand: result?.userEditedCommand ?? false,
+            output: serializeOutput(result?.output),
+        }),
 }
 
 function serializeOutput(output?: OutputLine[]): string {
