@@ -17,7 +17,7 @@ type ShellResult = {
     output: OutputLine[]
 }
 
-export const shellExecute: Tool = {
+export const shellExecute: Tool<ShellResult> = {
     name: 'shell_execute',
     description: 'Execute a zsh command.',
     parameters: {
@@ -31,41 +31,36 @@ export const shellExecute: Tool = {
         },
         required: ['command'],
     },
-    replay: (args: Arguments, { result, error, canceled }: ToolResult) => {
+    replay: (args: Arguments, { result, error, canceled }: ToolResult<ShellResult>) => {
         const { command: originalCommand } = args as { command: string }
 
-        if (canceled) {
-            console.log(formatCommand(originalCommand))
-            console.log()
-            console.log(chalk.dim('ℹ') + ' No code was executed.')
-            return
-        }
+        const command = result && result.userEditedCommand ? result.userEditedCommand : originalCommand
+        const verb = canceled ? 'Proposed' : 'Executed'
+        const edited = command !== originalCommand
 
-        const shellResult = result as ShellResult | undefined
-        if (!shellResult) {
-            console.log()
-            console.log(chalk.bold.red(error))
-            console.log()
-            return
-        }
-
-        const command = shellResult.userEditedCommand ?? originalCommand
-
-        console.log(
-            `${chalk.dim('ℹ')} Executed shell command${command !== originalCommand ? ' (edited by user)' : ''}:`,
-        )
+        console.log(`${chalk.dim('ℹ')} ${verb} shell command${edited ? ' (edited by user)' : ''}:`)
         console.log()
         console.log(formatCommand(command))
-        console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Command ${error ? 'failed' : 'succeeded'}.`)
-        console.log()
-        console.log(formatOutput(result.output))
 
+        if (canceled) {
+            console.log()
+            console.log(chalk.dim('ℹ') + ' No code was executed.')
+        }
+        if (result) {
+            console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Command ${error ? 'failed' : 'succeeded'}.`)
+            console.log()
+            console.log(formatOutput(result.output))
+        }
         if (error) {
             console.log()
             console.log(chalk.bold.red(error))
         }
     },
-    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (
+        context: ExecutionContext,
+        toolUseId: string,
+        args: Arguments,
+    ): Promise<ExecutionResult<ShellResult>> => {
         const { command } = args as { command: string }
         console.log(formatCommand(command))
 
@@ -92,12 +87,12 @@ export const shellExecute: Tool = {
             return { result: { userEditedCommand, output: response.response } }
         }
     },
-    serialize: ({ result, canceled }: ToolResult) => {
+    serialize: ({ result, canceled }: ToolResult<ShellResult>) => {
         if (canceled) {
             return JSON.stringify({ canceled: true })
         }
 
-        const shellResult = result as ShellResult
+        const shellResult = result!
         return JSON.stringify({
             userEditedCommand: shellResult.userEditedCommand,
             output: serializeOutput(shellResult.output),

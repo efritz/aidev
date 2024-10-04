@@ -6,7 +6,7 @@ import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from
 
 type WriteResult = { stashed: boolean; originalContents: string; userEditedContents?: string }
 
-export const writeFile: Tool = {
+export const writeFile: Tool<WriteResult> = {
     name: 'write_file',
     description: [
         'Write file contents to disk, creating intermediate directories if necessary.',
@@ -28,26 +28,28 @@ export const writeFile: Tool = {
         },
         required: ['path', 'contents'],
     },
-    replay: (args: Arguments, { result, error, canceled }: ToolResult) => {
-        const writeResult = result as WriteResult | undefined
-        if (!writeResult) {
+    replay: (args: Arguments, { result, error, canceled }: ToolResult<WriteResult>) => {
+        if (!result) {
             console.log()
             console.log(chalk.bold.red(error))
             console.log()
-            return
+        } else {
+            const { path, contents: proposedContents } = args as { path: string; contents: string }
+            const contents = result && result.userEditedContents ? result.userEditedContents : proposedContents
+            replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
-
-        const { path, contents: proposedContents } = args as { path: string; contents: string }
-        const contents = writeResult.userEditedContents ?? proposedContents
-        replayWriteFile({ ...writeResult, path, contents, proposedContents, error, canceled })
     },
-    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (
+        context: ExecutionContext,
+        toolUseId: string,
+        args: Arguments,
+    ): Promise<ExecutionResult<WriteResult>> => {
         const { path, contents } = args as { path: string; contents: string }
         const originalContents = await safeReadFile(path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
         return writeExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, canceled }: ToolResult) => {
+    serialize: ({ result, canceled }: ToolResult<WriteResult>) => {
         if (canceled) {
             return JSON.stringify({ canceled: true })
         }
@@ -60,7 +62,7 @@ export const writeFile: Tool = {
     },
 }
 
-function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult {
+function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<WriteResult> {
     const result: WriteResult = {
         stashed: writeResult.stashed ?? false,
         originalContents: writeResult.originalContents,

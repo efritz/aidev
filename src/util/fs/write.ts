@@ -69,7 +69,7 @@ export function replayWriteFile({
     contents,
     proposedContents,
     originalContents,
-    stashed,
+    stashed = false,
     fromStash = false,
     error = undefined,
     canceled = false,
@@ -78,28 +78,25 @@ export function replayWriteFile({
     contents: string
     proposedContents: string
     originalContents: string
-    stashed: boolean
+    stashed?: boolean
     fromStash?: boolean
     error?: Error
     canceled?: boolean
 }) {
+    replayWriteFileHeader({ path, contents, proposedContents, stashed, fromStash, canceled })
+
+    console.log()
+    console.log(formatDiff(contents, originalContents))
+
     if (canceled) {
-        console.log(`${chalk.dim('ℹ')} Proposed edits to "${chalk.red(path)}" `)
-        console.log()
-        console.log(formatDiff(contents, originalContents))
         console.log()
         console.log(`${chalk.dim('ℹ')} No file was written.`)
-    } else {
-        replayWriteFileHeader({ path, contents, proposedContents, stashed, fromStash })
-
         console.log()
-        console.log(formatDiff(contents, originalContents))
-
-        if (error) {
-            console.log()
-            console.log(chalk.bold.red(error))
-            console.log()
-        }
+    }
+    if (error) {
+        console.log()
+        console.log(chalk.bold.red(error))
+        console.log()
     }
 }
 
@@ -109,14 +106,16 @@ function replayWriteFileHeader({
     proposedContents,
     stashed,
     fromStash = false,
+    canceled = false,
 }: {
     path: string
     contents: string
     proposedContents: string
     stashed: boolean
     fromStash?: boolean
+    canceled?: boolean
 }) {
-    const action = stashed ? 'Stashed' : fromStash ? 'Applied stashed' : 'Wrote'
+    const action = canceled ? 'Proposed changes to' : stashed ? 'Stashed' : fromStash ? 'Applied stashed' : 'Wrote'
     const edited = contents !== proposedContents
 
     console.log(`${chalk.dim('ℹ')} ${action} file "${chalk.red(path)}"${edited ? ' (contents edited by user)' : ''}`)

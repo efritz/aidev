@@ -34,6 +34,7 @@ export type ToolResult = {
     toolUse: ToolUse
     result?: any
     error?: Error
+    canceled?: boolean
 }
 
 export type MetaMessage =

@@ -37,7 +37,7 @@ async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ r
     return { reprompt: reprompt ?? false }
 }
 
-async function executeTool(context: ExecutionContext, toolUse: ToolUse): Promise<ExecutionResult> {
+async function executeTool(context: ExecutionContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
     const tool = findTool(toolUse.name)
     const args = toolUse.parameters ? JSON.parse(toolUse.parameters) : {}
 

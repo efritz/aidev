@@ -1,20 +1,20 @@
 import { ExecutionContext } from './context'
 
-export type Tool = {
+export type Tool<T> = {
     name: string
     description: string
     parameters: JSONSchemaObject
-    execute: Executor
-    replay: Replayer
-    serialize: Serializer
+    execute: Executor<T>
+    replay: Replayer<T>
+    serialize: Serializer<T>
 }
 
-export type Executor = (context: ExecutionContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult>
+export type Executor<T> = (context: ExecutionContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult<T>>
 export type Arguments = Record<string, unknown>
-export type ToolResult = { result?: any; error?: Error; canceled?: boolean }
-export type ExecutionResult = ToolResult & { reprompt?: boolean }
-export type Replayer = (args: Arguments, result: ToolResult) => void
-export type Serializer = (result: ToolResult) => string
+export type ToolResult<T> = { result?: T; error?: Error; canceled?: boolean }
+export type ExecutionResult<T> = ToolResult<T> & { reprompt?: boolean }
+export type Replayer<T> = (args: Arguments, result: ToolResult<T>) => void
+export type Serializer<T> = (result: ToolResult<T>) => string
 
 export enum JSONSchemaDataType {
     Object = 'object',

@@ -4,7 +4,7 @@ import { filterIgnoredPaths } from '../../util/fs/ignore'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
-export const readDirectories: Tool = {
+export const readDirectories: Tool<string[]> = {
     name: 'read_directories',
     description: [
         'Add directory paths to be included in the conversation context.',
@@ -31,14 +31,18 @@ export const readDirectories: Tool = {
         },
         required: ['paths'],
     },
-    replay: (args: Arguments, { result }: ToolResult) => {
+    replay: (args: Arguments, { result }: ToolResult<string[]>) => {
         console.log(
-            ((result ?? []) as string[])
+            (result ?? [])
                 .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)
                 .join('\n'),
         )
     },
-    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (
+        context: ExecutionContext,
+        toolUseId: string,
+        args: Arguments,
+    ): Promise<ExecutionResult<string[]>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
@@ -59,5 +63,5 @@ export const readDirectories: Tool = {
 
         return { result: directoryPaths, reprompt: true }
     },
-    serialize: ({ result: paths }: ToolResult) => JSON.stringify({ paths }),
+    serialize: ({ result }: ToolResult<string[]>) => JSON.stringify({ paths: result ?? [] }),
 }

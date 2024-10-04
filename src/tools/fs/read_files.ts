@@ -4,7 +4,7 @@ import { filterIgnoredPaths } from '../../util/fs/ignore'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
-export const readFiles: Tool = {
+export const readFiles: Tool<string[]> = {
     name: 'read_files',
     description: [
         'Add file paths to be included in the conversation context.',
@@ -31,14 +31,16 @@ export const readFiles: Tool = {
         },
         required: ['paths'],
     },
-    replay: (args: Arguments, { result }: ToolResult) => {
+    replay: (args: Arguments, { result }: ToolResult<string[]>) => {
         console.log(
-            ((result ?? []) as string[])
-                .map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`)
-                .join('\n'),
+            (result ?? []).map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),
         )
     },
-    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (
+        context: ExecutionContext,
+        toolUseId: string,
+        args: Arguments,
+    ): Promise<ExecutionResult<string[]>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
@@ -57,5 +59,5 @@ export const readFiles: Tool = {
 
         return { result: filePaths, reprompt: true }
     },
-    serialize: ({ result: paths }: ToolResult) => JSON.stringify({ paths }),
+    serialize: ({ result }: ToolResult<string[]>) => JSON.stringify({ paths: result ?? [] }),
 }

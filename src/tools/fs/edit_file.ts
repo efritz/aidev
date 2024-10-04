@@ -8,7 +8,7 @@ import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from
 type Edit = { search: string; replacement: string }
 type EditResult = { stashed: boolean; originalContents: string; userEdits?: Edit[] }
 
-export const editFile: Tool = {
+export const editFile: Tool<EditResult> = {
     name: 'edit_file',
     description: [
         'Edit the contents of an existing file.',
@@ -55,33 +55,35 @@ export const editFile: Tool = {
         },
         required: ['path', 'edits'],
     },
-    replay: (args: Arguments, { result, error, canceled }: ToolResult) => {
-        const editResult = result as EditResult | undefined
-        if (!editResult) {
+    replay: (args: Arguments, { result, error, canceled }: ToolResult<EditResult>) => {
+        if (!result) {
             console.log()
             console.log(chalk.bold.red(error))
             console.log()
-            return
+        } else {
+            const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
+            const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits)
+            const proposedContents = applyEdits(result.originalContents, proposedEdits)
+            replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
-
-        const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
-        const contents = applyEdits(editResult.originalContents, editResult.userEdits ?? proposedEdits)
-        const proposedContents = applyEdits(editResult.originalContents, proposedEdits)
-        replayWriteFile({ ...editResult, path, contents, proposedContents, error, canceled })
     },
-    execute: async (context: ExecutionContext, toolUseId: string, args: Arguments): Promise<ExecutionResult> => {
+    execute: async (
+        context: ExecutionContext,
+        toolUseId: string,
+        args: Arguments,
+    ): Promise<ExecutionResult<EditResult>> => {
         const { path, edits } = args as { path: string; edits: Edit[] }
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
         return editExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, canceled }: ToolResult) => {
+    serialize: ({ result, canceled }: ToolResult<EditResult>) => {
         if (canceled) {
             return JSON.stringify({ canceled: true })
         }
 
-        const editResult = result as EditResult
+        const editResult = result!
         return JSON.stringify({
             stashed: editResult.stashed,
             userEdits: editResult.userEdits,
@@ -89,7 +91,7 @@ export const editFile: Tool = {
     },
 }
 
-function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult {
+function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<EditResult> {
     const editResult: EditResult = {
         stashed: writeResult.stashed ?? false,
         originalContents: writeResult.originalContents,
