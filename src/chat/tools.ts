@@ -14,16 +14,24 @@ export async function runToolsInMessages(
 }
 
 async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise<{ reprompt?: boolean }> {
-    let repromptAny = undefined
-    for (const toolUse of toolUses) {
-        const { reprompt } = await runTool(context, toolUse)
+    let repromptAny: boolean | undefined
+
+    const queue = [...toolUses]
+    while (queue.length > 0) {
+        const { reprompt } = await runTool(context, queue.shift()!)
+
+        if (reprompt === false) {
+            // If a single tool explicitly cancels the reprompt, we cancel all of
+            // the remaining tools and throw control directly back to the user so
+            // we can get back on track.
+            queue.forEach(toolUse => cancelTool(context, toolUse))
+            return { reprompt: false }
+        }
 
         if (reprompt === true) {
-            repromptAny = true
-        } else if (reprompt === false) {
-            repromptAny = false
-            // TODO - cancel all remaining tools as well
-            // break
+            // If any tool explicitly requests a reprompt, we'll throw control back
+            // to the assistant after these tools finishes executing.
+            repromptAny = reprompt
         }
     }
 
@@ -32,9 +40,16 @@ async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise
 
 async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
     const { reprompt, ...rest } = await executeTool(context, toolUse)
-    const toolResult: ToolResult = { type: 'tool_result', toolUse, ...rest }
-    context.provider.conversationManager.pushUser(toolResult)
+    pushToolResult(context, toolUse, rest)
     return { reprompt }
+}
+
+function cancelTool(context: ExecutionContext, toolUse: ToolUse): void {
+    pushToolResult(context, toolUse, { canceled: true })
+}
+
+function pushToolResult(context: ExecutionContext, toolUse: ToolUse, result: any): void {
+    context.provider.conversationManager.pushUser({ type: 'tool_result', toolUse, result })
 }
 
 async function executeTool(context: ExecutionContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
