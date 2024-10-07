@@ -18,8 +18,8 @@ export function createEmptyContextState(): ContextState {
 export interface ContextStateManager extends ContextState {
     events: EventEmitter
     dispose: () => void
-    addFile: (path: string, reason: InclusionReason) => void
-    addDirectory: (path: string, reason: InclusionReason) => void
+    addFile: (path: string, reason: InclusionReason) => Promise<void>
+    addDirectory: (path: string, reason: InclusionReason) => Promise<void>
     removeFile: (path: string) => boolean
     removeDirectory: (path: string) => boolean
 }
@@ -88,7 +88,7 @@ export function createContextState(): ContextStateManager {
     const files = new Map<string, ContextFile>()
     const directories = new Map<string, ContextDirectory>()
 
-    const getOrCreateFile = (path: string) => {
+    const getOrCreateFile = async (path: string): Promise<ContextFile> => {
         const file = files.get(path)
         if (file) {
             return file
@@ -102,11 +102,11 @@ export function createContextState(): ContextStateManager {
 
         files.set(path, newFile)
         watcher.add(path)
-        updateFile(path)
+        await updateFile(path)
         return newFile
     }
 
-    const getOrCreateDirectory = (path: string) => {
+    const getOrCreateDirectory = async (path: string): Promise<ContextDirectory> => {
         const directory = directories.get(path)
         if (directory) {
             return directory
@@ -120,17 +120,17 @@ export function createContextState(): ContextStateManager {
 
         directories.set(path, newDirectory)
         watcher.add(path)
-        updateDirectory(path)
+        await updateDirectory(path) // TODO - make all these async?
         return newDirectory
     }
 
-    const addFile = (path: string, reason: InclusionReason) => {
-        const { inclusionReasons } = getOrCreateFile(path)
+    const addFile = async (path: string, reason: InclusionReason): Promise<void> => {
+        const { inclusionReasons } = await getOrCreateFile(path)
         updateInclusionReasons(inclusionReasons, reason)
     }
 
-    const addDirectory = (path: string, reason: InclusionReason) => {
-        const { inclusionReasons } = getOrCreateDirectory(path)
+    const addDirectory = async (path: string, reason: InclusionReason): Promise<void> => {
+        const { inclusionReasons } = await getOrCreateDirectory(path)
         updateInclusionReasons(inclusionReasons, reason)
     }
 
@@ -206,12 +206,12 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
             case 'explicit':
                 return true
 
-            case 'tool_use':
-                if (visibleToolUses.includes(reason.toolUseId)) {
-                    return true
-                }
+            // case 'tool_use':
+            //     if (visibleToolUses.includes(reason.toolUseId)) {
+            //         return true
+            //     }
 
-                break
+            //     break
 
             case 'editor':
                 if (reason.currentlyOpen) {
@@ -223,4 +223,8 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
     }
 
     return false
+}
+
+export function includedByToolUse(inclusionReasons: InclusionReason[], toolUseIds: string[]): boolean {
+    return inclusionReasons.some(reason => reason.type === 'tool_use' && toolUseIds.includes(reason.toolUseId))
 }

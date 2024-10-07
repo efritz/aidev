@@ -3,6 +3,7 @@ import {
     ContextDirectory,
     ContextFile,
     ContextState,
+    includedByToolUse,
     shouldIncludeDirectory,
     shouldIncludeFile,
 } from '../context/state'
@@ -109,42 +110,129 @@ export function createConversation<T>({
     }
 
     const providerMessages = (): T[] => {
-        const messages = visibleMessages()
-        const fileContents = new Map<string, ContextFile['content']>()
-        const directoryContents = new Map<string, ContextDirectory['entries']>()
-        const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
+        // TODO
+        const extract = <T>(arr: T[], predicate: (value: T) => boolean): T[] => {
+            const subset: T[] = []
 
-        for (const file of contextState.files.values()) {
-            if (shouldIncludeFile(file, visibleToolUseIds)) {
-                fileContents.set(file.path, file.content)
+            let i = 0
+            while (i < arr.length) {
+                if (predicate(arr[i])) {
+                    subset.push(arr.splice(i, 1)[0])
+                } else {
+                    i++
+                }
             }
+
+            return subset
         }
 
-        for (const directory of contextState.directories.values()) {
-            if (shouldIncludeDirectory(directory, visibleToolUseIds)) {
-                directoryContents.set(directory.path, directory.entries)
+        // TODO
+        const createContextMessage = (
+            referencedFiles: ContextFile[],
+            referencedDirectories: ContextDirectory[],
+        ): Message | undefined => {
+            if (referencedFiles.length == 0 && referencedDirectories.length === 0) {
+                return undefined
             }
-        }
 
-        if (fileContents.size > 0 || directoryContents.size > 0) {
+            const files = new Map<string, ContextFile['content']>()
+            for (const file of referencedFiles) {
+                files.set(file.path, file.content)
+            }
+
+            const directories = new Map<string, ContextDirectory['entries']>()
+            for (const directory of referencedDirectories) {
+                directories.set(directory.path, directory.entries)
+            }
+
             const payload = {
-                files: Object.fromEntries(fileContents),
-                directories: Object.fromEntries(directoryContents),
+                files: Object.fromEntries(files),
+                directories: Object.fromEntries(directories),
             }
 
-            messages.unshift({
+            return {
                 id: uuidv4(),
                 role: 'user',
                 type: 'text',
                 content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
-            })
+            }
         }
 
+        // TODO
         const providerMessages: T[] = []
         if (initialMessage) {
             providerMessages.push(initialMessage)
         }
 
+        // TODO
+        const messages = visibleMessages()
+        const files = [...contextState.files.values()]
+        const directories = [...contextState.directories.values()]
+
+        // TODO
+        let i = messages.length - 1
+        let j = i
+        while (i >= 0) {
+            const message = messages[i]
+            if (message.role === 'user' && message.type === 'text') {
+                j = i
+            } else if (message.type === 'tool_use') {
+                const ids = message.tools.map(({ id }) => id)
+                const referencedFiles = extract(files, f => includedByToolUse(f.inclusionReasons, ids))
+                const referencedDirectories = extract(directories, d => includedByToolUse(d.inclusionReasons, ids))
+                x
+                // TODO - should deduplicate multiple
+                const contextMessage = createContextMessage(referencedFiles, referencedDirectories)
+                if (contextMessage) {
+                    messages.splice(j + 1, 0, contextMessage)
+                }
+            }
+
+            i--
+        }
+
+        // TODO
+        const contextMessage = createContextMessage(
+            files.filter(f => shouldIncludeFile(f, [])),
+            directories.filter(d => shouldIncludeDirectory(d, [])),
+        )
+        if (contextMessage) {
+            messages.unshift(contextMessage)
+        }
+
+        console.log({ messages })
+
+        // const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
+
+        // const fileContents = new Map<string, ContextFile['content']>()
+        // for (const file of files) {
+        //     if (shouldIncludeFile(file, visibleToolUseIds)) {
+        //         fileContents.set(file.path, file.content)
+        //     }
+        // }
+
+        // const directoryContents = new Map<string, ContextDirectory['entries']>()
+        // for (const directory of directories) {
+        //     if (shouldIncludeDirectory(directory, visibleToolUseIds)) {
+        //         directoryContents.set(directory.path, directory.entries)
+        //     }
+        // }
+
+        // if (fileContents.size > 0 || directoryContents.size > 0) {
+        //     const payload = {
+        //         files: Object.fromEntries(fileContents),
+        //         directories: Object.fromEntries(directoryContents),
+        //     }
+
+        //     messages.unshift({
+        //         id: uuidv4(),
+        //         role: 'user',
+        //         type: 'text',
+        //         content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
+        //     })
+        // }
+
+        // TODO
         for (const message of messages) {
             switch (message.role) {
                 case 'user':

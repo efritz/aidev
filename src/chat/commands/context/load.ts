@@ -37,7 +37,7 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
     }
 
     for (const path of paths) {
-        context.contextStateManager.addFile(path, { type: 'explicit' })
+        await context.contextStateManager.addFile(path, { type: 'explicit' })
     }
 
     paths.sort()
