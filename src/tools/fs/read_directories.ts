@@ -7,11 +7,9 @@ import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from
 export const readDirectories: Tool<string[]> = {
     name: 'read_directories',
     description: [
-        // TODO
         'Add directory paths to be included in the conversation context.',
         'The conversation context is always up-to date. Specifying a directory already in the context will not update the context.',
-        'The tool result will contain a list of available concrete paths.',
-        'The tool result will not contain any directory entries, but the directory entries will be included in the conversation context.',
+        'The tool result will contain a list of concrete paths loaded into the context.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,

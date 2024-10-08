@@ -11,7 +11,6 @@ type EditResult = { stashed: boolean; originalContents: string; userEdits?: Edit
 export const editFile: Tool<EditResult> = {
     name: 'edit_file',
     description: [
-        // TODO
         'Edit the contents of an existing file.',
         'The user may choose to modify the edit before writing it to disk. The tool result will include the user-supplied edits, if any.',
         'If the conversation context already contains the target path, the conversation will be updated to include the edited contents.',

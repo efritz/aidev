@@ -9,7 +9,6 @@ type WriteResult = { stashed: boolean; originalContents: string; userEditedConte
 export const writeFile: Tool<WriteResult> = {
     name: 'write_file',
     description: [
-        // TODO
         'Write file contents to disk, creating intermediate directories if necessary.',
         'The user may choose to modify the file content before writing it to disk. The tool result will include the user-supplied content, if any.',
         'If the conversation context already contains the target path, the conversation will be updated to include the new contents.',

@@ -504,16 +504,15 @@ function createContextMessage(
         directories.set(directory.path, directory.entries)
     }
 
-    const payload = {
-        files: Object.fromEntries(files),
-        directories: Object.fromEntries(directories),
+    const payloads: string[] = []
+
+    for (const [path, content] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        payloads.push(`File: ${path}\n\n${content}`)
     }
 
-    return {
-        id: uuidv4(),
-        role: 'user',
-        type: 'text',
-        // TODO
-        content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
+    for (const [path, entries] of [...directories.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        payloads.push(`Directory: ${path}\n\n${JSON.stringify(entries, null, 2)}`)
     }
+
+    return { id: uuidv4(), role: 'user', type: 'text', content: `Project context:\n\n${payloads.join('\n')}` }
 }
