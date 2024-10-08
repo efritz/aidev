@@ -39,6 +39,7 @@ async function main() {
     program.parse(process.argv)
 }
 
+// TODO
 const basicSystemPrompt = `
 You are an expert software developer engaged in pair programming with the user.
 Your role is to provide assistance, guidance, and code solutions based on the user's queries and the existing project context.
