@@ -1,5 +1,5 @@
 import readline from 'readline'
-import { invertPromise } from '../../util/promise'
+import { invertPromise } from '../../util/promises/promise'
 
 export interface InterruptHandler {
     withInterruptHandler: <T>(f: (signal: AbortSignal) => Promise<T>, options?: InterruptHandlerOptions) => Promise<T>

@@ -1,3 +1,4 @@
+import { dir } from 'console'
 import { v4 as uuidv4 } from 'uuid'
 import {
     ContextDirectory,
@@ -8,6 +9,7 @@ import {
     shouldIncludeFile,
 } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
+import { extract } from '../util/lists/lists'
 
 export type Conversation<T> = ConversationManager & {
     providerMessages: () => T[]
@@ -110,130 +112,12 @@ export function createConversation<T>({
     }
 
     const providerMessages = (): T[] => {
-        // TODO
-        const extract = <T>(arr: T[], predicate: (value: T) => boolean): T[] => {
-            const subset: T[] = []
-
-            let i = 0
-            while (i < arr.length) {
-                if (predicate(arr[i])) {
-                    subset.push(arr.splice(i, 1)[0])
-                } else {
-                    i++
-                }
-            }
-
-            return subset
-        }
-
-        // TODO
-        const createContextMessage = (
-            referencedFiles: ContextFile[],
-            referencedDirectories: ContextDirectory[],
-        ): Message | undefined => {
-            if (referencedFiles.length == 0 && referencedDirectories.length === 0) {
-                return undefined
-            }
-
-            const files = new Map<string, ContextFile['content']>()
-            for (const file of referencedFiles) {
-                files.set(file.path, file.content)
-            }
-
-            const directories = new Map<string, ContextDirectory['entries']>()
-            for (const directory of referencedDirectories) {
-                directories.set(directory.path, directory.entries)
-            }
-
-            const payload = {
-                files: Object.fromEntries(files),
-                directories: Object.fromEntries(directories),
-            }
-
-            return {
-                id: uuidv4(),
-                role: 'user',
-                type: 'text',
-                content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
-            }
-        }
-
-        // TODO
         const providerMessages: T[] = []
         if (initialMessage) {
             providerMessages.push(initialMessage)
         }
 
-        // TODO
-        const messages = visibleMessages()
-        const files = [...contextState.files.values()]
-        const directories = [...contextState.directories.values()]
-
-        // TODO
-        let i = messages.length - 1
-        let j = i
-        while (i >= 0) {
-            const message = messages[i]
-            if (message.role === 'user' && message.type === 'text') {
-                j = i
-            } else if (message.type === 'tool_use') {
-                const ids = message.tools.map(({ id }) => id)
-                const referencedFiles = extract(files, f => includedByToolUse(f.inclusionReasons, ids))
-                const referencedDirectories = extract(directories, d => includedByToolUse(d.inclusionReasons, ids))
-                x
-                // TODO - should deduplicate multiple
-                const contextMessage = createContextMessage(referencedFiles, referencedDirectories)
-                if (contextMessage) {
-                    messages.splice(j + 1, 0, contextMessage)
-                }
-            }
-
-            i--
-        }
-
-        // TODO
-        const contextMessage = createContextMessage(
-            files.filter(f => shouldIncludeFile(f, [])),
-            directories.filter(d => shouldIncludeDirectory(d, [])),
-        )
-        if (contextMessage) {
-            messages.unshift(contextMessage)
-        }
-
-        console.log({ messages })
-
-        // const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
-
-        // const fileContents = new Map<string, ContextFile['content']>()
-        // for (const file of files) {
-        //     if (shouldIncludeFile(file, visibleToolUseIds)) {
-        //         fileContents.set(file.path, file.content)
-        //     }
-        // }
-
-        // const directoryContents = new Map<string, ContextDirectory['entries']>()
-        // for (const directory of directories) {
-        //     if (shouldIncludeDirectory(directory, visibleToolUseIds)) {
-        //         directoryContents.set(directory.path, directory.entries)
-        //     }
-        // }
-
-        // if (fileContents.size > 0 || directoryContents.size > 0) {
-        //     const payload = {
-        //         files: Object.fromEntries(fileContents),
-        //         directories: Object.fromEntries(directoryContents),
-        //     }
-
-        //     messages.unshift({
-        //         id: uuidv4(),
-        //         role: 'user',
-        //         type: 'text',
-        //         content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
-        //     })
-        // }
-
-        // TODO
-        for (const message of messages) {
+        for (const message of injectContextMessages(contextState, visibleMessages())) {
             switch (message.role) {
                 case 'user':
                     providerMessages.push(userMessageToParam(message))
@@ -543,5 +427,93 @@ export function createConversation<T>({
         switchBranch,
         renameBranch,
         removeBranch,
+    }
+}
+
+function injectContextMessages(contextState: ContextState, messages: Message[]): Message[] {
+    type FilesAndDirectories = { files: ContextFile[]; directories: ContextDirectory[] }
+    const empty = { files: [], directories: [] }
+    const contextByIndex = new Map<number, FilesAndDirectories>()
+
+    // Create mutable local copy of files and directories from context state
+    const files = [...contextState.files.values()]
+    const directories = [...contextState.directories.values()]
+
+    // Iterate the messages backwards.
+    //   - i is the index of the current message
+    //   - j is the index of the most recent user message we've seen
+    for (let i = messages.length - 1, j = i; i >= 0; i--) {
+        const message = messages[i]
+
+        // Update j to reference of a "closer" user message
+        if (message.role === 'user' && message.type === 'text') {
+            j = i
+        }
+
+        // Determine the set of files and directories brought into the context from this tool use.
+        // We're going to place a context message including this state directly before the next
+        // user message. Each of these files and directory entries will be removed from the mutable
+        // copy of files/directories so that they're included in the context only once and after
+        // their LAST reference (as we're iterating messages backwards).
+
+        if (message.role === 'assistant' && message.type === 'tool_use') {
+            const ids = message.tools.map(({ id }) => id)
+            const { files: oldFiles, directories: oldDirectories } = contextByIndex.get(j) ?? empty
+            const newFiles = extract(oldFiles, f => includedByToolUse(f.inclusionReasons, ids))
+            const newDirectories = extract(oldDirectories, d => includedByToolUse(d.inclusionReasons, ids))
+
+            contextByIndex.set(j, {
+                files: [...oldFiles, ...newFiles],
+                directories: [...oldDirectories, ...newDirectories],
+            })
+        }
+    }
+
+    // Include all file and directory content not already included by a tool use at the beginning of
+    // the conversation as "base context". If something has been included explicitly by the user but
+    // then edited by a tool, we'll have included the "edited" content later in the conversation
+    // in a way that appears to be "after" the edit.
+    contextByIndex.set(0, {
+        files: files.filter(f => shouldIncludeFile(f, [])),
+        directories: directories.filter(d => shouldIncludeDirectory(d, [])),
+    })
+
+    // Build context messages and inject any non-empty ones into the message list at the target index.
+    return messages.flatMap((message, index) => {
+        const { files, directories } = contextByIndex.get(index) ?? empty
+        const contextMessage = createContextMessage(files, directories)
+        return contextMessage ? [contextMessage, message] : [message]
+    })
+}
+
+function createContextMessage(
+    referencedFiles: ContextFile[],
+    referencedDirectories: ContextDirectory[],
+): Message | undefined {
+    if (referencedFiles.length == 0 && referencedDirectories.length === 0) {
+        return undefined
+    }
+
+    const files = new Map<string, ContextFile['content']>()
+    for (const file of referencedFiles) {
+        files.set(file.path, file.content)
+    }
+
+    const directories = new Map<string, ContextDirectory['entries']>()
+    for (const directory of referencedDirectories) {
+        directories.set(directory.path, directory.entries)
+    }
+
+    const payload = {
+        files: Object.fromEntries(files),
+        directories: Object.fromEntries(directories),
+    }
+
+    return {
+        id: uuidv4(),
+        role: 'user',
+        type: 'text',
+        // TODO
+        content: `# Relevant project files and directories:\n\n${JSON.stringify(payload, null, 2)}`,
     }
 }

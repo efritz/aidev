@@ -1,6 +1,6 @@
 import { ConversationManager } from '../conversation/conversation'
 import { CancelError } from '../util/interrupts/interrupts'
-import { invertPromise } from '../util/promise'
+import { invertPromise } from '../util/promises/promise'
 import { Aborter, AbortRegisterer, ProgressFunction, Provider } from './provider'
 import { Reducer, reduceStream } from './reducer'
 

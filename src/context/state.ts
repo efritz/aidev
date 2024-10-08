@@ -120,7 +120,7 @@ export function createContextState(): ContextStateManager {
 
         directories.set(path, newDirectory)
         watcher.add(path)
-        await updateDirectory(path) // TODO - make all these async?
+        await updateDirectory(path)
         return newDirectory
     }
 
