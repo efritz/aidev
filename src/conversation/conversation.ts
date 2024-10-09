@@ -515,18 +515,18 @@ function createContextMessage(
 
     for (const [path, content] of sortPayloadsByPath(normalizedFiles)) {
         if (typeof content === 'string') {
-            payloads.push(`Contents of file "${path}":\n${fence}\n${content}\n${fence}`)
+            payloads.push(`Current contents of file "${path}":\n${fence}\n${content}\n${fence}`)
         } else {
-            payloads.push(`Failed to load contents of file "${path}": ${content.error}`)
+            payloads.push(`Failed to load the contents of file "${path}": ${content.error}`)
         }
     }
 
     for (const [path, entries] of sortPayloadsByPath(normalizedDirectories)) {
         if (!('error' in entries)) {
             const serialized = JSON.stringify(entries, null, 2)
-            payloads.push(`Entries of directory "${path}":\n${serialized}`)
+            payloads.push(`Current entries of directory "${path}":\n${serialized}`)
         } else {
-            payloads.push(`Failed to load entries of directory "${path}": ${entries.error}`)
+            payloads.push(`Failed to load the entries of directory "${path}": ${entries.error}`)
         }
     }
 
