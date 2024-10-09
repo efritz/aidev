@@ -1,3 +1,4 @@
+import { writeFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import {
     ContextDirectory,
@@ -116,9 +117,7 @@ export function createConversation<T>({
             providerMessages.push(initialMessage)
         }
 
-        const mx = injectContextMessages(contextState, visibleMessages())
-        // console.log({ mx })
-        for (const message of mx) {
+        for (const message of injectContextMessages(contextState, visibleMessages())) {
             switch (message.role) {
                 case 'user':
                     providerMessages.push(userMessageToParam(message))
@@ -455,7 +454,7 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     // Loop invariants:
     //   - i is the index of the current message
     //   - j is the index of the most recent user message we've seen
-    for (let i = messages.length - 1, j = i; i >= 0; i--) {
+    for (let i = messages.length - 1, j = messages.length; i >= 0; i--) {
         const message = messages[i]
 
         // Update the index of the "closest" user message for subsequent iterations.
@@ -491,11 +490,16 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     })
 
     // Build context messages and inject any non-empty ones into the message list at the target index.
-    return messages.flatMap((message, index) => {
+    const newx = messages.flatMap((message, index) => {
         const { files, directories } = contextByIndex.get(index) ?? empty
         const contextMessage = createContextMessage(files, directories)
         return contextMessage ? [contextMessage, message] : [message]
     })
+
+    writeFileSync('a.json', JSON.stringify(messages, null, 2))
+    writeFileSync('b.json', JSON.stringify(newx, null, 2))
+
+    return newx
 }
 
 const fence = '```'
