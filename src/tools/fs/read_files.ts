@@ -48,7 +48,7 @@ export const readFiles: Tool<string[]> = {
         const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
 
         for (const path of filePaths) {
-            await context.contextStateManager.addFile(path, { type: 'tool_use', toolUseId })
+            await context.contextStateManager.addFile(path, { type: 'tool_use', toolUseClass: 'read', toolUseId })
         }
 
         console.log(
