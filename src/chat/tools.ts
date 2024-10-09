@@ -39,8 +39,8 @@ async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise
 }
 
 async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
-    const { reprompt, ...rest } = await executeTool(context, toolUse)
-    pushToolResult(context, toolUse, rest)
+    const { reprompt, result } = await executeTool(context, toolUse)
+    pushToolResult(context, toolUse, result)
     return { reprompt }
 }
 

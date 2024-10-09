@@ -117,7 +117,9 @@ export function createConversation<T>({
             providerMessages.push(initialMessage)
         }
 
-        for (const message of injectContextMessages(contextState, visibleMessages())) {
+        const mx = injectContextMessages(contextState, visibleMessages())
+        // console.log({ mx })
+        for (const message of mx) {
             switch (message.role) {
                 case 'user':
                     providerMessages.push(userMessageToParam(message))
@@ -466,10 +468,15 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
         // Remove them from the list of candidates, and insert them into the index mapping
         // with the index of the most recently seen user message.
         if (message.role === 'assistant' && message.type === 'tool_use') {
+            console.log({
+                message,
+                tools: message.tools.map(({ id }) => id),
+                inclusionReasons: JSON.stringify(files.map(f => f.inclusionReasons)),
+            })
             const ids = message.tools.map(({ id }) => id)
             const { files: oldFiles, directories: oldDirectories } = contextByIndex.get(j) ?? empty
-            const newFiles = extract(oldFiles, f => includedByToolUse(f.inclusionReasons, ids))
-            const newDirectories = extract(oldDirectories, d => includedByToolUse(d.inclusionReasons, ids))
+            const newFiles = extract(files, f => includedByToolUse(f.inclusionReasons, ids))
+            const newDirectories = extract(directories, d => includedByToolUse(d.inclusionReasons, ids))
 
             contextByIndex.set(j, {
                 files: [...oldFiles, ...newFiles],
@@ -492,6 +499,8 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     })
 }
 
+const fence = '```'
+
 function createContextMessage(
     referencedFiles: ContextFile[],
     referencedDirectories: ContextDirectory[],
@@ -500,26 +509,40 @@ function createContextMessage(
         return undefined
     }
 
-    const files = new Map<string, ContextFile['content']>()
-    for (const file of referencedFiles) {
-        files.set(file.path, file.content)
-    }
-
-    const directories = new Map<string, ContextDirectory['entries']>()
-    for (const directory of referencedDirectories) {
-        directories.set(directory.path, directory.entries)
-    }
-
     const payloads: string[] = []
+    const normalizedFiles = referencedFiles.map(({ path, content: payload }) => ({ path, payload }))
+    const normalizedDirectories = referencedDirectories.map(({ path, entries: payload }) => ({ path, payload }))
 
-    // TODO
-    for (const [path, content] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-        payloads.push(`File: ${path}\n\n${content}`)
+    for (const [path, content] of sortPayloadsByPath(normalizedFiles)) {
+        if (typeof content === 'string') {
+            payloads.push(`Contents of file "${path}":\n${fence}\n${content}\n${fence}`)
+        } else {
+            payloads.push(`Failed to load contents of file "${path}": ${content.error}`)
+        }
     }
 
-    for (const [path, entries] of [...directories.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-        payloads.push(`Directory: ${path}\n\n${JSON.stringify(entries, null, 2)}`)
+    for (const [path, entries] of sortPayloadsByPath(normalizedDirectories)) {
+        if (!('error' in entries)) {
+            const serialized = JSON.stringify(entries, null, 2)
+            payloads.push(`Entries of directory "${path}":\n${serialized}`)
+        } else {
+            payloads.push(`Failed to load entries of directory "${path}": ${entries.error}`)
+        }
     }
 
-    return { id: uuidv4(), role: 'user', type: 'text', content: `Project context:\n\n${payloads.join('\n')}` }
+    return {
+        id: uuidv4(),
+        role: 'user',
+        type: 'text',
+        content: payloads.join('\n'),
+    }
+}
+
+function sortPayloadsByPath<T>(payloads: { path: string; payload: T }[]): [string, T][] {
+    const m = new Map<string, T>()
+    for (const { path, payload } of payloads) {
+        m.set(path, payload)
+    }
+
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 }
