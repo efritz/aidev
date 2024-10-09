@@ -466,11 +466,6 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
         // Remove them from the list of candidates, and insert them into the index mapping
         // with the index of the most recently seen user message.
         if (message.role === 'assistant' && message.type === 'tool_use') {
-            console.log({
-                message,
-                tools: message.tools.map(({ id }) => id),
-                inclusionReasons: JSON.stringify(files.map(f => f.inclusionReasons)),
-            })
             const ids = message.tools.map(({ id }) => id)
             const { files: oldFiles, directories: oldDirectories } = contextByIndex.get(j) ?? empty
             const newFiles = extract(files, f => includedByToolUse(f.inclusionReasons, ids))
@@ -490,16 +485,11 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     })
 
     // Build context messages and inject any non-empty ones into the message list at the target index.
-    const newx = messages.flatMap((message, index) => {
+    return messages.flatMap((message, index) => {
         const { files, directories } = contextByIndex.get(index) ?? empty
         const contextMessage = createContextMessage(files, directories)
         return contextMessage ? [contextMessage, message] : [message]
     })
-
-    writeFileSync('a.json', JSON.stringify(messages, null, 2))
-    writeFileSync('b.json', JSON.stringify(newx, null, 2))
-
-    return newx
 }
 
 const fence = '```'
