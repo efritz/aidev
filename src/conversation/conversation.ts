@@ -1,4 +1,3 @@
-import { writeFileSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import {
     ContextDirectory,
@@ -527,7 +526,7 @@ function createContextMessage(
         id: uuidv4(),
         role: 'user',
         type: 'text',
-        content: payloads.join('\n'),
+        content: 'Project context has been updated.\n\n' + payloads.join('\n'),
     }
 }
 
