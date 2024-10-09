@@ -47,6 +47,7 @@ export const writeFile: Tool<WriteResult> = {
         const { path, contents } = args as { path: string; contents: string }
         const originalContents = await safeReadFile(path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
+        await context.contextStateManager.addFile(path, { type: 'tool_use', toolUseClass: 'write', toolUseId })
         return writeExecutionResultFromWriteResult(result)
     },
     serialize: ({ result, error, canceled }: ToolResult<WriteResult>) =>

@@ -18,8 +18,8 @@ export function createEmptyContextState(): ContextState {
 export interface ContextStateManager extends ContextState {
     events: EventEmitter
     dispose: () => void
-    addFile: (path: string, reason: InclusionReason) => void
-    addDirectory: (path: string, reason: InclusionReason) => void
+    addFile: (path: string, reason: InclusionReason) => Promise<void>
+    addDirectory: (path: string, reason: InclusionReason) => Promise<void>
     removeFile: (path: string) => boolean
     removeDirectory: (path: string) => boolean
 }
@@ -44,7 +44,7 @@ export type DirectoryEntry = {
 
 export type InclusionReason =
     | { type: 'explicit' }
-    | { type: 'tool_use'; toolUseId: string }
+    | { type: 'tool_use'; toolUseClass: 'read' | 'write'; toolUseId: string }
     | { type: 'editor'; currentlyOpen: boolean }
 
 export function createContextState(): ContextStateManager {
@@ -88,7 +88,7 @@ export function createContextState(): ContextStateManager {
     const files = new Map<string, ContextFile>()
     const directories = new Map<string, ContextDirectory>()
 
-    const getOrCreateFile = (path: string) => {
+    const getOrCreateFile = async (path: string): Promise<ContextFile> => {
         const file = files.get(path)
         if (file) {
             return file
@@ -102,11 +102,11 @@ export function createContextState(): ContextStateManager {
 
         files.set(path, newFile)
         watcher.add(path)
-        updateFile(path)
+        await updateFile(path)
         return newFile
     }
 
-    const getOrCreateDirectory = (path: string) => {
+    const getOrCreateDirectory = async (path: string): Promise<ContextDirectory> => {
         const directory = directories.get(path)
         if (directory) {
             return directory
@@ -120,17 +120,17 @@ export function createContextState(): ContextStateManager {
 
         directories.set(path, newDirectory)
         watcher.add(path)
-        updateDirectory(path)
+        await updateDirectory(path)
         return newDirectory
     }
 
-    const addFile = (path: string, reason: InclusionReason) => {
-        const { inclusionReasons } = getOrCreateFile(path)
+    const addFile = async (path: string, reason: InclusionReason): Promise<void> => {
+        const { inclusionReasons } = await getOrCreateFile(path)
         updateInclusionReasons(inclusionReasons, reason)
     }
 
-    const addDirectory = (path: string, reason: InclusionReason) => {
-        const { inclusionReasons } = getOrCreateDirectory(path)
+    const addDirectory = async (path: string, reason: InclusionReason): Promise<void> => {
+        const { inclusionReasons } = await getOrCreateDirectory(path)
         updateInclusionReasons(inclusionReasons, reason)
     }
 
@@ -161,7 +161,13 @@ export function createContextState(): ContextStateManager {
     const updateInclusionReasons = (reasons: InclusionReason[], reason: InclusionReason) => {
         if (
             (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
-            (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.toolUseId === reason.toolUseId))
+            (reason.type === 'tool_use' &&
+                reasons.some(
+                    r =>
+                        r.type === 'tool_use' &&
+                        r.toolUseClass === reason.toolUseClass &&
+                        r.toolUseId === reason.toolUseId,
+                ))
         ) {
             // Already exists
             return
@@ -207,7 +213,11 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
                 return true
 
             case 'tool_use':
-                if (visibleToolUses.includes(reason.toolUseId)) {
+                // If we ONLY write to a file we don't need to include it. We only want to include
+                // a file if it's explicitly read by a tool. We keep the 'write' tool use class to
+                // ensure that we always include the file contents after the last modification so
+                // the assistant doesn't get confused about the current state of the contents.
+                if (reason.toolUseClass === 'read' && visibleToolUses.includes(reason.toolUseId)) {
                     return true
                 }
 
@@ -223,4 +233,8 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
     }
 
     return false
+}
+
+export function includedByToolUse(inclusionReasons: InclusionReason[], toolUseIds: string[]): boolean {
+    return inclusionReasons.some(reason => reason.type === 'tool_use' && toolUseIds.includes(reason.toolUseId))
 }

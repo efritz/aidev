@@ -9,8 +9,7 @@ export const readDirectories: Tool<string[]> = {
     description: [
         'Add directory paths to be included in the conversation context.',
         'The conversation context is always up-to date. Specifying a directory already in the context will not update the context.',
-        'The tool result will contain a list of available concrete paths.',
-        'The tool result will not contain any directory entries, but the directory entries will be included in the conversation context.',
+        'The tool result will contain a list of concrete paths loaded into the context.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -51,7 +50,7 @@ export const readDirectories: Tool<string[]> = {
         const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
 
         for (const path of directoryPaths) {
-            context.contextStateManager.addDirectory(path, { type: 'tool_use', toolUseId })
+            await context.contextStateManager.addDirectory(path, { type: 'tool_use', toolUseClass: 'read', toolUseId })
         }
 
         console.log(

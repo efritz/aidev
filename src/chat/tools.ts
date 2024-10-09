@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { AssistantMessage, ToolResult, ToolUse } from '../messages/messages'
+import { AssistantMessage, ToolUse } from '../messages/messages'
 import { ExecutionContext } from '../tools/context'
 import { ExecutionResult } from '../tools/tool'
 import { findTool } from '../tools/tools'
@@ -40,7 +40,7 @@ async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise
 
 async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
     const { reprompt, ...rest } = await executeTool(context, toolUse)
-    pushToolResult(context, toolUse, rest)
+    pushToolResult(context, toolUse, { ...rest })
     return { reprompt }
 }
 
@@ -48,8 +48,12 @@ function cancelTool(context: ExecutionContext, toolUse: ToolUse): void {
     pushToolResult(context, toolUse, { canceled: true })
 }
 
-function pushToolResult(context: ExecutionContext, toolUse: ToolUse, result: any): void {
-    context.provider.conversationManager.pushUser({ type: 'tool_result', toolUse, result })
+function pushToolResult(
+    context: ExecutionContext,
+    toolUse: ToolUse,
+    result: { result?: any; error?: Error; canceled?: boolean },
+): void {
+    context.provider.conversationManager.pushUser({ type: 'tool_result', toolUse, ...result })
 }
 
 async function executeTool(context: ExecutionContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {

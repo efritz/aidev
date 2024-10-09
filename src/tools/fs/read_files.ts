@@ -9,8 +9,7 @@ export const readFiles: Tool<string[]> = {
     description: [
         'Add file paths to be included in the conversation context.',
         'The conversation context is always up-to date. Specifying a file already in the context will not update the context.',
-        'The tool result will contain a list of available concrete paths.',
-        'The tool result will not contain any file contents, but the file contents will be included in the conversation context.',
+        'The tool result will contain a list of concrete paths loaded into the context.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -49,7 +48,7 @@ export const readFiles: Tool<string[]> = {
         const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
 
         for (const path of filePaths) {
-            context.contextStateManager.addFile(path, { type: 'tool_use', toolUseId })
+            await context.contextStateManager.addFile(path, { type: 'tool_use', toolUseClass: 'read', toolUseId })
         }
 
         console.log(

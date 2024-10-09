@@ -8,12 +8,11 @@
 ## Improvements
 
 1. Pass ignore files to glob.
-2. Context caching after the project info dump at the beginning of the conversation.
-3. Intelligent file inclusions based on the query.
-4. Automatic context squashing to optimize token counts (remove thinking, have user modifications directly overwrite tool uses).
-5. Even more intelligent re-prompt agent - capture conversation from the current ask, not the last user text message (which could be clarification).
-6. Expand the write_tool and edit_tool responses to say that the context has been updated.
-7.
+2. Intelligent file inclusions based on the query.
+3. Automatic context squashing to optimize token counts (remove thinking, have user modifications directly overwrite tool uses).
+4. Even more intelligent re-prompt agent - capture conversation from the current ask, not the last user text message (which could be clarification).
+5. Expand the write_tool and edit_tool responses to say that the context has been updated.
+6.
 
 ## Bugs
 
