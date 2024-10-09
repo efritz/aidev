@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { AssistantMessage, ToolResult, ToolUse } from '../messages/messages'
+import { AssistantMessage, ToolUse } from '../messages/messages'
 import { ExecutionContext } from '../tools/context'
 import { ExecutionResult } from '../tools/tool'
 import { findTool } from '../tools/tools'
