@@ -1,6 +1,6 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { completeDirectoryPaths } from '../../../util/fs/completion'
+import { completeDirectoryPaths, parseArgsWithEscapedSpaces } from '../../../util/fs/completion'
 import { expandDirectoryPatterns } from '../../../util/fs/glob'
 import { filterIgnoredPaths } from '../../../util/fs/ignore'
 import { ChatContext } from '../../context'
@@ -15,10 +15,7 @@ export const loaddirCommand: CommandDescription = {
 }
 
 async function handleLoaddir(context: ChatContext, args: string): Promise<void> {
-    return handleLoaddirPatterns(
-        context,
-        args.split(' ').filter(p => p.trim() !== ''),
-    )
+    return handleLoaddirPatterns(context, parseArgsWithEscapedSpaces(args))
 }
 
 export async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): Promise<void> {

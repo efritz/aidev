@@ -1,6 +1,6 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { completeFilePaths } from '../../../util/fs/completion'
+import { completeFilePaths, parseArgsWithEscapedSpaces } from '../../../util/fs/completion'
 import { expandFilePatterns } from '../../../util/fs/glob'
 import { filterIgnoredPaths } from '../../../util/fs/ignore'
 import { ChatContext } from '../../context'
@@ -15,10 +15,7 @@ export const loadCommand: CommandDescription = {
 }
 
 async function handleLoad(context: ChatContext, args: string): Promise<void> {
-    return handleLoadPatterns(
-        context,
-        args.split(' ').filter(p => p.trim() !== ''),
-    )
+    return handleLoadPatterns(context, parseArgsWithEscapedSpaces(args))
 }
 
 export async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
