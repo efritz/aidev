@@ -49,7 +49,7 @@ export const commands: CommandDescription[] = [
 export async function handleCommand(context: ChatContext, message: string): Promise<boolean> {
     const parts = message.split(' ')
     const command = parts[0]
-    const args = parts.slice(1).join(' ').trim()
+    const args = parts.slice(1).join(' ')
 
     for (const { prefix, handler, continuePrompt } of commands) {
         if (command === prefix) {
@@ -66,7 +66,7 @@ export async function handleCommand(context: ChatContext, message: string): Prom
 export async function completeCommand(context: ChatContext, message: string): Promise<CompleterResult | undefined> {
     const parts = message.split(' ')
     const command = parts[0]
-    const args = parts.slice(1).join(' ').trim()
+    const args = parts.slice(1).join(' ')
 
     if (!command.startsWith(':')) {
         return undefined
