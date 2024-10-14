@@ -84,7 +84,8 @@ async function completePathPatterns(
     args: string,
     expandPatterns: (patterns: string[]) => Promise<string[]>,
 ): Promise<CompleterResult> {
-    const last = args.split(' ').pop()!
+    const parsedArgs = parseArgsWithEscapedSpaces(args, true)
+    const last = parsedArgs[parsedArgs.length - 1] || ''
     const prefix = canonicalizePathPrefix(last)
 
     if (prefix.includes('*')) {
@@ -96,13 +97,28 @@ async function completePathPatterns(
         // If there are any matches, return a SINGLE result as a string with a trailing space.
         // This will replace the entry with the expanded paths, rather than simply suggesting
         // all of them for individual selection.
-        return [[entries.join(' ') + ' '], last]
+        const quotedEntries = entries.map(entry => entry.replaceAll(/([^\\]) /g, '$1\\ '))
+        return [[quotedEntries.join(' ') + ' '], last]
     }
 
-    return [await expandPrefixes([prefix]), last]
+    const expandedPrefixes = await expandPrefixes([prefix])
+    const quotedPrefixes = expandedPrefixes.map(entry => entry.replaceAll(/([^\\]) /g, '$1\\ '))
+    return [quotedPrefixes, last]
 }
 
 function canonicalizePathPrefix(prefix: string): string {
+    // Strip quotes (might be incomplete)
+    if (prefix.startsWith('"') || prefix.startsWith("'")) {
+        if (prefix.endsWith(prefix[0])) {
+            prefix = prefix.slice(1, -1)
+        } else {
+            prefix = prefix.slice(1)
+        }
+    }
+
+    // Unescape spaces
+    prefix = prefix.replaceAll(/\\ /g, ' ')
+
     // Support home directory
     if (prefix.startsWith('~')) {
         prefix = homedir() + prefix.slice(1)
