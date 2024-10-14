@@ -13,8 +13,8 @@ describe('parseArgsWithEscapedSpaces', () => {
             'bonk.txt',
         ])
 
-        // unterminated escape implicit adds space to last element
-        expect(parseArgsWithEscapedSpaces('foo.txt bar\\')).toEqual(['foo.txt', 'bar '])
+        // unterminated escape is ignored
+        expect(parseArgsWithEscapedSpaces('foo.txt bar\\')).toEqual(['foo.txt', 'bar'])
     })
 
     it('should parse quoted paths', () => {
@@ -28,7 +28,33 @@ describe('parseArgsWithEscapedSpaces', () => {
         expect(parseArgsWithEscapedSpaces('foo "bar baz')).toEqual(['foo', 'bar baz'])
     })
 
+    it('should reject quotes not starting at beginning of string', () => {
+        expect(() => parseArgsWithEscapedSpaces('foo bar"baz')).toThrow()
+    })
+
     it('should reject non-space escape sequence', () => {
         expect(() => parseArgsWithEscapedSpaces('foo\\n bar.txt')).toThrow()
+    })
+
+    it('should not clean up quotes or escapes in raw mode', () => {
+        // contains escapes
+        expect(parseArgsWithEscapedSpaces('foo.txt bar\\ baz.txt bonk.txt', true)).toEqual([
+            'foo.txt',
+            'bar\\ baz.txt',
+            'bonk.txt',
+        ])
+
+        // contains quotes
+        expect(parseArgsWithEscapedSpaces('foo "bar baz.txt" bonk.txt', true)).toEqual([
+            'foo',
+            '"bar baz.txt"',
+            'bonk.txt',
+        ])
+
+        // unterminated escape is preserved
+        expect(parseArgsWithEscapedSpaces('foo.txt bar\\', true)).toEqual(['foo.txt', 'bar\\'])
+
+        // terminating with escaped space
+        expect(parseArgsWithEscapedSpaces('foo.txt bar\\ ', true)).toEqual(['foo.txt', 'bar\\ '])
     })
 })

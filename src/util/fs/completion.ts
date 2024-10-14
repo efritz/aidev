@@ -3,43 +3,61 @@ import { sep } from 'path'
 import { CompleterResult } from 'readline'
 import { expandDirectoryPatterns, expandFileAndDirectoryPatterns, expandFilePatterns, expandPrefixes } from './glob'
 
-export function parseArgsWithEscapedSpaces(args: string): string[] {
+export function parseArgsWithEscapedSpaces(args: string, raw = false): string[] {
     let current = ''
     let escaped = false
     let quoteChar: '"' | "'" | null = null
 
     const result: string[] = []
     for (const char of args) {
-        if (escaped && char != ' ') {
-            // Validate escape sequences
+        if (escaped && char !== ' ') {
+            // The only valid escape is a space
             throw new Error(`Invalid escape sequence: "\\${char}"`)
         }
 
+        if ((char === '"' || char === "'") && !quoteChar && current) {
+            // Quoted strings must be at the start of the argument
+            throw new Error(`Unexpected quote character: "${char}"`)
+        }
+
+        if (char === ' ' && !quoteChar && !escaped) {
+            // End of unquoted string, save current buffer
+            result.push(current)
+            current = ''
+            continue
+        }
+
         if (char === '\\') {
+            if (raw) {
+                // Preserve control characters in raw mode
+                current += char
+            }
+
             // Escape next character
             escaped = true
         } else if (char === quoteChar) {
+            if (raw) {
+                // Preserve control characters in raw mode
+                current += char
+            }
+
             // End of quoted string, save current buffer
             result.push(current)
             current = ''
             quoteChar = null
-        } else if (char === '"' || char === "'") {
+        } else if ((char === '"' || char === "'") && !quoteChar) {
+            if (raw) {
+                // Preserve control characters in raw mode
+                current += char
+            }
+
             // Start of quoted string
             quoteChar = char
-        } else if (char === ' ' && !quoteChar && !escaped) {
-            // End of unquoted string, save current buffer
-            result.push(current)
-            current = ''
         } else {
             // Text or escaped/quoted character, add to current buffer
             escaped = false
             current += char
         }
-    }
-
-    if (escaped) {
-        // If the last character was an escape, implicit complete a space
-        current += ' '
     }
 
     if (current) {
