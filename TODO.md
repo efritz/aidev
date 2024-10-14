@@ -16,4 +16,5 @@
 
 ## Bugs
 
-1.
+1. No way to load filenames with spaces in it
+2. 
