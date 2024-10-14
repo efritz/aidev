@@ -12,7 +12,9 @@
 3. Automatic context squashing to optimize token counts (remove thinking, have user modifications directly overwrite tool uses).
 4. Even more intelligent re-prompt agent - capture conversation from the current ask, not the last user text message (which could be clarification).
 5. Expand the write_tool and edit_tool responses to say that the context has been updated.
-6.
+6. Need a way to cancel "choice" while in diff/edit view
+7. Have temp files be in the same directory to take advantage of tooling/imports properly
+8. 
 
 ## Bugs
 
