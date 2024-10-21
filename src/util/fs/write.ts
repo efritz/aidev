@@ -6,6 +6,7 @@ import { Provider } from '../../providers/provider'
 import { CancelError, InterruptHandler } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { Prompter } from '../prompter/prompter'
+import { withTempFile, withTempFileContents } from '../../util/fs/temp'
 
 export type WriteResult = {
     stashed?: boolean
@@ -46,7 +47,9 @@ export async function executeWriteFile({
     } else {
         const dir = dirname(path)
         await mkdir(dir, { recursive: true })
-        await _writeFile(path, editedContents)
+        await withTempFileContents(path, editedContents, async tempFilePath => {
+            await _writeFile(tempFilePath, editedContents)
+        })
 
         if (fromStash) {
             provider.conversationManager.applyStashedFile(path, editedContents, originalContents)
