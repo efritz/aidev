@@ -14,7 +14,7 @@ const models: Model[] = [
     },
     {
         name: 'sonnet',
-        model: 'claude-3-5-sonnet-20240620',
+        model: 'claude-3-5-sonnet-20241022',
         options: {
             maxTokens: 8192,
             headers: { 'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15' },
