@@ -62,8 +62,8 @@ export const editFile: Tool<EditResult> = {
             console.log()
         } else {
             const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
-            const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits)
-            const proposedContents = applyEdits(result.originalContents, proposedEdits)
+            const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits, path)
+            const proposedContents = applyEdits(result.originalContents, proposedEdits, path)
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
     },
@@ -110,16 +110,16 @@ function applyEdits(content: string, edits: Edit[], path: string): string {
         if (occurrences === 0) {
             throw new Error(
                 `The search string "${edit.search}" was not found in the file "${path}".\n` +
-                `Suggestions:\n` +
-                `- Check the latest version of the file to ensure the search string still exists.\n` +
-                `- Ensure the search string is correct and try again.`
+                    `Suggestions:\n` +
+                    `- Check the latest version of the file to ensure the search string still exists.\n` +
+                    `- Ensure the search string is correct and try again.`,
             )
         } else if (occurrences > 1) {
             throw new Error(
                 `The search string "${edit.search}" appears ${occurrences} times in the file "${path}".\n` +
-                `Suggestions:\n` +
-                `- Ensure the search string is unique within the file.\n` +
-                `- Expand the amount of text being replaced to make it unique.`
+                    `Suggestions:\n` +
+                    `- Ensure the search string is unique within the file.\n` +
+                    `- Expand the amount of text being replaced to make it unique.`,
             )
         }
 
