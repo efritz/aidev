@@ -3,6 +3,7 @@ import { dirname } from 'path'
 import chalk from 'chalk'
 import { diffLines } from 'diff'
 import { Provider } from '../../providers/provider'
+import { withTempFileContents } from '../../util/fs/temp'
 import { CancelError, InterruptHandler } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { Prompter } from '../prompter/prompter'
@@ -163,7 +164,7 @@ async function confirmWrite({
                 }
 
                 case 'e': {
-                    const newContents = await withContentEditor(interruptHandler, contents)
+                    const newContents = await withContentEditor(interruptHandler, contents, path)
                     if (newContents !== contents) {
                         contents = newContents
                         displayDiff(contents, originalContents)

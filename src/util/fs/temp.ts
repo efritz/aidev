@@ -13,13 +13,28 @@ export async function withTempDir<T>(f: (dirPath: string) => Promise<T>): Promis
     }
 }
 
-export async function withTempFile<T>(f: (filePath: string) => Promise<T>): Promise<T> {
-    return withTempDir(tempDir => f(path.join(tempDir, generateRandomName())))
+export async function withTempFile<T>(f: (filePath: string) => Promise<T>, referencePath: string = ''): Promise<T> {
+    if (referencePath === '') {
+        return withTempDir(tempDir => f(path.join(tempDir, generateRandomName())))
+    }
+
+    const tempFileName = `${path.basename(referencePath)}-${Date.now()}`
+    const tempFilePath = path.join(path.dirname(referencePath), tempFileName)
+
+    try {
+        return await f(tempFilePath)
+    } finally {
+        await rm(tempFilePath, { force: true })
+    }
 }
 
-export async function withTempFileContents<T>(contents: string, f: (filePath: string) => Promise<T>): Promise<T> {
+export async function withTempFileContents<T>(
+    contents: string,
+    f: (filePath: string) => Promise<T>,
+    referencePath: string = '',
+): Promise<T> {
     return withTempFile(async filePath => {
         await writeFile(filePath, contents)
         return await f(filePath)
-    })
+    }, referencePath)
 }
