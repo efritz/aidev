@@ -61,7 +61,7 @@ export const editFile: Tool<EditResult> = {
             console.log(chalk.bold.red(error))
             console.log()
         } else {
-            const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
+            const { path, edits: proposedEdits } = safeInterpretParameters(args)
             const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits)
             const proposedContents = applyEdits(result.originalContents, proposedEdits)
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
@@ -72,7 +72,7 @@ export const editFile: Tool<EditResult> = {
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<EditResult>> => {
-        const { path, edits } = args as { path: string; edits: Edit[] }
+        const { path, edits } = safeInterpretParameters(args)
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
@@ -107,7 +107,7 @@ function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): E
 function applyEdits(content: string, edits: Edit[]): string {
     for (const edit of edits) {
         if (!isUniqueSubstring(content, edit.search)) {
-            throw new Error(`The search string "${edit.search}" must appear exactly once in the file.`)
+            throw new Error(`The search string must appear exactly once in the file:\n${formatCodeFence(edit.search)}`)
         }
 
         content = content.replace(edit.search, edit.replacement)
@@ -188,4 +188,26 @@ function isUniqueSubstring(content: string, search: string): boolean {
     }
 
     return count === 1
+}
+
+const formatCodeFence = (content: string): string => '```\n' + content + '\n```\n'
+
+const safeInterpretParameters = (args: Arguments): { path: string; edits: Edit[] } => {
+    const { path, edits } = args as { path: string; edits: Edit[] | string }
+
+    if (typeof edits === 'string') {
+        // Try to strip XML control sequences from the tail of the string.
+        // For example, Claude sometimes leaks `</invoke>` after an otherwise valid JSON object.
+        const stripped = edits.replace(/<\/[^>]+>$/, '')
+
+        try {
+            return { path, edits: JSON.parse(stripped) }
+        } catch (error) {
+            throw new Error(
+                `Unable to interpret the "edits" parameter as a JSON object: ${error}\n\nOriginal edits string:\n${formatCodeFence(stripped)}`,
+            )
+        }
+    }
+
+    return { path, edits }
 }
