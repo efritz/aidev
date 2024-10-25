@@ -62,8 +62,8 @@ export const editFile: Tool<EditResult> = {
             console.log()
         } else {
             const { path, edits: proposedEdits } = safeInterpretParameters(args)
-            const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits)
-            const proposedContents = applyEdits(result.originalContents, proposedEdits)
+            const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits, path)
+            const proposedContents = applyEdits(result.originalContents, proposedEdits, path)
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
     },
@@ -74,7 +74,7 @@ export const editFile: Tool<EditResult> = {
     ): Promise<ExecutionResult<EditResult>> => {
         const { path, edits } = safeInterpretParameters(args)
         const originalContents = await safeReadFile(path)
-        const contents = applyEdits(originalContents, edits)
+        const contents = applyEdits(originalContents, edits, path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
         await context.contextStateManager.addFile(path, { type: 'tool_use', toolUseClass: 'write', toolUseId })
         return editExecutionResultFromWriteResult(result)
@@ -104,10 +104,26 @@ function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): E
     }
 }
 
-function applyEdits(content: string, edits: Edit[]): string {
+function applyEdits(content: string, edits: Edit[], path: string): string {
     for (const edit of edits) {
-        if (!isUniqueSubstring(content, edit.search)) {
-            throw new Error(`The search string must appear exactly once in the file:\n${formatCodeFence(edit.search)}`)
+        const occurrences = countOccurrences(content, edit.search)
+
+        if (occurrences === 0) {
+            throw new Error(
+                `The search string was not found in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
+                    'Suggestions:\n' +
+                    '- Check the latest version of the file to ensure the search string still exists.\n' +
+                    '- Ensure the search string is correct and try again.',
+            )
+        }
+
+        if (occurrences > 1) {
+            throw new Error(
+                `The search string appears ${occurrences} times in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
+                    'Suggestions:\n' +
+                    '- Ensure the search string is unique within the file.\n' +
+                    '- Expand the amount of text being replaced to make it unique.',
+            )
         }
 
         content = content.replace(edit.search, edit.replacement)
@@ -170,6 +186,10 @@ function editsFromDiff(original: string, modified: string): Edit[] {
 }
 
 function isUniqueSubstring(content: string, search: string): boolean {
+    return countOccurrences(content, search) === 1
+}
+
+function countOccurrences(content: string, search: string): number {
     let count = 0
     let position = 0
 
@@ -187,10 +207,10 @@ function isUniqueSubstring(content: string, search: string): boolean {
         position = index + 1
     }
 
-    return count === 1
+    return count
 }
 
-const formatCodeFence = (content: string): string => '```\n' + content + '\n```\n'
+const formatCodeFence = (content: string): string => '```\n' + content + '\n```'
 
 const safeInterpretParameters = (args: Arguments): { path: string; edits: Edit[] } => {
     const { path, edits } = args as { path: string; edits: Edit[] | string }
@@ -204,7 +224,11 @@ const safeInterpretParameters = (args: Arguments): { path: string; edits: Edit[]
             return { path, edits: JSON.parse(stripped) }
         } catch (error) {
             throw new Error(
-                `Unable to interpret the "edits" parameter as a JSON object: ${error}\n\nOriginal edits string:\n${formatCodeFence(stripped)}`,
+                [
+                    'Unable to interpret "edits" parameter as a valid JSON object.',
+                    formatCodeFence(stripped),
+                    error,
+                ].join('\n\n'),
             )
         }
     }
