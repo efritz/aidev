@@ -6,14 +6,39 @@ This project provides a personalized AI assistant that can be used through a CLI
 
 Before running the AI assistant, ensure that:
 
-1. The `code` command is available on your PATH. This is typically installed with Visual Studio Code.
-2. For the VSCode extension to work properly, the CLI run instructions must be aliased to 'ai'. Add this alias to your shell configuration file:
+1. API keys are configured for your chosen LLM provider(s). Store your API keys in `~/.config/aidev/keys/` following this convention:
 
-```bash
-alias ai='node /path/to/aidev/dist/cli.js'
-```
+   ```bash
+   # Create the config directory
+   mkdir -p ~/.config/aidev/keys
 
-Replace `/path/to/aidev` with the path to this project.
+   # Store your API keys (one per file)
+   echo 'your-api-key' > ~/.config/aidev/keys/openai.key
+   chmod 600 ~/.config/aidev/keys/*.key  # Secure the files
+   ```
+
+   By default, keys are stored in `~/.config/aidev/keys`, but you can override this location by setting the `AIDEV_KEY_DIR` environment variable:
+
+   ```bash
+   export AIDEV_KEY_DIR="/custom/path/to/keys/dir"
+   ```
+
+   Key files for each provider will be expected upon use:
+
+   - `anthropic.key`
+   - `openai.key`
+   - `google.key`
+   - `groq.key`
+
+2. The `code` command is available on your PATH. This is typically installed with Visual Studio Code.
+
+3. For the VSCode extension to work properly, the CLI run instructions must be aliased to 'ai'. Add this alias to your shell configuration file:
+
+   ```bash
+   alias ai='node /path/to/aidev/dist/cli.js'
+   ```
+
+   Replace `/path/to/aidev` with the path to this project.
 
 ## Installation
 
