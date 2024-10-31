@@ -35,7 +35,7 @@ Before running the AI assistant, ensure that:
 3. For the VSCode extension to work properly, the CLI run instructions must be aliased to 'ai'. Add this alias to your shell configuration file:
 
    ```bash
-   alias ai='node /path/to/aidev/dist/cli.js'
+   alias ai='node /path/to/aidev/dist/cli.mjs'
    ```
 
    Replace `/path/to/aidev` with the path to this project.
