@@ -10,6 +10,10 @@ const models: Model[] = [
         name: 'llama3',
         model: 'llama3.2',
     },
+    {
+        name: 'qwen',
+        model: 'qwen2.5-coder:32b',
+    },
 ]
 
 export const provider: ProviderSpec = {
