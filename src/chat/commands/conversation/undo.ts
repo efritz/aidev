@@ -23,7 +23,7 @@ async function handleUndo(context: ChatContext, args: string) {
     }
 
     console.clear()
-    replayMessages(context.provider.conversationManager.visibleMessages())
+    replayMessages(context)
     console.log(chalk.yellow('Undid last action.'))
     console.log()
 }

@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises'
+import { emit } from 'process'
 import chalk from 'chalk'
-import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
+import { AssistantMessage, MetaMessage, UserMessage } from '../messages/messages'
 import { tools } from '../tools/tools'
 import { replayWriteFile } from '../util/fs/write'
 import { reviver, SaveFilePayload } from './commands/conversation/save'
@@ -15,11 +16,30 @@ export async function loadHistory(context: ChatContext, historyFilename: string)
     context.contextStateManager.files = new Map(Object.entries(contextFiles))
     context.contextStateManager.directories = new Map(Object.entries(contextDirectories))
 
-    replayMessages(context.provider.conversationManager.visibleMessages())
+    replayMessages(context)
 }
 
-export function replayMessages(messages: Message[]): void {
-    for (const message of messages) {
+export function replayMessages(context: ChatContext): void {
+    let emitNewline = false
+    for (const [path, file] of context.contextStateManager.files.entries()) {
+        if (file.inclusionReasons.some(r => r.type === 'explicit')) {
+            emitNewline = true
+            console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
+        }
+    }
+
+    for (const [path, dir] of context.contextStateManager.directories.entries()) {
+        if (dir.inclusionReasons.some(r => r.type === 'explicit')) {
+            emitNewline = true
+            console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
+        }
+    }
+
+    if (emitNewline) {
+        console.log()
+    }
+
+    for (const message of context.provider.conversationManager.visibleMessages()) {
         switch (message.role) {
             case 'meta':
                 replayMetaMessage(message)

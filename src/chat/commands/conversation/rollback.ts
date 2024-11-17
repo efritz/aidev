@@ -29,7 +29,7 @@ async function handleRollback(context: ChatContext, args: string): Promise<void>
     }
 
     console.clear()
-    replayMessages(context.provider.conversationManager.visibleMessages())
+    replayMessages(context)
 
     console.log(`${chalk.dim('📌')} Rolled back to savepoint "${name}".`)
     if (prunedBranches.length > 0) {

@@ -28,7 +28,7 @@ async function handleSwitch(context: ChatContext, args: string) {
     }
 
     console.clear()
-    replayMessages(context.provider.conversationManager.visibleMessages())
+    replayMessages(context)
 }
 
 async function completeSwitch(context: ChatContext, args: string): Promise<CompleterResult> {

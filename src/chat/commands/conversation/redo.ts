@@ -23,7 +23,7 @@ async function handleRedo(context: ChatContext, args: string) {
     }
 
     console.clear()
-    replayMessages(context.provider.conversationManager.visibleMessages())
+    replayMessages(context)
     console.log(chalk.yellow('Redid last undone action.'))
     console.log()
 }
