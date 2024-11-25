@@ -191,4 +191,4 @@ async function chatWithReadline(context: ChatContext, historyFilename?: string) 
     await handler(context)
 }
 
-await main()
+main()
