@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
+import EventSource from 'eventsource'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
 import { createEditorEventSource, registerEditorListeners } from './chat/editor'
@@ -13,6 +14,9 @@ import { createInterruptHandler, InterruptHandlerOptions } from './util/interrup
 import { createPrompter } from './util/prompter/prompter'
 
 async function main() {
+    // Make EventSource available globally for the SSE transport
+    ;(global as any).EventSource = EventSource
+
     program
         .name('ai')
         .description('Personalized AI in the terminal.')
