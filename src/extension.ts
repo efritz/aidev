@@ -1,7 +1,9 @@
 import { stat } from 'fs/promises'
 import { createServer as _createServer, Server, ServerResponse } from 'http'
 import { AddressInfo } from 'net'
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
+import { createModelContextProtocolServer } from './mcp/server'
 import { modelNames } from './providers/providers'
 
 const sseHeaders = {
@@ -38,12 +40,32 @@ export function activate(context: ExtensionContext) {
             sendSSEUpdate()
         }
 
-    const createServer = () =>
-        _createServer((req, res) => {
+    const modelContextProtocolServer = createModelContextProtocolServer()
+
+    const createServer = () => {
+        // TODO - don't assume one?
+        let transport: SSEServerTransport
+
+        return _createServer(async (req, res) => {
+            if (req.method === 'GET' && req.url === '/mcp') {
+                transport = new SSEServerTransport('/post-messages', res)
+                await modelContextProtocolServer.connect(transport)
+            }
+
+            // TODO - url parse
+            if (req.method === 'POST' && req.url?.split('?')[0] === '/post-messages') {
+                try {
+                    await transport.handlePostMessage(req, res)
+                } catch (error: any) {
+                    res.writeHead(500, jsonHeaders)
+                    res.end(JSON.stringify({ error: error.message }))
+                }
+            }
+
             try {
-                if (req.url !== '/open-documents') {
+                if (req.method !== 'GET' || req.url !== '/open-documents') {
                     res.writeHead(404)
-                    res.end()
+                    res.end(JSON.stringify({ error: 'Not found', method: req.method, url: req.url }))
                     return
                 }
 
@@ -58,6 +80,7 @@ export function activate(context: ExtensionContext) {
                 res.end(JSON.stringify({ error: error.message }))
             }
         })
+    }
 
     const startServer = async (server: Server): Promise<number> => {
         await new Promise<void>((resolve, reject) => {
@@ -71,7 +94,7 @@ export function activate(context: ExtensionContext) {
     const createTerminal = async (command: string): Promise<Terminal> => {
         const terminal = window.createTerminal('aidev')
         await terminal.processId
-        terminal.sendText(`${command}; exit`)
+        terminal.sendText(`${command}`) // TODO ; exit`)
         terminal.show()
         return terminal
     }
