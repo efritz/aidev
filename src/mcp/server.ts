@@ -1,33 +1,54 @@
 import { Server as ModelContextProtocolServer } from '@modelcontextprotocol/sdk/server/index.js'
-import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import { window } from 'vscode'
+import { JSONSchemaDataType } from '../tools/tool'
+
+const tools = [
+    {
+        name: 'editor-notice',
+        description: 'Display a message in the editor.',
+        inputSchema: {
+            type: JSONSchemaDataType.Object,
+            properties: {
+                message: { type: JSONSchemaDataType.String },
+            },
+            required: ['message'],
+        },
+        execute: async (args: any): Promise<{ content: any[] }> => {
+            const editorNoticeArgs = args as { message: string }
+            await window.showInformationMessage(editorNoticeArgs.message)
+            return { content: [] }
+        },
+    },
+]
 
 export function createModelContextProtocolServer(): ModelContextProtocolServer {
-    const serverInfo = { name: 'example-server', version: '1.0.0' }
-    const options = { capabilities: { resources: {}, tools: {} } }
+    const serverInfo = { name: 'aidev-vscode-server', version: '0.0.1' }
+    const options = { capabilities: { tools: {} } }
     const server = new ModelContextProtocolServer(serverInfo, options)
 
-    server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-        resources: [
-            {
-                uri: 'file:///example.txt',
-                name: 'Example Resource',
-            },
-        ],
-    }))
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }))
 
-    server.setRequestHandler(ReadResourceRequestSchema, async request => {
-        if (request.params.uri !== 'file:///example.txt') {
-            throw new Error('Resource not found')
-        }
+    server.setRequestHandler(CallToolRequestSchema, async req => {
+        try {
+            const { name, arguments: args } = req.params
 
-        return {
-            contents: [
-                {
-                    uri: 'file:///example.txt',
-                    mimeType: 'text/plain',
-                    text: 'This is the content of the example resource.',
-                },
-            ],
+            for (const tool of tools) {
+                if (tool.name === name) {
+                    return tool.execute(args)
+                }
+            }
+
+            throw new Error('Tool not found')
+        } catch (error: any) {
+            return {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+                    },
+                ],
+            }
         }
     })
 

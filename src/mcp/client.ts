@@ -1,13 +1,16 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
-import { ListResourcesResultSchema, ReadResourceResultSchema } from '@modelcontextprotocol/sdk/types.js'
+import chalk from 'chalk'
+import { ExecutionContext } from '../tools/context'
+import { Arguments, ExecutionResult, JSONSchemaDataType, JSONSchemaObject, Tool, ToolResult } from '../tools/tool'
+import { tools } from '../tools/tools'
 
 export async function createClient(port?: number): Promise<Client | undefined> {
     if (!port) {
         return undefined
     }
 
-    const clientInfo = { name: 'example-client', version: '1.0.0' }
+    const clientInfo = { name: 'aidev-vscode-client', version: '0.0.1' }
     const options = { capabilities: {} }
     const client = new Client(clientInfo, options)
 
@@ -17,30 +20,57 @@ export async function createClient(port?: number): Promise<Client | undefined> {
     return client
 }
 
-export async function testClient(client?: Client) {
+export async function registerTools(client?: Client) {
     if (!client) {
         return
     }
 
-    {
-        //
-        // List available resources
+    const { tools: mcpTools } = await client.listTools()
 
-        const req = { method: 'resources/list' }
-        const resultSchema = ListResourcesResultSchema
-        const resources = await client.request(req, resultSchema)
-        console.log({ resources })
+    for (const mcpTool of mcpTools) {
+        tools.push(mcpToolToTool(client, mcpTool))
     }
+}
 
-    {
-        //
-        //
-        // Read a specific resource
+//
+//
 
-        const params = { uri: 'file:///example.txt' }
-        const req = { method: 'resources/read', params }
-        const resultSchema = ReadResourceResultSchema
-        const resourceContent = await client.request(req, resultSchema)
-        console.log({ resourceContent })
+function mcpToolToTool(client: Client, mcpTool: { name: string; description?: string; inputSchema: any }): Tool<any> {
+    return {
+        name: mcpTool.name,
+        description: mcpTool.description ?? '',
+        parameters: inputSchemaToParameters(mcpTool.inputSchema),
+        replay: (args: Arguments, { result, error, canceled }: ToolResult<any>) => {
+            if (!result) {
+                console.log()
+                console.log(chalk.bold.red(error))
+                console.log()
+            } else {
+                // TODO
+                console.log('Replaying MCP tool...')
+            }
+        },
+        execute: async (
+            context: ExecutionContext,
+            toolUseId: string,
+            args: Arguments,
+        ): Promise<ExecutionResult<any>> => {
+            console.log('Executing MCP tool...')
+            const result = await client.callTool({ name: mcpTool.name, arguments: args }, undefined)
+            console.log('Executed MCP tool...', { result })
+            return { result }
+        },
+        serialize: (result: ToolResult<any>) => {
+            return JSON.stringify(result)
+        },
+    }
+}
+
+function inputSchemaToParameters(inputSchema: any): JSONSchemaObject {
+    return {
+        type: JSONSchemaDataType.Object,
+        description: (inputSchema.description as any) ?? '',
+        properties: (inputSchema.properties as any) ?? {},
+        required: (inputSchema.required as any) ?? [],
     }
 }
