@@ -1,5 +1,5 @@
 import { stat } from 'fs/promises'
-import { createServer as _createServer, Server, ServerResponse } from 'http'
+import { createServer as _createServer, RequestListener, Server, ServerResponse } from 'http'
 import { AddressInfo } from 'net'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
@@ -17,6 +17,11 @@ const jsonHeaders = {
 }
 
 export function activate(context: ExtensionContext) {
+    const output = window.createOutputChannel('aidev')
+
+    //
+    //
+
     const sseClients = new Set<ServerResponse>()
     const openDocumentURIs = new Set(pathFromTabGroups())
 
@@ -40,45 +45,94 @@ export function activate(context: ExtensionContext) {
             sendSSEUpdate()
         }
 
-    const modelContextProtocolServer = createModelContextProtocolServer()
+    //
+    //
+
+    // This will be set to the base URL of the server when it starts.
+    // We don't know this ahead of time because the server uses a random port.
+    var baseURL: string
 
     const createServer = () => {
-        // TODO - don't assume one?
-        let transport: SSEServerTransport
-
-        return _createServer(async (req, res) => {
-            if (req.method === 'GET' && req.url === '/mcp') {
-                transport = new SSEServerTransport('/post-messages', res)
-                await modelContextProtocolServer.connect(transport)
-            }
-
-            // TODO - url parse
-            if (req.method === 'POST' && req.url?.split('?')[0] === '/post-messages') {
+        const safe =
+            (handler: RequestListener): RequestListener =>
+            async (req, res) => {
                 try {
-                    await transport.handlePostMessage(req, res)
+                    await handler(req, res)
                 } catch (error: any) {
                     res.writeHead(500, jsonHeaders)
                     res.end(JSON.stringify({ error: error.message }))
+                    output.appendLine(`Error handling ${req.method} ${req.url}: ${error.message}`)
                 }
             }
 
-            try {
-                if (req.method !== 'GET' || req.url !== '/open-documents') {
-                    res.writeHead(404)
-                    res.end(JSON.stringify({ error: 'Not found', method: req.method, url: req.url }))
-                    return
+        let transport: SSEServerTransport
+        const modelContextProtocolServer = createModelContextProtocolServer()
+
+        const handlers: {
+            method: 'GET' | 'POST'
+            path: string
+            handler: RequestListener
+        }[] = [
+            //
+            // Model Context Protocol Server implementation
+
+            {
+                method: 'GET',
+                path: '/mcp',
+                handler: safe(async (req, res) => {
+                    if (transport) {
+                        throw new Error('MCP server already running')
+                    }
+
+                    transport = new SSEServerTransport('/mcp', res)
+                    await modelContextProtocolServer.connect(transport)
+                }),
+            },
+            {
+                method: 'POST',
+                path: '/mcp',
+                handler: safe(async (req, res) => {
+                    if (!transport) {
+                        throw new Error('MCP server not running')
+                    }
+
+                    try {
+                        await transport.handlePostMessage(req, res)
+                    } catch (error: any) {
+                        res.writeHead(500, jsonHeaders)
+                        res.end(JSON.stringify({ error: error.message }))
+                    }
+                }),
+            },
+
+            // TODO - replace with notifications?
+            {
+                method: 'GET',
+                path: '/open-documents',
+                handler: safe(async (req, res) => {
+                    sseClients.add(res)
+                    req.on('close', () => sseClients.delete(res))
+
+                    res.writeHead(200, sseHeaders)
+                    res.flushHeaders()
+                    sendSSEUpdate()
+                }),
+            },
+        ]
+
+        return _createServer(async (req, res) => {
+            const { pathname } = new URL(req.url ?? '', baseURL)
+
+            for (const { method, path, handler } of handlers) {
+                if (req.method === method && pathname === path) {
+                    return handler(req, res)
                 }
-
-                sseClients.add(res)
-                req.on('close', () => sseClients.delete(res))
-
-                res.writeHead(200, sseHeaders)
-                res.flushHeaders()
-                sendSSEUpdate()
-            } catch (error: any) {
-                res.writeHead(500, jsonHeaders)
-                res.end(JSON.stringify({ error: error.message }))
             }
+
+            res.writeHead(404)
+            res.end(JSON.stringify({ error: 'Not found', method: req.method, url: req.url }))
+            output.appendLine(`Error handling ${req.method} ${pathname}: Not found`)
+            return
         })
     }
 
@@ -91,6 +145,9 @@ export function activate(context: ExtensionContext) {
         return (server.address() as AddressInfo).port
     }
 
+    //
+    //
+
     const createTerminal = async (command: string): Promise<Terminal> => {
         const terminal = window.createTerminal('aidev')
         await terminal.processId
@@ -99,10 +156,14 @@ export function activate(context: ExtensionContext) {
         return terminal
     }
 
+    //
+    //
+
     const chat = async (model?: string) => {
         try {
             const server = createServer()
             const port = await startServer(server)
+            baseURL = `http://localhost:${port}`
 
             const options = [`--port ${port}`, ...(model ? [`--model ${model}`] : [])]
             const terminal = await createTerminal(`ai ${options.join(' ')}`)
