@@ -73,9 +73,6 @@ export function activate(context: ExtensionContext) {
             path: string
             handler: RequestListener
         }[] = [
-            //
-            // Model Context Protocol Server implementation
-
             {
                 method: 'GET',
                 path: '/mcp',
@@ -105,7 +102,7 @@ export function activate(context: ExtensionContext) {
                 }),
             },
 
-            // TODO - replace with notifications?
+            // TODO - replace with resource changes
             {
                 method: 'GET',
                 path: '/open-documents',
