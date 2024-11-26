@@ -151,7 +151,7 @@ export function activate(context: ExtensionContext) {
     const createTerminal = async (command: string): Promise<Terminal> => {
         const terminal = window.createTerminal('aidev')
         await terminal.processId
-        terminal.sendText(`${command}`) // TODO ; exit`)
+        terminal.sendText(`${command}; exit`)
         terminal.show()
         return terminal
     }
