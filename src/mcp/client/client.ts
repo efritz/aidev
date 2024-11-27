@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import chalk from 'chalk'
 import { ExecutionContext } from '../../tools/context'
-import { Arguments, ExecutionResult, JSONSchemaDataType, JSONSchemaObject, Tool, ToolResult } from '../../tools/tool'
+import { Arguments, ExecutionResult, JSONSchemaDataType, ParametersSchema, Tool, ToolResult } from '../../tools/tool'
 import { tools } from '../../tools/tools'
 
 export async function createClient(port?: number): Promise<Client | undefined> {
@@ -66,10 +66,9 @@ function mcpToolToTool(client: Client, mcpTool: { name: string; description?: st
     }
 }
 
-function inputSchemaToParameters(inputSchema: any): JSONSchemaObject {
+function inputSchemaToParameters(inputSchema: any): ParametersSchema {
     return {
         type: JSONSchemaDataType.Object,
-        description: (inputSchema.description as any) ?? '',
         properties: (inputSchema.properties as any) ?? {},
         required: (inputSchema.required as any) ?? [],
     }
