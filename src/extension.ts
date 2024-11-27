@@ -3,7 +3,7 @@ import { createServer as _createServer, RequestListener, Server, ServerResponse 
 import { AddressInfo } from 'net'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
-import { createModelContextProtocolServer } from './mcp/server'
+import { createModelContextProtocolServer } from './mcp/server/server'
 import { modelNames } from './providers/providers'
 
 const sseHeaders = {

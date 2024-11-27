@@ -1,9 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
 import chalk from 'chalk'
-import { ExecutionContext } from '../tools/context'
-import { Arguments, ExecutionResult, JSONSchemaDataType, JSONSchemaObject, Tool, ToolResult } from '../tools/tool'
-import { tools } from '../tools/tools'
+import { ExecutionContext } from '../../tools/context'
+import { Arguments, ExecutionResult, JSONSchemaDataType, JSONSchemaObject, Tool, ToolResult } from '../../tools/tool'
+import { tools } from '../../tools/tools'
 
 export async function createClient(port?: number): Promise<Client | undefined> {
     if (!port) {

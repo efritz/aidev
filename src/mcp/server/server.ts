@@ -1,7 +1,7 @@
 import { Server as ModelContextProtocolServer } from '@modelcontextprotocol/sdk/server/index.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { window } from 'vscode'
-import { JSONSchemaDataType } from '../tools/tool'
+import { JSONSchemaDataType } from '../../tools/tool'
 
 const tools = [
     {
