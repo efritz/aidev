@@ -1,6 +1,6 @@
 import { Server as ModelContextProtocolServer } from '@modelcontextprotocol/sdk/server/index.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
-import { findTool, tools } from './tools/tools'
+import { executeTool, tools } from './tools/tools'
 
 export function createModelContextProtocolServer(): ModelContextProtocolServer {
     const serverInfo = { name: 'aidev-vscode-server', version: '0.0.1' }
@@ -16,21 +16,9 @@ export function createModelContextProtocolServer(): ModelContextProtocolServer {
         })),
     }))
 
-    server.setRequestHandler(CallToolRequestSchema, async req => {
-        try {
-            const { name, arguments: args } = req.params
-            return findTool(name).execute(context, args)
-        } catch (error: any) {
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-                    },
-                ],
-            }
-        }
-    })
+    server.setRequestHandler(CallToolRequestSchema, async ({ params: { name, arguments: args } }) =>
+        executeTool(context, name, args),
+    )
 
     return server
 }

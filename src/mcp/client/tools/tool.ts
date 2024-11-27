@@ -1,8 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import chalk from 'chalk'
-import { ExecutionContext } from '../../tools/context'
-import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../tools/tool'
-import { prefixFormatter, withProgress } from '../../util/progress/progress'
+import { ExecutionContext } from '../../../tools/context'
+import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
+import { prefixFormatter, withProgress } from '../../../util/progress/progress'
 
 export type Factory = {
     create(mcpTool: { name: string; description: string; parameters: ParametersSchema }): Tool<Result>
