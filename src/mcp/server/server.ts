@@ -1,6 +1,6 @@
 import { Server as ModelContextProtocolServer } from '@modelcontextprotocol/sdk/server/index.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
-import { findTool, tools } from './tools'
+import { findTool, tools } from './tools/tools'
 
 export function createModelContextProtocolServer(): ModelContextProtocolServer {
     const serverInfo = { name: 'aidev-vscode-server', version: '0.0.1' }

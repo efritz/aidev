@@ -1,4 +1,4 @@
-import { ParametersSchema } from '../../tools/tool'
+import { ParametersSchema } from '../../../tools/tool'
 import { ExecutionContext } from './context'
 
 export type Tool = {

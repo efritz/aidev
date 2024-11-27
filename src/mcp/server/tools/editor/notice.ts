@@ -1,5 +1,5 @@
 import { window } from 'vscode'
-import { JSONSchemaDataType } from '../../../tools/tool'
+import { JSONSchemaDataType } from '../../../../tools/tool'
 import { ExecutionContext } from '../context'
 import { Tool } from '../tool'
 
