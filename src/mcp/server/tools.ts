@@ -1,21 +1,13 @@
-import { window } from 'vscode'
-import { JSONSchemaDataType } from '../../tools/tool'
+import { editorNotice } from './editor/notice'
+import { Tool } from './tool'
 
-export const tools = [
-    {
-        name: 'editor-notice',
-        description: 'Display a message in the editor.',
-        inputSchema: {
-            type: JSONSchemaDataType.Object,
-            properties: {
-                message: { type: JSONSchemaDataType.String },
-            },
-            required: ['message'],
-        },
-        execute: async (args: any): Promise<{ content: any[] }> => {
-            const editorNoticeArgs = args as { message: string }
-            await window.showInformationMessage(editorNoticeArgs.message)
-            return { content: [] }
-        },
-    },
-]
+export const tools: Tool[] = [editorNotice]
+
+export function findTool(name: string): Tool {
+    const tool = tools.find(tool => tool.name === name)
+    if (!tool) {
+        throw new Error(`Tool not found: ${name}`)
+    }
+
+    return tool
+}
