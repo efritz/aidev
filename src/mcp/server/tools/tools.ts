@@ -22,7 +22,7 @@ export function executeTool(context: ExecutionContext, name: string, args: any):
             content: [
                 {
                     type: 'text',
-                    text: JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+                    text: `Error: ${error instanceof Error ? error.message : String(error)}`,
                 },
             ],
             isError: true,
