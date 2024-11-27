@@ -159,6 +159,7 @@ async function chatWithProvider(
     } finally {
         rl.close()
         contextStateManager.dispose()
+        client?.close()
         editorEventSource?.close()
     }
 }
