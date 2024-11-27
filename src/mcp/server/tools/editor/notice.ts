@@ -19,6 +19,11 @@ export const editorNotice: Tool = {
     execute: async (context: ExecutionContext, args: any): Promise<{ content: any[] }> => {
         const editorNoticeArgs = args as { message: string }
         await window.showInformationMessage(editorNoticeArgs.message)
-        return { content: [] }
+        return {
+            content: [
+                { type: 'text', text: 'test1' },
+                { type: 'resource', resource: { uri: 'test://uri', mimeType: 'foo', text: 'test2' } },
+            ],
+        }
     },
 }
