@@ -101,8 +101,6 @@ export function activate(context: ExtensionContext) {
                     }
                 }),
             },
-
-            // TODO - replace with resource changes
             {
                 method: 'GET',
                 path: '/open-documents',
