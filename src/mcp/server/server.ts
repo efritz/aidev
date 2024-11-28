@@ -1,13 +1,14 @@
 import { Server as ModelContextProtocolServer, Server, ServerOptions } from '@modelcontextprotocol/sdk/server/index.js'
+import { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol'
 import {
     CallToolRequest,
     CallToolRequestSchema,
     CallToolResult,
     ListToolsRequestSchema,
     Tool as McpTool,
+    Notification,
 } from '@modelcontextprotocol/sdk/types.js'
 import { OutputChannel } from 'vscode'
-import { ExecutionContext } from './tools/context'
 import { executeTool, tools } from './tools/tools'
 
 const name = 'aidev-vscode-server'
@@ -16,44 +17,46 @@ const options: ServerOptions = { capabilities: { tools: {} } }
 
 export function createModelContextProtocolServer(outputChannel: OutputChannel): ModelContextProtocolServer {
     const server = new ModelContextProtocolServer({ name, version }, options)
-    server.setRequestHandler(ListToolsRequestSchema, listTools)
-    server.setRequestHandler(CallToolRequestSchema, createCallTool(server, outputChannel))
+    server.setRequestHandler(ListToolsRequestSchema, createListToolsHandler())
+    server.setRequestHandler(CallToolRequestSchema, createCallToolHandler(server, outputChannel))
+
+    server.fallbackNotificationHandler = async (notification: Notification) => {
+        outputChannel.appendLine(`Received notification: ${JSON.stringify(notification)}`)
+    }
 
     return server
 }
 
-async function listTools(): Promise<{ tools: McpTool[] }> {
-    return {
+function createListToolsHandler(): () => Promise<{ tools: McpTool[] }> {
+    return async () => ({
         tools: tools.map(({ name, description, parameters: params }) => ({
             name,
             description,
             inputSchema: params,
         })),
-    }
+    })
 }
 
-function createCallTool(
+function createCallToolHandler(
     server: Server,
     outputChannel: OutputChannel,
-): (req: CallToolRequest) => Promise<CallToolResult> {
-    return async ({ params: { _meta, name, arguments: args } }) => {
-        const context: ExecutionContext = {
-            log: (...args: any) => {
-                outputChannel.appendLine(args.join(' '))
-            },
+): (req: CallToolRequest, extra: RequestHandlerExtra) => Promise<CallToolResult> {
+    const log = (...args: any): void => {
+        outputChannel.appendLine(args.join(' '))
+    }
 
-            notify: async (args: any) => {
-                const progressToken = _meta?.progressToken
+    return async ({ params: { _meta, name, arguments: args } }, { signal }) => {
+        const notify = async (args: any): Promise<void> => {
+            const progressToken = _meta?.progressToken
 
-                if (progressToken) {
-                    await server.notification({
-                        method: 'notifications/progress',
-                        params: { ...args, progressToken },
-                    })
-                }
-            },
+            if (progressToken) {
+                await server.notification({
+                    method: 'notifications/progress',
+                    params: { ...args, progressToken },
+                })
+            }
         }
 
-        return executeTool(context, name, args)
+        return executeTool({ log, notify, signal }, name, args)
     }
 }

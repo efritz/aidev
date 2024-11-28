@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types'
+import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol'
+import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types'
 import chalk from 'chalk'
 import { ExecutionContext } from '../../../tools/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
@@ -12,17 +13,21 @@ export type Factory = {
 type Result = CallToolResult['content']
 
 export function createToolFactory(client: Client): Factory {
+    const serializeArgs = (args: Arguments) => {
+        console.log(JSON.stringify(args, null, 2)) // TODO
+    }
+
     const replay = (name: string, args: Arguments, { result, error, canceled }: ToolResult<Result>) => {
-        console.log(`${chalk.dim('ℹ')} MCP Tool ${name}:`) // TODO
+        console.log(`${chalk.dim('ℹ')} Called remote tool ${name}:`)
         console.log()
-        console.log({ args }) // TODO
+        serializeArgs(args)
 
         if (canceled) {
             console.log()
-            console.log(chalk.dim('ℹ') + ' Tool was canceled.')
+            console.log(chalk.dim('ℹ') + ' Tool call was canceled.')
         }
         if (result) {
-            console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Tool ${error ? 'failed' : 'succeeded'}.`)
+            console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Tool call ${error ? 'failed' : 'succeeded'}.`)
             console.log()
             console.log({ result }) // TODO
         }
@@ -37,17 +42,22 @@ export function createToolFactory(client: Client): Factory {
         name: string,
         args: Arguments,
     ): Promise<ExecutionResult<Result>> => {
-        console.log(`${chalk.dim('ℹ')} MCP Tool ${name}: ${args}`) // TODO
+        console.log(`${chalk.dim('ℹ')} Calling remote tool ${name}:`)
+        console.log()
+        serializeArgs(args)
 
-        const response = await context.interruptHandler.withInterruptHandler(signal =>
-            withProgress<CallToolResult>(
+        const response = await context.interruptHandler.withInterruptHandler(signal => {
+            return withProgress<CallToolResult>(
                 async updater => {
-                    return (await client.callTool({ name, arguments: args }, undefined, {
+                    const request: CallToolRequest['params'] = { name, arguments: args }
+                    const options: RequestOptions = {
                         onprogress: (progress: Progress) => {
                             updater({ content: [{ type: 'text', text: `${progress.progress} of ${progress.total}` }] }) // TODO
                         },
                         signal,
-                    })) as CallToolResult
+                    }
+
+                    return (await client.callTool(request, undefined, options)) as CallToolResult
                 },
                 {
                     progress: prefixFormatter('Executing MCP tool...', snapshot => 'xxxx' + JSON.stringify(snapshot)), // TODO
@@ -57,8 +67,8 @@ export function createToolFactory(client: Client): Factory {
                         snapshot => 'zzzz' + JSON.stringify(snapshot), // TODO
                     ),
                 },
-            ),
-        )
+            )
+        })
 
         if (!response.ok) {
             console.log(chalk.bold.red(response.error))

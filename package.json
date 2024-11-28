@@ -34,7 +34,7 @@
     },
     "scripts": {
         "clean": "rm -rf dist ai-0.0.0.vsix",
-        "build": "yarn clean && tsc --noEmit && node esbuild.config.js",
+        "build": "yarn clean && tsc --noEmit && node esbuild.config.js && sed -i '' 's/method: \"cancelled\"/method: \"notifications\\/cancelled\"/g' dist/cli.js",
         "dev": "yarn build && node dist/cli.js",
         "vsix": "yarn build && yarn vsce package --no-dependencies --allow-missing-repository",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",

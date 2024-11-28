@@ -21,11 +21,15 @@ export const longTask: Tool = {
 
         const longTaskArgs = args as { duration: number }
         for (let i = 0; i < longTaskArgs.duration; i++) {
+            context.signal.throwIfAborted()
+
             await window.showInformationMessage(`Doing something... ${i + 1}/${longTaskArgs.duration}`)
 
             context.log(`progress: ${i}`)
             await context.notify({ progress: i, total: longTaskArgs.duration })
         }
+
+        context.signal.throwIfAborted()
 
         context.log('done')
         await window.showInformationMessage('Done!')

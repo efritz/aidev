@@ -1,4 +1,5 @@
 import { CallToolResult } from '@modelcontextprotocol/sdk/types'
+import { errorToResult } from '../../tools/result'
 import { ExecutionContext } from './context'
 import { longTask } from './editor/long-task'
 import { Tool } from './tool'
@@ -18,14 +19,10 @@ export async function executeTool(context: ExecutionContext, name: string, args:
     try {
         return await findTool(name).execute(context, args)
     } catch (error: any) {
-        return {
-            content: [
-                {
-                    type: 'text',
-                    text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-                },
-            ],
-            isError: true,
+        if (error.name === 'AbortError') {
+            return { content: [] }
         }
+
+        return errorToResult(error)
     }
 }
