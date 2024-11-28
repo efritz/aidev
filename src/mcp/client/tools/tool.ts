@@ -1,25 +1,15 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types'
 import chalk from 'chalk'
 import { ExecutionContext } from '../../../tools/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
 import { prefixFormatter, withProgress } from '../../../util/progress/progress'
 
 export type Factory = {
-    create(mcpTool: { name: string; description: string; parameters: ParametersSchema }): Tool<Result>
+    create(mcpTool: McpTool): Tool<Result>
 }
 
-type ModelContextProtocolToolResult = {
-    content: Result
-    isError?: boolean
-}
-
-type Result = Content[]
-type Content = TextContent | EmbeddedResourceContent
-type TextContent = { type: 'text'; text: string }
-type EmbeddedResourceContent = { type: 'resource'; resource: TextResource | BlobResource }
-type Resource = { uri: string; mimeType?: string }
-type TextResource = Resource & { text: string }
-type BlobResource = Resource & { blob: string } // base64 encoded
+type Result = CallToolResult['content']
 
 export function createToolFactory(client: Client): Factory {
     const replay = (name: string, args: Arguments, { result, error, canceled }: ToolResult<Result>) => {
@@ -47,17 +37,27 @@ export function createToolFactory(client: Client): Factory {
         name: string,
         args: Arguments,
     ): Promise<ExecutionResult<Result>> => {
-        console.log(`${chalk.dim('ℹ')} MCP Tool ${name}:`) // TODO
-        console.log()
-        console.log({ args }) // TODO
+        console.log(`${chalk.dim('ℹ')} MCP Tool ${name}: ${args}`) // TODO
 
-        const response = await withProgress<ModelContextProtocolToolResult>(
-            async () => (await client.callTool({ name, arguments: args }, undefined)) as ModelContextProtocolToolResult,
-            {
-                progress: prefixFormatter('Executing MCP tool...', () => '<TODO1>'),
-                success: prefixFormatter('Executed MCP tool...', () => '<TODO2>'),
-                failure: prefixFormatter('Failed to execute MCP tool...', () => '<TODO3>'),
-            },
+        const response = await context.interruptHandler.withInterruptHandler(signal =>
+            withProgress<CallToolResult>(
+                async updater => {
+                    return (await client.callTool({ name, arguments: args }, undefined, {
+                        onprogress: (progress: Progress) => {
+                            updater({ content: [{ type: 'text', text: `${progress.progress} of ${progress.total}` }] }) // TODO
+                        },
+                        signal,
+                    })) as CallToolResult
+                },
+                {
+                    progress: prefixFormatter('Executing MCP tool...', snapshot => 'xxxx' + JSON.stringify(snapshot)), // TODO
+                    success: prefixFormatter('Executed MCP tool...', snapshot => 'yyyy' + JSON.stringify(snapshot)), // TODO
+                    failure: prefixFormatter(
+                        'Failed to execute MCP tool...',
+                        snapshot => 'zzzz' + JSON.stringify(snapshot), // TODO
+                    ),
+                },
+            ),
         )
 
         if (!response.ok) {
@@ -80,10 +80,10 @@ export function createToolFactory(client: Client): Factory {
     }
 
     return {
-        create: ({ name, description, parameters }) => ({
+        create: ({ name, description, inputSchema }) => ({
             name,
-            description,
-            parameters,
+            description: description || '',
+            parameters: inputSchema as ParametersSchema,
             replay: (args, result) => replay(name, args, result),
             execute: (context, _, args) => execute(context, name, args),
             serialize,

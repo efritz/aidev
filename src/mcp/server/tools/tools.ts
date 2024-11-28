@@ -1,9 +1,9 @@
+import { CallToolResult } from '@modelcontextprotocol/sdk/types'
 import { ExecutionContext } from './context'
 import { longTask } from './editor/long-task'
-import { editorNotice } from './editor/notice'
 import { Tool } from './tool'
 
-export const tools: Tool[] = [editorNotice, longTask]
+export const tools: Tool[] = [longTask]
 
 export function findTool(name: string): Tool {
     const tool = tools.find(tool => tool.name === name)
@@ -14,9 +14,9 @@ export function findTool(name: string): Tool {
     return tool
 }
 
-export function executeTool(context: ExecutionContext, name: string, args: any): any {
+export async function executeTool(context: ExecutionContext, name: string, args: any): Promise<CallToolResult> {
     try {
-        return findTool(name).execute(context, args)
+        return await findTool(name).execute(context, args)
     } catch (error: any) {
         return {
             content: [

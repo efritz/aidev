@@ -17,13 +17,24 @@ export const longTask: Tool = {
         required: ['duration'],
     },
     execute: async (context: ExecutionContext, args: any): Promise<{ content: any[] }> => {
+        context.log('executing tool')
+
         const longTaskArgs = args as { duration: number }
         for (let i = 0; i < longTaskArgs.duration; i++) {
             await window.showInformationMessage(`Doing something... ${i + 1}/${longTaskArgs.duration}`)
-            await new Promise(resolve => setTimeout(resolve, 1000))
+
+            context.log(`progress: ${i}`)
+            await context.notify({ progress: i, total: longTaskArgs.duration })
         }
 
+        context.log('done')
         await window.showInformationMessage('Done!')
-        return { content: [] }
+
+        return {
+            content: [
+                { type: 'text', text: 'done' },
+                { type: 'text', text: `${longTaskArgs.duration}` },
+            ],
+        }
     },
 }

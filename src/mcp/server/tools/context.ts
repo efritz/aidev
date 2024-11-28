@@ -1,3 +1,4 @@
 export type ExecutionContext = {
-    // TODO
+    log: (...args: any) => void
+    notify: (args: any) => Promise<void>
 }

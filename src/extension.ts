@@ -66,7 +66,7 @@ export function activate(context: ExtensionContext) {
             }
 
         let transport: SSEServerTransport
-        const modelContextProtocolServer = createModelContextProtocolServer()
+        const modelContextProtocolServer = createModelContextProtocolServer(output)
 
         const handlers: {
             method: 'GET' | 'POST'
