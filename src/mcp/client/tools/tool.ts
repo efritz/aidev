@@ -5,6 +5,9 @@ import chalk from 'chalk'
 import { ExecutionContext } from '../../../tools/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
 import { prefixFormatter, withProgress } from '../../../util/progress/progress'
+import { parseError } from '../../tools/error'
+import { progressToResult } from '../../tools/progress'
+import { serializeResult } from '../../tools/serialize'
 
 export type Factory = {
     create(mcpTool: McpTool): Tool<Result>
@@ -13,14 +16,18 @@ export type Factory = {
 type Result = CallToolResult['content']
 
 export function createToolFactory(client: Client): Factory {
-    const serializeArgs = (args: Arguments) => {
-        console.log(JSON.stringify(args, null, 2)) // TODO
+    const serializeArgs = (args: Arguments): string => {
+        return JSON.stringify(args, null, 2) // TODO
+    }
+
+    const formatOutput = (result?: CallToolResult): string => {
+        return result ? serializeResult(result.content) : ''
     }
 
     const replay = (name: string, args: Arguments, { result, error, canceled }: ToolResult<Result>) => {
         console.log(`${chalk.dim('ℹ')} Called remote tool ${name}:`)
         console.log()
-        serializeArgs(args)
+        console.log(serializeArgs(args))
 
         if (canceled) {
             console.log()
@@ -29,7 +36,7 @@ export function createToolFactory(client: Client): Factory {
         if (result) {
             console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Tool call ${error ? 'failed' : 'succeeded'}.`)
             console.log()
-            console.log({ result }) // TODO
+            console.log(serializeResult(result))
         }
         if (error) {
             console.log()
@@ -44,39 +51,40 @@ export function createToolFactory(client: Client): Factory {
     ): Promise<ExecutionResult<Result>> => {
         console.log(`${chalk.dim('ℹ')} Calling remote tool ${name}:`)
         console.log()
-        serializeArgs(args)
+        console.log(serializeArgs(args))
 
         const response = await context.interruptHandler.withInterruptHandler(signal => {
             return withProgress<CallToolResult>(
                 async updater => {
-                    const request: CallToolRequest['params'] = { name, arguments: args }
+                    const request: CallToolRequest['params'] = {
+                        name,
+                        arguments: args,
+                    }
+
                     const options: RequestOptions = {
-                        onprogress: (progress: Progress) => {
-                            updater({ content: [{ type: 'text', text: `${progress.progress} of ${progress.total}` }] }) // TODO
-                        },
+                        onprogress: (progress: Progress) => updater(progressToResult(progress)),
                         signal,
                     }
 
-                    return (await client.callTool(request, undefined, options)) as CallToolResult
+                    const result = (await client.callTool(request, undefined, options)) as CallToolResult
+                    updater(result)
+                    return result
                 },
                 {
-                    progress: prefixFormatter('Executing MCP tool...', snapshot => 'xxxx' + JSON.stringify(snapshot)), // TODO
-                    success: prefixFormatter('Executed MCP tool...', snapshot => 'yyyy' + JSON.stringify(snapshot)), // TODO
-                    failure: prefixFormatter(
-                        'Failed to execute MCP tool...',
-                        snapshot => 'zzzz' + JSON.stringify(snapshot), // TODO
-                    ),
+                    progress: prefixFormatter(`Calling remote tool ${name}...`, formatOutput),
+                    success: prefixFormatter(`Called remote tool ${name}...`, formatOutput),
+                    failure: prefixFormatter(`Failed to execute remote tool ${name}...`, formatOutput),
                 },
             )
         })
 
-        if (!response.ok) {
-            console.log(chalk.bold.red(response.error))
+        if (!response.ok || response.response.isError) {
+            const error = !response.ok ? response.error : parseError(response.response)
+            console.log(chalk.bold.red(error))
             console.log()
 
-            return { error: response.error }
+            return { error }
         } else {
-            const _ = response.response.isError // TODO
             return { result: response.response.content }
         }
     }

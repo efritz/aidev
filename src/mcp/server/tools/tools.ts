@@ -1,5 +1,5 @@
 import { CallToolResult } from '@modelcontextprotocol/sdk/types'
-import { errorToResult } from '../../tools/result'
+import { errorToResult } from '../../tools/error'
 import { ExecutionContext } from './context'
 import { longTask } from './editor/long-task'
 import { Tool } from './tool'
