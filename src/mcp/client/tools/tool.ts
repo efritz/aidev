@@ -4,7 +4,7 @@ import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@mod
 import chalk from 'chalk'
 import { ExecutionContext } from '../../../tools/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
-import { prefixFormatter, withProgress } from '../../../util/progress/progress'
+import { dynamicPrefixFormatter, prefixFormatter, withProgress } from '../../../util/progress/progress'
 import { parseError } from '../../tools/error'
 import { progressToResult } from '../../tools/progress'
 import { serializeResult } from '../../tools/serialize'
@@ -17,7 +17,7 @@ type Result = CallToolResult['content']
 
 export function createToolFactory(client: Client): Factory {
     const serializeArgs = (args: Arguments): string => {
-        return JSON.stringify(args, null, 2) // TODO
+        return JSON.stringify(args, null, 2)
     }
 
     const formatOutput = (result?: CallToolResult): string => {
@@ -25,16 +25,16 @@ export function createToolFactory(client: Client): Factory {
     }
 
     const replay = (name: string, args: Arguments, { result, error, canceled }: ToolResult<Result>) => {
-        console.log(`${chalk.dim('ℹ')} Called remote tool ${name}:`)
-        console.log()
-        console.log(serializeArgs(args))
+        console.log(`${chalk.dim('ℹ')} Executed remote tool ${name}: ${serializeArgs(args)}`)
 
         if (canceled) {
             console.log()
-            console.log(chalk.dim('ℹ') + ' Tool call was canceled.')
+            console.log(chalk.dim('ℹ') + ' Tool execution was canceled.')
         }
         if (result) {
-            console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Tool call ${error ? 'failed' : 'succeeded'}.`)
+            console.log(
+                `${error ? chalk.red('✖') : chalk.green('✔')} Tool execution ${error ? 'failed' : 'succeeded'}.`,
+            )
             console.log()
             console.log(serializeResult(result))
         }
@@ -49,7 +49,7 @@ export function createToolFactory(client: Client): Factory {
         name: string,
         args: Arguments,
     ): Promise<ExecutionResult<Result>> => {
-        console.log(`${chalk.dim('ℹ')} Calling remote tool ${name}:`)
+        console.log(`${chalk.dim('ℹ')} Executing remote tool ${name}:`)
         console.log()
         console.log(serializeArgs(args))
 
@@ -71,8 +71,14 @@ export function createToolFactory(client: Client): Factory {
                     return result
                 },
                 {
-                    progress: prefixFormatter(`Calling remote tool ${name}...`, formatOutput),
-                    success: prefixFormatter(`Called remote tool ${name}...`, formatOutput),
+                    // TODO - cleanup
+                    progress: prefixFormatter(`Executing remote tool ${name}...`, formatOutput),
+                    success: dynamicPrefixFormatter((snapshot?: CallToolResult) => ({
+                        prefix: snapshot?.isError
+                            ? `Failed to execute remote tool ${name}...`
+                            : `Executed remote tool ${name}...`,
+                        output: formatOutput(snapshot),
+                    })),
                     failure: prefixFormatter(`Failed to execute remote tool ${name}...`, formatOutput),
                 },
             )
