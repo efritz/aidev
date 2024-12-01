@@ -23,6 +23,10 @@
             {
                 "command": "aidev.chat-model",
                 "title": "Open aidev with specific model"
+            },
+            {
+                "command": "aidev.chat-history",
+                "title": "Open aidev from previous conversation"
             }
         ],
         "keybindings": [

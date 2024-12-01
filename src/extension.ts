@@ -154,13 +154,17 @@ export function activate(context: ExtensionContext) {
     //
     //
 
-    const chat = async (model?: string) => {
+    const chat = async ({ model, history }: { model?: string; history?: string } = {}) => {
         try {
             const server = createServer()
             const port = await startServer(server)
             baseURL = `http://localhost:${port}`
 
-            const options = [`--port ${port}`, ...(model ? [`--model ${model}`] : [])]
+            const options = [
+                `--port ${port}`,
+                ...(model ? [`--model ${model}`] : []),
+                ...(history ? [`--history ${history}`] : []),
+            ]
             const terminal = await createTerminal(`ai ${options.join(' ')}`)
 
             window.onDidCloseTerminal(t => {
@@ -173,12 +177,29 @@ export function activate(context: ExtensionContext) {
         }
     }
 
-    const chatModel = async () => chat(await window.showQuickPick(modelNames))
+    const chatModel = async () => {
+        const selection = await window.showQuickPick(modelNames)
+        if (!selection) {
+            return
+        }
+
+        return chat({ model: selection })
+    }
+
+    const chatHistory = async () => {
+        const selection = await window.showOpenDialog({ title: 'Open chat history' })
+        if (!selection) {
+            return
+        }
+
+        return chat({ history: selection[0].path })
+    }
 
     context.subscriptions.push(
         ...[
             commands.registerCommand('aidev.chat', chat),
             commands.registerCommand('aidev.chat-model', chatModel),
+            commands.registerCommand('aidev.chat-history', chatHistory),
             workspace.onDidOpenTextDocument(onTextDocumentChange(true)),
             workspace.onDidCloseTextDocument(onTextDocumentChange(false)),
         ],
