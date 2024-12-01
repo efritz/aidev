@@ -4,7 +4,7 @@ import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@mod
 import chalk from 'chalk'
 import { ExecutionContext } from '../../../tools/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
-import { dynamicPrefixFormatter, prefixFormatter, withProgress } from '../../../util/progress/progress'
+import { prefixFormatter, withProgress } from '../../../util/progress/progress'
 import { parseError } from '../../tools/error'
 import { progressToResult } from '../../tools/progress'
 import { serializeResult } from '../../tools/serialize'
@@ -25,7 +25,8 @@ export function createToolFactory(client: Client): Factory {
     }
 
     const replay = (name: string, args: Arguments, { result, error, canceled }: ToolResult<Result>) => {
-        console.log(`${chalk.dim('ℹ')} Executed remote tool ${name}: ${serializeArgs(args)}`)
+        const nameAndArgs = `${name}: ${serializeArgs(args)}`
+        console.log(`${chalk.dim('ℹ')} Executed remote tool ${nameAndArgs}`)
 
         if (canceled) {
             console.log()
@@ -49,9 +50,11 @@ export function createToolFactory(client: Client): Factory {
         name: string,
         args: Arguments,
     ): Promise<ExecutionResult<Result>> => {
-        console.log(`${chalk.dim('ℹ')} Executing remote tool ${name}:`)
-        console.log()
-        console.log(serializeArgs(args))
+        const nameAndArgs = `${name}: ${serializeArgs(args)}`
+        const progressFormatter = prefixFormatter(`Executing remote tool ${nameAndArgs}`, formatOutput)
+        const successFormatter = prefixFormatter(`Executed remote tool ${nameAndArgs}`, formatOutput)
+        const failureFormatter = prefixFormatter(`Failed to execute remote tool ${nameAndArgs}`, formatOutput)
+        const chooseFormatter = (snapshot?: CallToolResult) => (snapshot?.isError ? failureFormatter : successFormatter)
 
         const response = await context.interruptHandler.withInterruptHandler(signal => {
             return withProgress<CallToolResult>(
@@ -71,21 +74,15 @@ export function createToolFactory(client: Client): Factory {
                     return result
                 },
                 {
-                    // TODO - cleanup
-                    progress: prefixFormatter(`Executing remote tool ${name}...`, formatOutput),
-                    success: dynamicPrefixFormatter((snapshot?: CallToolResult) => ({
-                        prefix: snapshot?.isError
-                            ? `Failed to execute remote tool ${name}...`
-                            : `Executed remote tool ${name}...`,
-                        output: formatOutput(snapshot),
-                    })),
-                    failure: prefixFormatter(`Failed to execute remote tool ${name}...`, formatOutput),
+                    progress: progressFormatter,
+                    success: (snapshot, error) => chooseFormatter(snapshot)(snapshot, error),
+                    failure: failureFormatter,
                 },
             )
         })
 
         if (!response.ok || response.response.isError) {
-            const error = !response.ok ? response.error : parseError(response.response)
+            const error = !response.ok ? response.error : parseError(response.response.content)
             console.log(chalk.bold.red(error))
             console.log()
 

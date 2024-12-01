@@ -39,14 +39,8 @@ export async function withProgress<T>(f: ProgressSubject<T>, options: ProgressOp
 }
 
 export function prefixFormatter<T>(prefix: string, serialize: (snapshot?: T, error?: Error) => string): Formatter<T> {
-    return dynamicPrefixFormatter((snapshot, error) => ({ prefix, output: serialize(snapshot, error) }))
-}
-
-export function dynamicPrefixFormatter<T>(
-    serialize: (snapshot?: T, error?: Error) => { prefix: string; output?: string },
-): Formatter<T> {
     return (snapshot?: T, error?: Error) => {
-        let { prefix, output } = serialize(snapshot, error)
+        let output = serialize(snapshot, error)
 
         if (error) {
             if (output) {

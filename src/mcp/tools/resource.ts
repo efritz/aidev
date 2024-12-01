@@ -6,27 +6,35 @@ export function createResource<T>(uri: string, mimeType: string, content: T): Em
         resource: {
             uri: uri,
             mimeType: mimeType,
-            blob: Buffer.from(JSON.stringify(content)).toString('base64'),
+            blob: encodeBase64(JSON.stringify(content)),
         },
     }
 }
 
 export function parseResource<T>(
-    result: CallToolResult,
+    contents: CallToolResult['content'],
     selector: {
         uri?: string
         mimeType?: string
     },
 ): T | undefined {
-    for (const content of result.content) {
+    for (const content of contents) {
         if (
             content.type == 'resource' &&
             (!selector.uri || selector.uri === content.resource.uri) &&
             (!selector.mimeType || selector.mimeType === content.resource.mimeType)
         ) {
-            return JSON.parse(Buffer.from(content.resource.blob as string, 'base64').toString('utf8')) as T
+            return JSON.parse(decodeBase64(content.resource.blob as string)) as T
         }
     }
 
     return undefined
+}
+
+export function encodeBase64(content: string): string {
+    return Buffer.from(content).toString('base64')
+}
+
+export function decodeBase64(content: string): string {
+    return Buffer.from(content, 'base64').toString('utf8')
 }

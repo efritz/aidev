@@ -17,15 +17,14 @@ export function errorToResult(error: any): CallToolResult {
     }
 }
 
-export function parseError(result: CallToolResult): Error | undefined {
-    if (!result.isError) {
+export function parseError(contents: CallToolResult['content']): Error | undefined {
+    const errorMessage = parseResource<string>(contents, {
+        uri: errorResourceURI,
+        mimeType: errorResourceMimeType,
+    })
+    if (!errorMessage) {
         return undefined
     }
 
-    return new Error(
-        parseResource<string>(result, {
-            uri: errorResourceURI,
-            mimeType: errorResourceMimeType,
-        }) ?? 'Unknown error',
-    )
+    return new Error(errorMessage)
 }

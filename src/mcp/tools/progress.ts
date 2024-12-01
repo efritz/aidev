@@ -10,8 +10,8 @@ export function progressToResult(progress: Progress): CallToolResult {
     }
 }
 
-export function parseProgress(result: CallToolResult): Progress | undefined {
-    return parseResource<Progress>(result, {
+export function parseProgress(contents: CallToolResult['content']): Progress | undefined {
+    return parseResource<Progress>(contents, {
         uri: progressResultURI,
         mimeType: progressResultMimeType,
     })
