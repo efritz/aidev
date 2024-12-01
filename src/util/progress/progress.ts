@@ -40,19 +40,19 @@ export async function withProgress<T>(f: ProgressSubject<T>, options: ProgressOp
 
 export function prefixFormatter<T>(prefix: string, serialize: (snapshot?: T, error?: Error) => string): Formatter<T> {
     return (snapshot?: T, error?: Error) => {
-        let output = serialize(snapshot, error)
+        let content = serialize(snapshot, error)
 
         if (error) {
-            if (output) {
-                output += '\n\n'
+            if (content) {
+                content += '\n\n'
             }
-            output += chalk.bold.red(`error: ${error.message}`)
+            content += chalk.bold.red(`error: ${error.message}`)
         }
 
-        if (!output) {
+        if (!content) {
             return prefix
         }
 
-        return prefix + '\n\n' + output
+        return prefix + '\n\n' + content
     }
 }

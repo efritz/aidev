@@ -1,0 +1,183 @@
+{
+	"messages": [
+		{
+			"type": "text",
+			"content": "long task 3s",
+			"id": "8eab85a3-fc84-4be5-92b5-da9c760e0bf0",
+			"role": "user"
+		},
+		{
+			"type": "text",
+			"content": "I'll help you execute a long task for 3 seconds using the available `long-task` function. Based on the function schema, I'll call it with a duration of 3 seconds.",
+			"id": "e859e275-3134-4927-b5ee-b9da84df202e",
+			"role": "assistant"
+		},
+		{
+			"type": "tool_use",
+			"tools": [
+				{
+					"id": "toolu_01FCdoy8NBhKaUZxhXCL9Rs7",
+					"name": "long-task",
+					"parameters": "{\"duration\": 3}"
+				}
+			],
+			"id": "8d314603-eae9-4e6f-8d0c-5ef68cc94351",
+			"role": "assistant"
+		},
+		{
+			"type": "tool_result",
+			"toolUse": {
+				"id": "toolu_01FCdoy8NBhKaUZxhXCL9Rs7",
+				"name": "long-task",
+				"parameters": "{\"duration\": 3}"
+			},
+			"result": [
+				{
+					"type": "text",
+					"text": "done"
+				},
+				{
+					"type": "resource",
+					"resource": {
+						"uri": "foo://bar/baz/bonk/",
+						"text": "tee hee haa haa"
+					}
+				},
+				{
+					"type": "resource",
+					"resource": {
+						"uri": "foo://bar/baz/bonk/",
+						"blob": "Im9oIGJveSB0aGlzIHdhcyBhIHNlY3JldCEhIg=="
+					}
+				},
+				{
+					"type": "text",
+					"text": "3"
+				}
+			],
+			"id": "e2a92275-fa10-41b3-983b-4ec49a83d1cd",
+			"role": "user"
+		},
+		{
+			"type": "text",
+			"content": "long task 5s",
+			"id": "bf5d0c74-ba8e-4986-a8d5-ae6c4071bf7d",
+			"role": "user"
+		},
+		{
+			"type": "text",
+			"content": "I'll execute a long task for 5 seconds.",
+			"id": "f53e76cd-2e28-4d5f-892c-ab0ac3807989",
+			"role": "assistant"
+		},
+		{
+			"type": "tool_use",
+			"tools": [
+				{
+					"id": "toolu_01DM3LQH2vTNJoaTYxrMUeqP",
+					"name": "long-task",
+					"parameters": "{\"duration\": 5}"
+				}
+			],
+			"id": "28660705-23c1-4df9-80c4-8eb4f62f0a76",
+			"role": "assistant"
+		},
+		{
+			"type": "tool_result",
+			"toolUse": {
+				"id": "toolu_01DM3LQH2vTNJoaTYxrMUeqP",
+				"name": "long-task",
+				"parameters": "{\"duration\": 5}"
+			},
+			"error": {
+				"type": "ErrorMessage",
+				"message": "User canceled"
+			},
+			"id": "19b494c1-db2e-4ecd-9a95-65e8c36d41e9",
+			"role": "user"
+		},
+		{
+			"type": "text",
+			"content": "\n\nI see that the task was canceled during execution. This can happen if the task is interrupted by the user or the system. The tool's implementation shows that it would have displayed information messages counting from 1 to 5, but the execution was stopped before completion.\n\nWould you like to try running it again, or is there something else I can help you with?",
+			"id": "23254a4c-84f0-4022-9423-6bce787a1f38",
+			"role": "assistant"
+		},
+		{
+			"type": "text",
+			"content": "long task with error",
+			"id": "8cc9e128-354b-47b2-bbf5-48205fced848",
+			"role": "user"
+		},
+		{
+			"type": "text",
+			"content": "I'll execute the long task with the `shouldThrow` parameter set to true to trigger an error.",
+			"id": "a01d0bae-60a3-4d23-bbf9-47733f542660",
+			"role": "assistant"
+		},
+		{
+			"type": "tool_use",
+			"tools": [
+				{
+					"id": "toolu_01J5tSqhiqAd691hbY8RpYxJ",
+					"name": "long-task",
+					"parameters": "{\"duration\": 1, \"shouldThrow\": true}"
+				}
+			],
+			"id": "0975222d-71e0-4a7a-a862-5308a5d914a0",
+			"role": "assistant"
+		},
+		{
+			"type": "tool_result",
+			"toolUse": {
+				"id": "toolu_01J5tSqhiqAd691hbY8RpYxJ",
+				"name": "long-task",
+				"parameters": "{\"duration\": 1, \"shouldThrow\": true}"
+			},
+			"error": {
+				"type": "ErrorMessage",
+				"message": "Failing to do something correctly!"
+			},
+			"id": "ee9a77a1-122b-4a0f-8b04-f23e21facd1d",
+			"role": "user"
+		},
+		{
+			"type": "text",
+			"content": "\n\nThe task failed as expected. From the implementation in `long-task.ts`, we can see that when `shouldThrow` is true, it throws an error with the message \"Failing to do something correctly!\". This demonstrates the error handling capability of the tool.",
+			"id": "86cc4191-83d0-43f8-ae6b-9dcb95e2eada",
+			"role": "assistant"
+		}
+	],
+	"contextFiles": {
+		"./src/mcp/client/tools/tool.ts": {
+			"path": "./src/mcp/client/tools/tool.ts",
+			"inclusionReasons": [
+				{
+					"type": "editor",
+					"currentlyOpen": true
+				}
+			],
+			"content": "import { Client } from '@modelcontextprotocol/sdk/client/index.js'\nimport { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol'\nimport { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types'\nimport chalk from 'chalk'\nimport { ExecutionContext } from '../../../tools/context'\nimport { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'\nimport { prefixFormatter, withProgress } from '../../../util/progress/progress'\nimport { parseError } from '../../tools/error'\nimport { progressToResult } from '../../tools/progress'\nimport { serializeResult } from '../../tools/serialize'\n\nexport type Factory = {\n    create(mcpTool: McpTool): Tool<Result>\n}\n\ntype Result = CallToolResult['content']\n\nexport function createToolFactory(client: Client): Factory {\n    const serializeArgs = (args: Arguments): string => {\n        return JSON.stringify(args, null, 2)\n    }\n\n    const formatOutput = (result?: CallToolResult): string => {\n        return result ? serializeResult(result.content) : ''\n    }\n\n    const replay = (name: string, args: Arguments, { result, error, canceled }: ToolResult<Result>) => {\n        const nameAndArgs = `${name}: ${serializeArgs(args)}`\n        console.log(`${chalk.dim('ℹ')} Executed remote tool ${nameAndArgs}`)\n\n        if (canceled) {\n            console.log()\n            console.log(chalk.dim('ℹ') + ' Tool execution was canceled.')\n        }\n        if (result) {\n            console.log(\n                `${error ? chalk.red('✖') : chalk.green('✔')} Tool execution ${error ? 'failed' : 'succeeded'}.`,\n            )\n            console.log()\n            console.log(serializeResult(result))\n        }\n        if (error) {\n            console.log()\n            console.log(chalk.bold.red(error))\n        }\n    }\n\n    const execute = async (\n        context: ExecutionContext,\n        name: string,\n        args: Arguments,\n    ): Promise<ExecutionResult<Result>> => {\n        const nameAndArgs = `${name}: ${serializeArgs(args)}`\n        const progressFormatter = prefixFormatter(`Executing remote tool ${nameAndArgs}`, formatOutput)\n        const successFormatter = prefixFormatter(`Executed remote tool ${nameAndArgs}`, formatOutput)\n        const failureFormatter = prefixFormatter(`Failed to execute remote tool ${nameAndArgs}`, formatOutput)\n        const chooseFormatter = (snapshot?: CallToolResult) => (snapshot?.isError ? failureFormatter : successFormatter)\n\n        const response = await context.interruptHandler.withInterruptHandler(signal => {\n            return withProgress<CallToolResult>(\n                async updater => {\n                    const request: CallToolRequest['params'] = {\n                        name,\n                        arguments: args,\n                    }\n\n                    const options: RequestOptions = {\n                        onprogress: (progress: Progress) => updater(progressToResult(progress)),\n                        signal,\n                    }\n\n                    const result = (await client.callTool(request, undefined, options)) as CallToolResult\n                    updater(result)\n                    return result\n                },\n                {\n                    progress: progressFormatter,\n                    success: (snapshot, error) => chooseFormatter(snapshot)(snapshot, error),\n                    failure: failureFormatter,\n                },\n            )\n        })\n\n        if (!response.ok || response.response.isError) {\n            const error = !response.ok ? response.error : parseError(response.response.content)\n            console.log(chalk.bold.red(error))\n            console.log()\n\n            return { error }\n        } else {\n            return { result: response.response.content }\n        }\n    }\n\n    const serialize = ({ result, error, canceled }: ToolResult<Result>) => {\n        return JSON.stringify({\n            error,\n            canceled,\n            result,\n        })\n    }\n\n    return {\n        create: ({ name, description, inputSchema }) => ({\n            name,\n            description: description || '',\n            parameters: inputSchema as ParametersSchema,\n            replay: (args, result) => replay(name, args, result),\n            execute: (context, _, args) => execute(context, name, args),\n            serialize,\n        }),\n    }\n}\n"
+		},
+		"./package.json": {
+			"path": "./package.json",
+			"inclusionReasons": [
+				{
+					"type": "editor",
+					"currentlyOpen": true
+				}
+			],
+			"content": "{\n    \"name\": \"ai\",\n    \"description\": \"Personalized AI assistant\",\n    \"version\": \"0.0.0\",\n    \"publisher\": \"efritz\",\n    \"license\": \"MIT\",\n    \"main\": \"./dist/extension.js\",\n    \"bin\": {\n        \"ai\": \"dist/cli.js\"\n    },\n    \"engines\": {\n        \"vscode\": \"^1.92.0\"\n    },\n    \"activationEvents\": [\n        \"onStartupFinished\"\n    ],\n    \"contributes\": {\n        \"commands\": [\n            {\n                \"command\": \"aidev.chat\",\n                \"title\": \"Open aidev\"\n            },\n            {\n                \"command\": \"aidev.chat-model\",\n                \"title\": \"Open aidev with specific model\"\n            },\n            {\n                \"command\": \"aidev.chat-history\",\n                \"title\": \"Open aidev from previous conversation\"\n            }\n        ],\n        \"keybindings\": [\n            {\n                \"command\": \"aidev.chat\",\n                \"key\": \"cmd+shift+i\"\n            }\n        ]\n    },\n    \"scripts\": {\n        \"clean\": \"rm -rf dist ai-0.0.0.vsix\",\n        \"build\": \"yarn clean && tsc --noEmit && node esbuild.config.js && sed -i '' 's/method: \\\"cancelled\\\"/method: \\\"notifications\\\\/cancelled\\\"/g' dist/cli.js\",\n        \"dev\": \"yarn build && node dist/cli.js\",\n        \"vsix\": \"yarn build && yarn vsce package --no-dependencies --allow-missing-repository\",\n        \"format\": \"prettier '**/{*.{ts,json},.*.cjs}' --list-different --write\",\n        \"lint\": \"eslint 'src/**/*.{js,ts}'\",\n        \"test\": \"jest\"\n    },\n    \"dependencies\": {\n        \"@anthropic-ai/sdk\": \"0.30.1\",\n        \"@google/generative-ai\": \"0.21.0\",\n        \"@humanwhocodes/gitignore-to-minimatch\": \"^1.0.2\",\n        \"@modelcontextprotocol/sdk\": \"^1.0.0\",\n        \"@types/diff\": \"^5.2.2\",\n        \"@vscode/vsce\": \"^3.0.0\",\n        \"chalk\": \"^5.3.0\",\n        \"chokidar\": \"^3.6.0\",\n        \"commander\": \"^12.1.0\",\n        \"diff\": \"^7.0.0\",\n        \"eventsource\": \"^2.0.2\",\n        \"glob\": \"^11.0.0\",\n        \"groq-sdk\": \"0.7.0\",\n        \"minimatch\": \"^10.0.1\",\n        \"ollama\": \"0.5.9\",\n        \"openai\": \"4.68.4\",\n        \"ora\": \"^8.0.1\",\n        \"tree-kill\": \"^1.2.2\",\n        \"uuid\": \"^10.0.0\"\n    },\n    \"devDependencies\": {\n        \"@ianvs/prettier-plugin-sort-imports\": \"^4.3.1\",\n        \"@types/eventsource\": \"^1.1.15\",\n        \"@types/jest\": \"^29.5.12\",\n        \"@types/minimatch\": \"^5.1.2\",\n        \"@types/node\": \"^20.14.12\",\n        \"@types/uuid\": \"^10.0.0\",\n        \"@types/vscode\": \"^1.92.0\",\n        \"@typescript-eslint/parser\": \"^8.2.0\",\n        \"depcheck\": \"^1.4.7\",\n        \"esbuild\": \"^0.23.1\",\n        \"eslint\": \"^9.8.0\",\n        \"eslint-plugin-unused-imports\": \"^4.0.1\",\n        \"jest\": \"^29.7.0\",\n        \"prettier\": \"^3.3.3\",\n        \"ts-jest\": \"^29.1.2\",\n        \"typescript\": \"^5.5.4\"\n    }\n}\n"
+		},
+		"./src/mcp/server/tools/editor/long-task.ts": {
+			"path": "./src/mcp/server/tools/editor/long-task.ts",
+			"inclusionReasons": [
+				{
+					"type": "editor",
+					"currentlyOpen": false
+				}
+			],
+			"content": "import { window } from 'vscode'\nimport { JSONSchemaDataType } from '../../../../tools/tool'\nimport { ExecutionContext } from '../context'\nimport { Tool } from '../tool'\n\nexport const longTask: Tool = {\n    name: 'long-task',\n    description: 'Do something for a while.',\n    parameters: {\n        type: JSONSchemaDataType.Object,\n        properties: {\n            duration: {\n                description: 'The nuber of seconds to do something',\n                type: JSONSchemaDataType.Number,\n            },\n            shouldThrow: {\n                description: 'True if there should be an error thrown',\n                type: JSONSchemaDataType.Boolean,\n            },\n        },\n        required: ['duration'],\n    },\n    execute: async (context: ExecutionContext, args: any): Promise<{ content: any[] }> => {\n        context.log('executing tool')\n\n        if (args.shouldThrow) {\n            throw new Error('Failing to do something correctly!')\n        }\n\n        const longTaskArgs = args as { duration: number }\n        for (let i = 0; i < longTaskArgs.duration; i++) {\n            context.signal.throwIfAborted()\n\n            await window.showInformationMessage(`Doing something... ${i + 1}/${longTaskArgs.duration}`)\n\n            context.log(`progress: ${i}`)\n            await context.notify({ progress: i, total: longTaskArgs.duration })\n        }\n\n        context.signal.throwIfAborted()\n\n        context.log('done')\n        await window.showInformationMessage('Done!')\n\n        return {\n            content: [\n                { type: 'text', text: 'done' },\n                { type: 'resource', resource: { uri: 'foo://bar/baz/bonk/', text: 'tee hee haa haa' } },\n                {\n                    type: 'resource',\n                    resource: {\n                        uri: 'foo://bar/baz/bonk/',\n                        blob: Buffer.from(JSON.stringify('oh boy this was a secret!!')).toString('base64'),\n                    },\n                },\n                { type: 'text', text: `${longTaskArgs.duration}` },\n            ],\n        }\n    },\n}\n"
+		}
+	},
+	"contextDirectories": {}
+}
