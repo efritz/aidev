@@ -4,6 +4,7 @@ import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@mod
 import chalk from 'chalk'
 import { ExecutionContext } from '../../../tools/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
+import { CancelError } from '../../../util/interrupts/interrupts'
 import { prefixFormatter, withProgress } from '../../../util/progress/progress'
 import { parseError } from '../../tools/error'
 import { progressToResult } from '../../tools/progress'
@@ -56,39 +57,47 @@ export function createToolFactory(client: Client): Factory {
         const failureFormatter = prefixFormatter(`Failed to execute remote tool ${nameAndArgs}`, formatOutput)
         const chooseFormatter = (snapshot?: CallToolResult) => (snapshot?.isError ? failureFormatter : successFormatter)
 
-        const response = await context.interruptHandler.withInterruptHandler(signal => {
-            return withProgress<CallToolResult>(
-                async updater => {
-                    const request: CallToolRequest['params'] = {
-                        name,
-                        arguments: args,
-                    }
+        try {
+            const response = await context.interruptHandler.withInterruptHandler(signal => {
+                return withProgress<CallToolResult>(
+                    async updater => {
+                        const request: CallToolRequest['params'] = {
+                            name,
+                            arguments: args,
+                        }
 
-                    const options: RequestOptions = {
-                        onprogress: (progress: Progress) => updater(progressToResult(progress)),
-                        signal,
-                    }
+                        const options: RequestOptions = {
+                            onprogress: (progress: Progress) => updater(progressToResult(progress)),
+                            signal,
+                        }
 
-                    const result = (await client.callTool(request, undefined, options)) as CallToolResult
-                    updater(result)
-                    return result
-                },
-                {
-                    progress: progressFormatter,
-                    success: (snapshot, error) => chooseFormatter(snapshot)(snapshot, error),
-                    failure: failureFormatter,
-                },
-            )
-        })
+                        const result = (await client.callTool(request, undefined, options)) as CallToolResult
+                        updater(result)
+                        return result
+                    },
+                    {
+                        progress: progressFormatter,
+                        success: (snapshot, error) => chooseFormatter(snapshot)(snapshot, error),
+                        failure: failureFormatter,
+                    },
+                )
+            })
 
-        if (!response.ok || response.response.isError) {
-            const error = !response.ok ? response.error : parseError(response.response.content)
-            console.log(chalk.bold.red(error))
-            console.log()
+            if (!response.ok || response.response.isError) {
+                const error = !response.ok ? response.error : parseError(response.response.content)
+                console.log(chalk.bold.red(error))
+                console.log()
 
-            return { error }
-        } else {
-            return { result: response.response.content }
+                return { error }
+            } else {
+                return { result: response.response.content }
+            }
+        } catch (error: any) {
+            if (error instanceof CancelError) {
+                return { canceled: true }
+            }
+
+            throw error
         }
     }
 
