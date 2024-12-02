@@ -1,10 +1,10 @@
 import { CallToolResult } from '@modelcontextprotocol/sdk/types'
 import { errorToResult } from '../../tools/error'
 import { ExecutionContext } from './context'
-import { longTask } from './editor/long-task'
+import { langServer } from './editor/langserver'
 import { Tool } from './tool'
 
-export const tools: Tool[] = [longTask]
+export const tools: Tool[] = [langServer]
 
 export function findTool(name: string): Tool {
     const tool = tools.find(tool => tool.name === name)
