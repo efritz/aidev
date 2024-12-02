@@ -1,18 +1,23 @@
 import { readFile } from 'fs/promises'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
+import EventSource from 'eventsource'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
-import { createEditorEventSource, registerEditorListeners } from './chat/editor'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
 import { ContextStateManager, createContextState } from './context/state'
+import { createClient, registerContextListeners } from './mcp/client/client'
+import { registerTools } from './mcp/client/tools/tools'
 import { Provider } from './providers/provider'
 import { createProvider, modelNames } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 
 async function main() {
+    // Make EventSource available globally for the MCP SSE transport
+    ;(global as any).EventSource = EventSource
+
     program
         .name('ai')
         .description('Personalized AI in the terminal.')
@@ -128,7 +133,8 @@ async function chatWithProvider(
         },
     })
 
-    const editorEventSource = createEditorEventSource(port)
+    const client = await createClient(port)
+    await registerTools(client)
 
     try {
         const interruptHandler = createInterruptHandler(rl)
@@ -143,7 +149,7 @@ async function chatWithProvider(
             contextStateManager,
         }
 
-        registerEditorListeners(context, editorEventSource)
+        registerContextListeners(context, client)
 
         await interruptHandler.withInterruptHandler(
             () => chatWithReadline(context, historyFilename),
@@ -152,7 +158,7 @@ async function chatWithProvider(
     } finally {
         rl.close()
         contextStateManager.dispose()
-        editorEventSource?.close()
+        client?.close()
     }
 }
 
@@ -191,4 +197,4 @@ async function chatWithReadline(context: ChatContext, historyFilename?: string) 
     await handler(context)
 }
 
-await main()
+main()

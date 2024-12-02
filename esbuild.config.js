@@ -3,24 +3,27 @@ const { build } = require('esbuild')
 const commonConfig = {
     bundle: true,
     platform: 'node',
+    target: 'node18',
     external: ['vscode', 'fsevents'],
+    mainFields: ['module', 'main'],
+    format: 'cjs',
+    loader: {
+        '.js': 'jsx',
+    },
+    resolveExtensions: ['.ts', '.js', '.mjs', '.cjs'],
+    conditions: ['import', 'require'],
 }
 
 const configs = [
     {
         ...commonConfig,
         entryPoints: ['src/cli.ts'],
-        outfile: 'dist/cli.mjs',
-        format: 'esm',
-        banner: {
-            js: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
-        },
+        outfile: 'dist/cli.js',
     },
     {
         ...commonConfig,
         entryPoints: ['src/extension.ts'],
         outfile: 'dist/extension.js',
-        format: 'cjs',
     },
 ]
 

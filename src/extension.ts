@@ -1,7 +1,9 @@
 import { stat } from 'fs/promises'
-import { createServer as _createServer, Server, ServerResponse } from 'http'
+import { createServer as _createServer, RequestListener, Server, ServerResponse } from 'http'
 import { AddressInfo } from 'net'
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
+import { createModelContextProtocolServer } from './mcp/server/server'
 import { modelNames } from './providers/providers'
 
 const sseHeaders = {
@@ -15,49 +17,82 @@ const jsonHeaders = {
 }
 
 export function activate(context: ExtensionContext) {
-    const sseClients = new Set<ServerResponse>()
+    const output = window.createOutputChannel('aidev')
     const openDocumentURIs = new Set(pathFromTabGroups())
+    const modelContextProtocolServer = createModelContextProtocolServer(output, openDocumentURIs)
 
-    const sendSSEUpdate = () => {
-        const paths = pathsRelativeToWorkspaceRoot([...openDocumentURIs])
-        const data = `data: ${JSON.stringify(paths)}\n\n`
-        sseClients.forEach(client => client.write(data))
-    }
+    //
+    //
 
-    const onTextDocumentChange =
-        (isOpening: boolean) =>
-        ({ uri: { fsPath: path } }: TextDocument) => {
-            if (isOpening) {
-                stat(path)
-                    .then(() => openDocumentURIs.add(path))
-                    .catch(() => {})
-            } else {
-                openDocumentURIs.delete(path)
-            }
+    // This will be set to the base URL of the server when it starts.
+    // We don't know this ahead of time because the server uses a random port.
+    var baseURL: string
 
-            sendSSEUpdate()
-        }
-
-    const createServer = () =>
-        _createServer((req, res) => {
-            try {
-                if (req.url !== '/open-documents') {
-                    res.writeHead(404)
-                    res.end()
-                    return
+    const createServer = () => {
+        const safe =
+            (handler: RequestListener): RequestListener =>
+            async (req, res) => {
+                try {
+                    await handler(req, res)
+                } catch (error: any) {
+                    res.writeHead(500, jsonHeaders)
+                    res.end(JSON.stringify({ error: error.message }))
+                    output.appendLine(`Error handling ${req.method} ${req.url}: ${error.message}`)
                 }
-
-                sseClients.add(res)
-                req.on('close', () => sseClients.delete(res))
-
-                res.writeHead(200, sseHeaders)
-                res.flushHeaders()
-                sendSSEUpdate()
-            } catch (error: any) {
-                res.writeHead(500, jsonHeaders)
-                res.end(JSON.stringify({ error: error.message }))
             }
+
+        let transport: SSEServerTransport
+
+        const handlers: {
+            method: 'GET' | 'POST'
+            path: string
+            handler: RequestListener
+        }[] = [
+            {
+                method: 'GET',
+                path: '/mcp',
+                handler: safe(async (req, res) => {
+                    if (transport) {
+                        throw new Error('MCP server already running')
+                    }
+
+                    transport = new SSEServerTransport('/mcp', res)
+                    await modelContextProtocolServer.connect(transport)
+                }),
+            },
+            {
+                method: 'POST',
+                path: '/mcp',
+                handler: safe(async (req, res) => {
+                    if (!transport) {
+                        throw new Error('MCP server not running')
+                    }
+
+                    try {
+                        await transport.handlePostMessage(req, res)
+                    } catch (error: any) {
+                        res.writeHead(500, jsonHeaders)
+                        res.end(JSON.stringify({ error: error.message }))
+                    }
+                }),
+            },
+        ]
+
+        return _createServer(async (req, res) => {
+            const { pathname } = new URL(req.url ?? '', baseURL)
+
+            for (const { method, path, handler } of handlers) {
+                if (req.method === method && pathname === path) {
+                    return handler(req, res)
+                }
+            }
+
+            res.writeHead(404)
+            res.end(JSON.stringify({ error: 'Not found', method: req.method, url: req.url }))
+            output.appendLine(`Error handling ${req.method} ${pathname}: Not found`)
+            return
         })
+    }
 
     const startServer = async (server: Server): Promise<number> => {
         await new Promise<void>((resolve, reject) => {
@@ -68,6 +103,9 @@ export function activate(context: ExtensionContext) {
         return (server.address() as AddressInfo).port
     }
 
+    //
+    //
+
     const createTerminal = async (command: string): Promise<Terminal> => {
         const terminal = window.createTerminal('aidev')
         await terminal.processId
@@ -76,12 +114,20 @@ export function activate(context: ExtensionContext) {
         return terminal
     }
 
-    const chat = async (model?: string) => {
+    //
+    //
+
+    const chat = async ({ model, history }: { model?: string; history?: string } = {}) => {
         try {
             const server = createServer()
             const port = await startServer(server)
+            baseURL = `http://localhost:${port}`
 
-            const options = [`--port ${port}`, ...(model ? [`--model ${model}`] : [])]
+            const options = [
+                `--port ${port}`,
+                ...(model ? [`--model ${model}`] : []),
+                ...(history ? [`--history ${history}`] : []),
+            ]
             const terminal = await createTerminal(`ai ${options.join(' ')}`)
 
             window.onDidCloseTerminal(t => {
@@ -94,12 +140,49 @@ export function activate(context: ExtensionContext) {
         }
     }
 
-    const chatModel = async () => chat(await window.showQuickPick(modelNames))
+    const chatModel = async () => {
+        const selection = await window.showQuickPick(modelNames)
+        if (!selection) {
+            return
+        }
+
+        return chat({ model: selection })
+    }
+
+    const chatHistory = async () => {
+        const selection = await window.showOpenDialog({ title: 'Open chat history' })
+        if (!selection) {
+            return
+        }
+
+        return chat({ history: selection[0].path })
+    }
+
+    //
+    //
+
+    const onTextDocumentChange =
+        (isOpening: boolean) =>
+        async ({ uri: { fsPath: path } }: TextDocument) => {
+            if (isOpening) {
+                stat(path)
+                    .then(() => openDocumentURIs.add(path))
+                    .catch(() => {})
+            } else {
+                openDocumentURIs.delete(path)
+            }
+
+            await modelContextProtocolServer.sendResourceListChanged()
+        }
+
+    //
+    //
 
     context.subscriptions.push(
         ...[
             commands.registerCommand('aidev.chat', chat),
             commands.registerCommand('aidev.chat-model', chatModel),
+            commands.registerCommand('aidev.chat-history', chatHistory),
             workspace.onDidOpenTextDocument(onTextDocumentChange(true)),
             workspace.onDidCloseTextDocument(onTextDocumentChange(false)),
         ],

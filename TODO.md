@@ -14,8 +14,12 @@
 5. Expand the write_tool and edit_tool responses to say that the context has been updated.
 6. Need a way to cancel "choice" while in diff/edit view
 7. Ways to organize multiple file edits at once (build off of stash functionality)
-8. 
+8.
 
 ## Bugs
 
-1. 
+1.
+
+## Refactors
+
+1.

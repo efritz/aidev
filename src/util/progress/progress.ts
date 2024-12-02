@@ -38,9 +38,9 @@ export async function withProgress<T>(f: ProgressSubject<T>, options: ProgressOp
     }
 }
 
-export function prefixFormatter<T>(prefix: string, serialize: (snapshot?: T) => string): Formatter<T> {
+export function prefixFormatter<T>(prefix: string, serialize: (snapshot?: T, error?: Error) => string): Formatter<T> {
     return (snapshot?: T, error?: Error) => {
-        let content = serialize(snapshot)
+        let content = serialize(snapshot, error)
 
         if (error) {
             if (content) {

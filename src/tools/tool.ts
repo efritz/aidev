@@ -3,7 +3,7 @@ import { ExecutionContext } from './context'
 export type Tool<T> = {
     name: string
     description: string
-    parameters: JSONSchemaObject
+    parameters: ParametersSchema
     execute: Executor<T>
     replay: Replayer<T>
     serialize: Serializer<T>
@@ -23,6 +23,8 @@ export enum JSONSchemaDataType {
     Number = 'number',
     Boolean = 'boolean',
 }
+
+export type ParametersSchema = Omit<JSONSchemaObject, 'description'>
 
 export type JSONSchemaType = JSONSchemaObject | JSONSchemaArray | JSONSchemaScalar
 

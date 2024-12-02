@@ -22,7 +22,6 @@ export const shellExecute: Tool<ShellResult> = {
     description: 'Execute a zsh command.',
     parameters: {
         type: JSONSchemaDataType.Object,
-        description: 'The command payload.',
         properties: {
             command: {
                 type: JSONSchemaDataType.String,

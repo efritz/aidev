@@ -17,7 +17,6 @@ export const editFile: Tool<EditResult> = {
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
-        description: 'The command payload.',
         properties: {
             path: {
                 type: JSONSchemaDataType.String,

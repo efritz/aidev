@@ -13,7 +13,6 @@ export const readFiles: Tool<string[]> = {
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
-        description: 'The command payload.',
         properties: {
             paths: {
                 type: JSONSchemaDataType.Array,
