@@ -4,6 +4,8 @@ import {
     CallToolRequest,
     CallToolRequestSchema,
     CallToolResult,
+    ListResourcesRequestSchema,
+    ListResourcesResult,
     ListToolsRequestSchema,
     Tool as McpTool,
     Notification,
@@ -13,12 +15,16 @@ import { executeTool, tools } from './tools/tools'
 
 const name = 'aidev-vscode-server'
 const version = '0.0.1'
-const options: ServerOptions = { capabilities: { tools: {} } }
+const options: ServerOptions = { capabilities: { tools: {}, resources: {} } }
 
-export function createModelContextProtocolServer(outputChannel: OutputChannel): ModelContextProtocolServer {
+export function createModelContextProtocolServer(
+    outputChannel: OutputChannel,
+    openDocumentURIs: Set<string>,
+): ModelContextProtocolServer {
     const server = new ModelContextProtocolServer({ name, version }, options)
     server.setRequestHandler(ListToolsRequestSchema, createListToolsHandler())
     server.setRequestHandler(CallToolRequestSchema, createCallToolHandler(server, outputChannel))
+    server.setRequestHandler(ListResourcesRequestSchema, createListResourcesHandler(openDocumentURIs))
 
     server.fallbackNotificationHandler = async (notification: Notification) => {
         outputChannel.appendLine(`Received notification: ${JSON.stringify(notification)}`)
@@ -59,4 +65,13 @@ function createCallToolHandler(
 
         return executeTool({ log, notify, signal }, name, args)
     }
+}
+
+function createListResourcesHandler(openDocumentURIs: Set<string>): () => Promise<ListResourcesResult> {
+    return async () => ({
+        resources: [...openDocumentURIs].sort().map(name => ({
+            uri: `file://${name}`,
+            name,
+        })),
+    })
 }

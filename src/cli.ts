@@ -4,11 +4,10 @@ import { program } from 'commander'
 import EventSource from 'eventsource'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
-import { createEditorEventSource, registerEditorListeners } from './chat/editor'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
 import { ContextStateManager, createContextState } from './context/state'
-import { createClient } from './mcp/client/client'
+import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { Provider } from './providers/provider'
 import { createProvider, modelNames } from './providers/providers'
@@ -16,7 +15,7 @@ import { createInterruptHandler, InterruptHandlerOptions } from './util/interrup
 import { createPrompter } from './util/prompter/prompter'
 
 async function main() {
-    // Make EventSource available globally for the SSE transport
+    // Make EventSource available globally for the MCP SSE transport
     ;(global as any).EventSource = EventSource
 
     program
@@ -136,7 +135,6 @@ async function chatWithProvider(
 
     const client = await createClient(port)
     await registerTools(client)
-    const editorEventSource = createEditorEventSource(port)
 
     try {
         const interruptHandler = createInterruptHandler(rl)
@@ -151,7 +149,7 @@ async function chatWithProvider(
             contextStateManager,
         }
 
-        registerEditorListeners(context, editorEventSource)
+        registerContextListeners(context, client)
 
         await interruptHandler.withInterruptHandler(
             () => chatWithReadline(context, historyFilename),
@@ -161,7 +159,6 @@ async function chatWithProvider(
         rl.close()
         contextStateManager.dispose()
         client?.close()
-        editorEventSource?.close()
     }
 }
 

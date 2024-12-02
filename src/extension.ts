@@ -18,32 +18,8 @@ const jsonHeaders = {
 
 export function activate(context: ExtensionContext) {
     const output = window.createOutputChannel('aidev')
-
-    //
-    //
-
-    const sseClients = new Set<ServerResponse>()
     const openDocumentURIs = new Set(pathFromTabGroups())
-
-    const sendSSEUpdate = () => {
-        const paths = pathsRelativeToWorkspaceRoot([...openDocumentURIs])
-        const data = `data: ${JSON.stringify(paths)}\n\n`
-        sseClients.forEach(client => client.write(data))
-    }
-
-    const onTextDocumentChange =
-        (isOpening: boolean) =>
-        ({ uri: { fsPath: path } }: TextDocument) => {
-            if (isOpening) {
-                stat(path)
-                    .then(() => openDocumentURIs.add(path))
-                    .catch(() => {})
-            } else {
-                openDocumentURIs.delete(path)
-            }
-
-            sendSSEUpdate()
-        }
+    const modelContextProtocolServer = createModelContextProtocolServer(output, openDocumentURIs)
 
     //
     //
@@ -66,7 +42,6 @@ export function activate(context: ExtensionContext) {
             }
 
         let transport: SSEServerTransport
-        const modelContextProtocolServer = createModelContextProtocolServer(output)
 
         const handlers: {
             method: 'GET' | 'POST'
@@ -99,18 +74,6 @@ export function activate(context: ExtensionContext) {
                         res.writeHead(500, jsonHeaders)
                         res.end(JSON.stringify({ error: error.message }))
                     }
-                }),
-            },
-            {
-                method: 'GET',
-                path: '/open-documents',
-                handler: safe(async (req, res) => {
-                    sseClients.add(res)
-                    req.on('close', () => sseClients.delete(res))
-
-                    res.writeHead(200, sseHeaders)
-                    res.flushHeaders()
-                    sendSSEUpdate()
                 }),
             },
         ]
@@ -194,6 +157,26 @@ export function activate(context: ExtensionContext) {
 
         return chat({ history: selection[0].path })
     }
+
+    //
+    //
+
+    const onTextDocumentChange =
+        (isOpening: boolean) =>
+        async ({ uri: { fsPath: path } }: TextDocument) => {
+            if (isOpening) {
+                stat(path)
+                    .then(() => openDocumentURIs.add(path))
+                    .catch(() => {})
+            } else {
+                openDocumentURIs.delete(path)
+            }
+
+            await modelContextProtocolServer.sendResourceListChanged()
+        }
+
+    //
+    //
 
     context.subscriptions.push(
         ...[

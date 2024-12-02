@@ -22,5 +22,4 @@
 
 ## Refactors
 
-1. Replace custom SSE server with MCP notifications.
-2.
+1.
