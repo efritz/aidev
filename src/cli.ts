@@ -44,7 +44,7 @@ async function main() {
     program.parse(process.argv)
 }
 
-const basicSystemPrompt = `
+const staticSystemPrompt = `
 You are an expert software developer engaged in pair programming with the user.
 Your role is to provide assistance, guidance, and code solutions based on the user's queries and the existing project context.
 Always use best practices when coding. Respect and use existing conventions, libraries, etc that are already present in the code base.
@@ -83,12 +83,16 @@ Begin your assistance by analyzing the user's query and providing an appropriate
 `
 
 async function buildSystemPrompt(): Promise<string> {
-    const parts = [basicSystemPrompt, await buildProjectInstructions()]
+    const parts = [staticSystemPrompt, await buildDynamicPrompt(), await buildProjectInstructions()]
 
     return parts
         .map(part => part.trim())
         .filter(part => part !== '')
         .join('\n\n')
+}
+
+async function buildDynamicPrompt(): Promise<string> {
+    return `The current directory is ${process.cwd()}`
 }
 
 async function buildProjectInstructions(): Promise<string> {
