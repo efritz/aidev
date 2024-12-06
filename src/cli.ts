@@ -153,7 +153,7 @@ async function chatWithProvider(
             contextStateManager,
         }
 
-        registerContextListeners(context, client)
+        await registerContextListeners(context, client)
 
         await interruptHandler.withInterruptHandler(
             () => chatWithReadline(context, historyFilename),

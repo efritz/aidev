@@ -19,25 +19,26 @@ export async function createClient(port?: number): Promise<Client | undefined> {
     return client
 }
 
-export function registerContextListeners(context: ChatContext, client?: Client) {
+export async function registerContextListeners(context: ChatContext, client?: Client) {
     if (!client) {
         return
     }
 
-    const loaded = new Set<string>()
+    const handler = createUpdateEditorContextHandler(context, client)
+    client.setNotificationHandler(ResourceListChangedNotificationSchema, handler)
+    await handler()
+}
 
-    client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
+function createUpdateEditorContextHandler(context: ChatContext, client: Client): () => Promise<void> {
+    let loaded = new Set<string>()
+
+    return async () => {
         const { resources } = await client.listResources()
 
-        for (const file of loaded) {
-            const _ = context.contextStateManager.addFile(file, { type: 'editor', currentlyOpen: false })
-        }
-
-        for (const { name } of resources) {
-            loaded.add(name)
-            const _ = context.contextStateManager.addFile(name, { type: 'editor', currentlyOpen: true })
-        }
+        loaded.forEach(file => context.contextStateManager.addFile(file, { type: 'editor', currentlyOpen: false }))
+        loaded = new Set(resources.map(({ name }) => name))
+        loaded.forEach(file => context.contextStateManager.addFile(file, { type: 'editor', currentlyOpen: true }))
 
         context.contextStateManager.events.emit('open-files-changed')
-    })
+    }
 }
