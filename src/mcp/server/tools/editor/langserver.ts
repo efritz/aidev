@@ -18,28 +18,54 @@ import { Tool } from '../tool'
 
 export const langServer: Tool = {
     name: 'langserver',
-    description:
-        'Extract hover text, definition, reference, and implementation details for a symbol from a language server.',
+    description: [
+        "Query the editor's language server.",
+        'Query response may include hover text, definitions, references, and implementations for a particular symbol reference.',
+        'Prefer using this tool for precise code navigation over filesystem tools.',
+    ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
         properties: {
-            symbolName: {
+            sourceSymbolName: {
                 type: JSONSchemaDataType.String,
                 description: 'The name of the symbol to query.',
             },
-            filePath: {
+            sourceFilePath: {
                 type: JSONSchemaDataType.String,
-                description: 'The absolute path of the file containing the symbol.',
+                description: 'The absolute path of the file containing the source symbol to query.',
+            },
+            includeHoverText: {
+                type: JSONSchemaDataType.Boolean,
+                description: 'Whether to include hover text in the result',
+            },
+            includeDefinitions: {
+                type: JSONSchemaDataType.Boolean,
+                description: 'Whether to include definitions in the result',
+            },
+            includeReferences: {
+                type: JSONSchemaDataType.Boolean,
+                description: 'Whether to include references in the result',
+            },
+            includeImplementations: {
+                type: JSONSchemaDataType.Boolean,
+                description: 'Whether to include hover text in the result',
             },
         },
-        required: ['symbolName', 'filePath'],
+        required: ['sourceSymbolName', 'sourceFilePath'],
     },
     execute: async (context: ExecutionContext, args: any): Promise<CallToolResult> => {
-        const { symbolName, filePath } = args
+        const {
+            sourceSymbolName,
+            sourceFilePath,
+            includeHoverText,
+            includeDefinitions,
+            includeReferences,
+            includeImplementations,
+        } = args
 
-        const document = await workspace.openTextDocument(filePath)
+        const document = await workspace.openTextDocument(sourceFilePath)
         const text = document.getText()
-        const symbolPositions = findSymbolPositions(text, symbolName, document)
+        const symbolPositions = findSymbolPositions(text, sourceSymbolName, document)
 
         if (symbolPositions.length === 0) {
             return { content: [] }
@@ -48,17 +74,20 @@ export const langServer: Tool = {
         // TODO - how to disambiguate?
         const position = symbolPositions[0]
 
+        const conditionallyExecute = async <T>(command: string, enabled?: boolean): Promise<T[]> =>
+            enabled ? commands.executeCommand<T[]>(command, document.uri, position) : []
+
         const [hover, definitions, references, implementations] = await Promise.all([
-            commands.executeCommand<Hover[]>('vscode.executeHoverProvider', document.uri, position),
-            commands.executeCommand<Location[]>('vscode.executeDefinitionProvider', document.uri, position),
-            commands.executeCommand<Location[]>('vscode.executeReferenceProvider', document.uri, position),
-            commands.executeCommand<Location[]>('vscode.executeImplementationProvider', document.uri, position),
+            conditionallyExecute<Hover>('vscode.executeHoverProvider', includeHoverText),
+            conditionallyExecute<Location>('vscode.executeDefinitionProvider', includeDefinitions),
+            conditionallyExecute<Location>('vscode.executeReferenceProvider', includeReferences),
+            conditionallyExecute<Location>('vscode.executeImplementationProvider', includeImplementations),
         ])
 
         return {
             content: [
                 createResource(
-                    `aidev://symbol-result/${symbolName}`,
+                    `aidev://symbol-result/${sourceSymbolName}`,
                     '',
                     JSON.stringify(
                         {
