@@ -18,6 +18,7 @@ import { removeCommand } from './conversation/remove'
 import { renameCommand } from './conversation/rename'
 import { rollbackCommand } from './conversation/rollback'
 import { saveCommand } from './conversation/save'
+import { dumpCommand } from './conversation/dump'
 import { savepointCommand } from './conversation/savepoint'
 import { statusCommand } from './conversation/status'
 import { switchCommand } from './conversation/switch'
@@ -29,6 +30,7 @@ export const commands: CommandDescription[] = [
     promptCommand,
     continueCommand,
     saveCommand,
+    dumpCommand,
     loadCommand,
     loaddirCommand,
     unloadCommand,
