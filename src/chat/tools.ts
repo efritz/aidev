@@ -3,14 +3,23 @@ import { AssistantMessage, ToolUse } from '../messages/messages'
 import { ExecutionContext } from '../tools/context'
 import { ExecutionResult } from '../tools/tool'
 import { findTool } from '../tools/tools'
+import { generateRandomName } from '../util/random/random'
 
 export async function runToolsInMessages(
     context: ExecutionContext,
     messages: AssistantMessage[],
 ): Promise<{ ranTools: boolean; reprompt?: boolean }> {
-    const tools = messages.flatMap(m => (m.type !== 'tool_use' ? [] : m.tools))
+    const tools = messages.flatMap(m => (m.type !== 'tool_use' ? [] : m.tools)).map(canonicalizeTool)
     const { reprompt } = await runTools(context, tools)
     return { ranTools: tools.length > 0, reprompt }
+}
+
+function canonicalizeTool(toolUse: ToolUse): ToolUse {
+    if (!toolUse.id) {
+        toolUse.id = generateRandomName()
+    }
+
+    return toolUse
 }
 
 async function runTools(context: ExecutionContext, toolUses: ToolUse[]): Promise<{ reprompt?: boolean }> {
