@@ -1,5 +1,4 @@
 import { readFile } from 'fs/promises'
-import { emit } from 'process'
 import chalk from 'chalk'
 import { AssistantMessage, MetaMessage, UserMessage } from '../messages/messages'
 import { tools } from '../tools/tools'

@@ -9,12 +9,14 @@ export type StreamFactory<T> = () => Promise<Stream<T>>
 export type ReducerFactory<T> = () => Reducer<T>
 
 export type ProviderOptions<T> = {
+    name: string
     createStream: StreamFactory<T>
     createStreamReducer: ReducerFactory<T>
     conversationManager: ConversationManager
 }
 
 export function createProvider<T>({
+    name,
     createStream,
     createStreamReducer,
     conversationManager,
@@ -36,7 +38,7 @@ export function createProvider<T>({
         return response
     }
 
-    return { conversationManager, prompt }
+    return { name, conversationManager, prompt }
 }
 
 export function abortableIterator<T>(iterable: AsyncIterable<T>, abortIterable: () => void): Stream<T> {

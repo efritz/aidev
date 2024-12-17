@@ -33,17 +33,18 @@ export const provider: ProviderSpec = {
 
 async function createAnthropicProvider({
     contextState,
-    model: { model, options: modelOptions },
+    model: { name, model, options },
     system,
     temperature = 0.0,
-    maxTokens = modelOptions?.maxTokens || 4096,
+    maxTokens = options?.maxTokens || 4096,
 }: ProviderOptions): Promise<Provider> {
     const apiKey = await getKey('anthropic')
-    const defaultHeaders = modelOptions?.headers
+    const defaultHeaders = options?.headers
     const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
     const { providerMessages, ...conversationManager } = createConversation(contextState)
 
     return createProvider({
+        name,
         createStream: () =>
             createStream({
                 client,

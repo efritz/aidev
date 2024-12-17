@@ -146,7 +146,6 @@ async function chatWithProvider(
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
 
         context = {
-            model,
             interruptHandler,
             prompter,
             provider,
@@ -156,7 +155,7 @@ async function chatWithProvider(
         await registerContextListeners(context, client)
 
         await interruptHandler.withInterruptHandler(
-            () => chatWithReadline(context, historyFilename),
+            () => chatWithReadline(context, model, historyFilename),
             interruptInputOptions,
         )
     } finally {
@@ -192,12 +191,12 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
-async function chatWithReadline(context: ChatContext, historyFilename?: string) {
+async function chatWithReadline(context: ChatContext, model: string, historyFilename?: string) {
     if (historyFilename) {
         await loadHistory(context, historyFilename)
     }
 
-    console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.model}...\n`)
+    console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${model}...\n`)
     await handler(context)
 }
 
