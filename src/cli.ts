@@ -27,7 +27,6 @@ async function main() {
 
     const modelFlags = '-m, --model <string>'
     const modelDescription = `Model to use. Valid options are ${modelNames.join(', ')}.`
-    const modelDefault = 'sonnet'
 
     const historyFlags = '-h, --history <string>'
     const historyDescription = 'File to load chat history from.'
@@ -36,7 +35,7 @@ async function main() {
     const portDescription = 'Port number of the vscode extension server providing editor information.'
 
     program
-        .option(modelFlags, modelDescription, modelDefault)
+        .option(modelFlags, modelDescription)
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
         .action(options => chat(options.model, options.history, options.port))
@@ -113,14 +112,14 @@ async function chat(model: string, historyFilename?: string, port?: number) {
 
     const contextStateManager = createContextState()
     const system = await buildSystemPrompt()
-    const provider = await createProvider(contextStateManager, model, system)
-    await chatWithProvider(contextStateManager, provider, model, historyFilename, port)
+    const provider = await createProvider(contextStateManager, model || 'sonnet', system)
+    await chatWithProvider(contextStateManager, provider, !model, historyFilename, port)
 }
 
 async function chatWithProvider(
     contextStateManager: ContextStateManager,
     provider: Provider,
-    model: string,
+    usingDefaultModel: boolean,
     historyFilename?: string,
     port?: number,
 ) {
@@ -155,7 +154,7 @@ async function chatWithProvider(
         await registerContextListeners(context, client)
 
         await interruptHandler.withInterruptHandler(
-            () => chatWithReadline(context, model, historyFilename),
+            () => chatWithReadline(context, usingDefaultModel, historyFilename),
             interruptInputOptions,
         )
     } finally {
@@ -191,12 +190,12 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
-async function chatWithReadline(context: ChatContext, model: string, historyFilename?: string) {
+async function chatWithReadline(context: ChatContext, usingDefaultModel: boolean, historyFilename?: string) {
     if (historyFilename) {
-        await loadHistory(context, historyFilename)
+        await loadHistory(context, usingDefaultModel, historyFilename)
     }
 
-    console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${model}...\n`)
+    console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.provider.name}...\n`)
     await handler(context)
 }
 
