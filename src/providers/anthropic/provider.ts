@@ -45,6 +45,7 @@ async function createAnthropicProvider({
 
     return createProvider({
         name,
+        system,
         createStream: () =>
             createStream({
                 client,

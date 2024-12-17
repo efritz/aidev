@@ -32,6 +32,7 @@ async function createOllamaProvider({
 
     return createProvider({
         name,
+        system,
         createStream: () =>
             createStream({
                 model,

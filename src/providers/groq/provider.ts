@@ -33,6 +33,7 @@ async function createGroqProvider({
 
     return createProvider({
         name,
+        system,
         createStream: () =>
             createStream({
                 client,

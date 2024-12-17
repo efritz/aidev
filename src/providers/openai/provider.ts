@@ -44,6 +44,7 @@ async function createOpenAIProvider({
 
     return createProvider({
         name,
+        system,
         createStream: () =>
             createStream({
                 client,

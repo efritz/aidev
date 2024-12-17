@@ -36,6 +36,7 @@ async function createGoogleProvider({
 
     return createProvider({
         name,
+        system,
         createStream: () =>
             createStream({
                 client,
