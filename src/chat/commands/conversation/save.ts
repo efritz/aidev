@@ -19,6 +19,7 @@ async function handleSave(context: ChatContext, args: string) {
     }
 
     const contents: SaveFilePayload = {
+        model: context.provider.name,
         messages: context.provider.conversationManager.messages(),
         contextFiles: mapToRecord(context.contextStateManager.files),
         contextDirectories: mapToRecord(context.contextStateManager.directories),
@@ -37,6 +38,7 @@ function mapToRecord<K extends string | number | symbol, V>(map: Map<K, V>): Rec
 }
 
 export type SaveFilePayload = {
+    model: string
     messages: Message[]
     contextFiles: Record<string, ContextFile>
     contextDirectories: Record<string, ContextDirectory>

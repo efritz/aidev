@@ -98,6 +98,7 @@ The following meta commands have special behaviors to manipulate the context or 
 
 - `:help`: Display available commands.
 - `:exit`: Exit the conversation.
+- `:model <model>`: Change the model backing the assistant.
 - `:prompt`: Draft a prompt in VSCode.
 - `:continue`: Re-prompt the agent without a user message.
 - `:save`: Save the conversation to a file.

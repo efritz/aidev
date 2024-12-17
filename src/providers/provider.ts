@@ -13,6 +13,8 @@ export type AbortRegisterer = (abort: Aborter) => void
 export type ProgressFunction = (r?: Response) => void
 
 export type Provider = {
+    name: string
+    system: string
     conversationManager: ConversationManager
     prompt: (progress?: ProgressFunction, abortRegisterer?: AbortRegisterer) => Promise<Response>
 }

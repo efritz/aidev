@@ -1,16 +1,23 @@
 import { readFile } from 'fs/promises'
-import { emit } from 'process'
 import chalk from 'chalk'
 import { AssistantMessage, MetaMessage, UserMessage } from '../messages/messages'
 import { tools } from '../tools/tools'
 import { replayWriteFile } from '../util/fs/write'
 import { reviver, SaveFilePayload } from './commands/conversation/save'
-import { ChatContext } from './context'
+import { ChatContext, swapProvider } from './context'
 import { formatMessage } from './output'
 
-export async function loadHistory(context: ChatContext, historyFilename: string): Promise<void> {
+export async function loadHistory(
+    context: ChatContext,
+    usingDefaultModel: boolean,
+    historyFilename: string,
+): Promise<void> {
     const content = await readFile(historyFilename, 'utf8')
-    const { messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
+    const { model, messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
+
+    if (usingDefaultModel) {
+        await swapProvider(context, model)
+    }
 
     context.provider.conversationManager.setMessages(messages)
     context.contextStateManager.files = new Map(Object.entries(contextFiles))

@@ -25,7 +25,7 @@ export const provider: ProviderSpec = {
 
 async function createGoogleProvider({
     contextState,
-    model: { model: modelName },
+    model: { name, model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
@@ -35,10 +35,12 @@ async function createGoogleProvider({
     const { providerMessages, ...conversationManager } = createConversation(contextState)
 
     return createProvider({
+        name,
+        system,
         createStream: () =>
             createStream({
                 client,
-                modelName,
+                modelName: model,
                 system,
                 messages: providerMessages(),
                 temperature,

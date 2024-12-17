@@ -21,6 +21,11 @@ async function handleStatus(context: ChatContext, args: string) {
     const branchMetadata = context.provider.conversationManager.branchMetadata()
     const currentBranch = context.provider.conversationManager.currentBranch()
 
+    console.log(chalk.bold('Current model:'))
+    console.log()
+    printCurrentModel(context)
+    console.log()
+
     console.log(chalk.bold('Context files:'))
     console.log()
     printContextFiles(context)
@@ -35,6 +40,10 @@ async function handleStatus(context: ChatContext, args: string) {
     console.log()
     printBranch(branchMetadata, branchMetadata['main'], '', true, currentBranch)
     console.log()
+}
+
+function printCurrentModel(context: ChatContext) {
+    console.log(chalk.cyan(context.provider.name))
 }
 
 function printBranch(
