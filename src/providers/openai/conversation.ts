@@ -1,8 +1,8 @@
 import {
     ChatCompletionAssistantMessageParam,
+    ChatCompletionDeveloperMessageParam,
     ChatCompletionMessageParam,
     ChatCompletionMessageToolCall,
-    ChatCompletionSystemMessageParam,
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
 } from 'openai/resources'
@@ -26,9 +26,9 @@ export function createConversation(
     })
 }
 
-function systemMessageToParam(system: string): ChatCompletionSystemMessageParam {
+function systemMessageToParam(system: string): ChatCompletionDeveloperMessageParam {
     return {
-        role: 'system',
+        role: 'developer',
         content: system,
     }
 }
