@@ -62,7 +62,7 @@
         "groq-sdk": "0.7.0",
         "minimatch": "^10.0.1",
         "ollama": "0.5.9",
-        "openai": "4.68.4",
+        "openai": "4.77.0",
         "ora": "^8.0.1",
         "tree-kill": "^1.2.2",
         "uuid": "^10.0.0"
