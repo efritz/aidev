@@ -9,16 +9,16 @@ import { createStreamReducer } from './reducer'
 
 const models: Model[] = [
     {
-        name: 'gpt-4o',
-        model: 'gpt-4o-2024-08-06',
+        name: 'o1-preview',
+        model: 'o1-preview-2024-09-12',
     },
     {
         name: 'o1-mini',
         model: 'o1-mini-2024-09-12',
     },
     {
-        name: 'o1-preview',
-        model: 'o1-preview-2024-09-12',
+        name: 'gpt-4o',
+        model: 'gpt-4o-2024-08-06',
     },
     {
         name: 'gpt-4',
