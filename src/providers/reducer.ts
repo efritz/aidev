@@ -4,6 +4,7 @@ import { ProgressFunction } from './provider'
 export type Reducer<T> = {
     messages: AssistantMessage[]
     handleEvent: (e: T) => void
+    flush?: () => void
 }
 
 type ReducerOptions<T> = {
@@ -13,12 +14,14 @@ type ReducerOptions<T> = {
 }
 
 export async function reduceStream<T>({ iterator, reducer, progress }: ReducerOptions<T>): Promise<Response> {
-    const { messages, handleEvent } = reducer
+    const { messages, handleEvent, flush } = reducer
 
     for await (const message of iterator) {
         handleEvent(message)
         progress?.({ messages })
     }
+
+    flush?.()
 
     return { messages }
 }

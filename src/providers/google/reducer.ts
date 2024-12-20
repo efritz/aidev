@@ -1,9 +1,10 @@
-import { EnhancedGenerateContentResponse } from '@google/generative-ai'
+import { EnhancedGenerateContentResponse, FunctionCall } from '@google/generative-ai'
 import { AssistantMessage } from '../../messages/messages'
 import { Reducer } from '../reducer'
 
 export function createStreamReducer(): Reducer<EnhancedGenerateContentResponse> {
     const messages: AssistantMessage[] = []
+    const functionCalls: FunctionCall[] = []
 
     const handleEvent = (part: EnhancedGenerateContentResponse) => {
         const text = part.text()
@@ -16,7 +17,16 @@ export function createStreamReducer(): Reducer<EnhancedGenerateContentResponse> 
             }
         }
 
-        const functionCalls = part.functionCalls() || []
+        // Gemini models have the tendency to emit a single newline after a function
+        // call if there was no text before the tool call, which causes the conversation
+        // to become malformed as the tool result does not immediately follow the call.
+        //
+        // Buffering the function calls ensures that we'll emit them last.
+
+        functionCalls.push(...(part.functionCalls() || []))
+    }
+
+    const flush = () => {
         if (functionCalls.length > 0) {
             messages.push({
                 type: 'tool_use',
@@ -29,5 +39,5 @@ export function createStreamReducer(): Reducer<EnhancedGenerateContentResponse> 
         }
     }
 
-    return { messages, handleEvent }
+    return { messages, handleEvent, flush }
 }
