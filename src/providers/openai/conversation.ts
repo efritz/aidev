@@ -17,18 +17,22 @@ type AssistantParam = ChatCompletionAssistantMessageParam
 export function createConversation(
     contextState: ContextState,
     system: string,
+    supportsDeveloperMessage: boolean,
 ): Conversation<ChatCompletionMessageParam> {
     return createGenericConversation<ChatCompletionMessageParam>({
         contextState: contextState,
         userMessageToParam,
         assistantMessagesToParam,
-        initialMessage: systemMessageToParam(system),
+        initialMessage: systemMessageToParam(system, supportsDeveloperMessage),
     })
 }
 
-function systemMessageToParam(system: string): ChatCompletionDeveloperMessageParam {
+function systemMessageToParam(
+    system: string,
+    supportsDeveloperMessage: boolean,
+): ChatCompletionDeveloperMessageParam | ChatCompletionUserMessageParam {
     return {
-        role: 'developer',
+        role: supportsDeveloperMessage ? 'developer' : 'user',
         content: system,
     }
 }
