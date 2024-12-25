@@ -100,7 +100,7 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:exit`: Exit the conversation.
 - `:model <model>`: Change the model backing the assistant.
 - `:prompt`: Draft a prompt in VSCode.
-- `:continue`: Re-prompt the agent without a user message.
+- `:continue`: Re-prompt the model without a user message.
 - `:save`: Save the conversation to a file.
 - `:load <patterns, ...>`: Load file contents into the conversation.
 - `:loaddir <patterns, ...>`: Load directory entries into the conversation.
