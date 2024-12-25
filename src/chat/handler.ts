@@ -6,7 +6,7 @@ import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
-import { shouldReprompt } from './reprompt_agent'
+import { shouldReprompt } from './reprompt_mediator'
 import { runToolsInMessages } from './tools'
 
 export async function handler(context: ChatContext) {
@@ -74,7 +74,7 @@ async function prompt(context: ChatContext): Promise<void> {
 
         if (ranTools && (reprompt === true || (reprompt === undefined && (await shouldReprompt(context))))) {
             // Re-prompt if we ran tools and either (a) any tool requested we should explicitly re-prompt,
-            // or (b) no tool requested we should NOT explicitly reprompt and our reprompt sub-agent indicates
+            // or (b) no tool requested we should NOT explicitly reprompt and our reprompt mediator indicates
             // we should continue.
             continue
         } else {
