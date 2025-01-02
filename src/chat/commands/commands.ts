@@ -9,7 +9,7 @@ import { unstashCommand } from './context/unstash'
 import { writeCommand } from './context/write'
 import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
-import { modelCommand } from './control/model'
+import { modelCommand, modelsCommand } from './control/model'
 import { branchCommand } from './conversation/branch'
 import { clearCommand } from './conversation/clear'
 import { continueCommand } from './conversation/continue'
@@ -29,6 +29,7 @@ export const commands: CommandDescription[] = [
     helpCommand,
     exitCommand,
     modelCommand,
+    modelsCommand,
     promptCommand,
     continueCommand,
     saveCommand,
