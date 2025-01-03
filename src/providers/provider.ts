@@ -20,7 +20,7 @@ export type Provider = {
 }
 
 export type ProviderSpec = {
-    name: string
+    providerName: string
     models: Model[]
     factory: ProviderFactory
 }

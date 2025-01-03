@@ -5,8 +5,6 @@ import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export const providerName = 'Ollama'
-
 const models: Model[] = [
     {
         name: 'llama3',
@@ -19,7 +17,7 @@ const models: Model[] = [
 ]
 
 export const provider: ProviderSpec = {
-    name: providerName,
+    providerName: 'Ollama',
     models,
     factory: createOllamaProvider,
 }
