@@ -8,6 +8,8 @@ import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'Groq'
+
 const models: Model[] = [
     {
         name: 'llama3-70b',
@@ -16,7 +18,7 @@ const models: Model[] = [
 ]
 
 export const provider: ProviderSpec = {
-    providerName: 'Groq',
+    providerName,
     models,
     factory: createGroqProvider,
 }
@@ -33,6 +35,7 @@ async function createGroqProvider({
     const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
+        providerName,
         modelName,
         system,
         createStream: () =>

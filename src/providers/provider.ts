@@ -13,6 +13,7 @@ export type AbortRegisterer = (abort: Aborter) => void
 export type ProgressFunction = (r?: Response) => void
 
 export type Provider = {
+    providerName: string
     modelName: string
     system: string
     conversationManager: ConversationManager
