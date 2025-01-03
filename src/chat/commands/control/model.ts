@@ -43,17 +43,3 @@ async function handleModel(context: ChatContext, args: string) {
 async function completeModel(context: ChatContext, args: string): Promise<CompleterResult> {
     return [modelNames.filter(name => name.startsWith(args)), args]
 }
-
-export const modelsCommand: CommandDescription = {
-    prefix: ':models',
-    description: 'List available models',
-    handler:     handleModels,
-}
-
-async function handleModels(context: ChatContext, args: string) { 
-        console.log()
-        console.log(formattedModels)
-        console.log()
-        return
-}
-
