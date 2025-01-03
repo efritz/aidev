@@ -14,40 +14,40 @@ import { modelsCommand } from './control/models'
 import { branchCommand } from './conversation/branch'
 import { clearCommand } from './conversation/clear'
 import { continueCommand } from './conversation/continue'
+import { dumpCommand } from './conversation/dump'
 import { promptCommand } from './conversation/prompt'
 import { redoCommand } from './conversation/redo'
 import { removeCommand } from './conversation/remove'
 import { renameCommand } from './conversation/rename'
 import { rollbackCommand } from './conversation/rollback'
 import { saveCommand } from './conversation/save'
-import { dumpCommand } from './conversation/dump'
 import { savepointCommand } from './conversation/savepoint'
 import { statusCommand } from './conversation/status'
 import { switchCommand } from './conversation/switch'
 import { undoCommand } from './conversation/undo'
 
 export const commands: CommandDescription[] = [
-    helpCommand,
+    branchCommand,
+    clearCommand,
+    continueCommand,
+    dumpCommand,
     exitCommand,
+    helpCommand,
+    loadCommand,
+    loaddirCommand,
     modelCommand,
     modelsCommand,
     promptCommand,
-    continueCommand,
-    saveCommand,
-    dumpCommand,
-    loadCommand,
-    loaddirCommand,
-    unloadCommand,
-    clearCommand,
-    savepointCommand,
-    rollbackCommand,
-    undoCommand,
     redoCommand,
-    statusCommand,
-    branchCommand,
-    switchCommand,
-    renameCommand,
     removeCommand,
+    renameCommand,
+    rollbackCommand,
+    saveCommand,
+    savepointCommand,
+    statusCommand,
+    switchCommand,
+    undoCommand,
+    unloadCommand,
     unstashCommand,
     writeCommand,
 ]
