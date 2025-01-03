@@ -4,23 +4,20 @@ import { provider as googleProvider } from './google/provider'
 import { provider as groqProvider } from './groq/provider'
 import { provider as ollamaProvider } from './ollama/provider'
 import { provider as openAIProvider } from './openai/provider'
-import { Provider, ProviderSpec, Model } from './provider'
+import { Provider, ProviderSpec } from './provider'
 
 const providers: ProviderSpec[] = [anthropicProvider, openAIProvider, googleProvider, groqProvider, ollamaProvider]
 
-export const providerModels = providers.reduce((acc, provider) => {
-    acc[provider.name] = provider.models
-    return acc
-}, {} as Record<string, Model[]>)
+export const modelNames = providers.flatMap(({ models }) => models.map(({ name }) => name)).sort()
 
-export const modelNames = Object.values(providerModels).flat().map(model => model.name).sort()
+if (new Set(modelNames).size !== modelNames.length) {
+    throw new Error('Model names are not unique across providers')
+}
 
-export const formattedModels = Object.entries(providerModels)
-            .map(([name, models]) => {
-                const modelNames = models.map(model => model.name).join(', ')
-                return `- ${name}: ${modelNames}`
-            })
-            .join('\n')
+export const formattedModels = providers
+    .map(({ providerName, models }) => `- ${providerName}: ${models.map(({ name }) => name).join(', ')}`)
+    .sort()
+    .join('\n')
 
 export function createProvider(contextState: ContextState, modelName: string, system: string): Promise<Provider> {
     const pairs = providers.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
