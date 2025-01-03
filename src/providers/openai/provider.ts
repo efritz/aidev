@@ -7,6 +7,8 @@ import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'OpenAI'
+
 const models: Model[] = [
     {
         name: 'o1-preview',
@@ -37,13 +39,14 @@ const models: Model[] = [
 ]
 
 export const provider: ProviderSpec = {
+    providerName,
     models,
     factory: createOpenAIProvider,
 }
 
 async function createOpenAIProvider({
     contextState,
-    model: { name, model, options },
+    model: { name: modelName, model, options },
     system,
     temperature = 0.0,
     maxTokens = 4096,
@@ -57,7 +60,8 @@ async function createOpenAIProvider({
     )
 
     return createProvider({
-        name,
+        providerName,
+        modelName,
         system,
         createStream: () =>
             createStream({

@@ -1,5 +1,5 @@
 import { stat } from 'fs/promises'
-import { createServer as _createServer, RequestListener, Server, ServerResponse } from 'http'
+import { createServer as _createServer, RequestListener, Server } from 'http'
 import { AddressInfo } from 'net'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'

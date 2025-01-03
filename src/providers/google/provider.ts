@@ -11,6 +11,8 @@ import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'Google'
+
 const models: Model[] = [
     {
         name: 'gemini',
@@ -19,13 +21,14 @@ const models: Model[] = [
 ]
 
 export const provider: ProviderSpec = {
+    providerName,
     models,
     factory: createGoogleProvider,
 }
 
 async function createGoogleProvider({
     contextState,
-    model: { name, model },
+    model: { name: modelName, model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
@@ -35,7 +38,8 @@ async function createGoogleProvider({
     const { providerMessages, ...conversationManager } = createConversation(contextState)
 
     return createProvider({
-        name,
+        providerName,
+        modelName,
         system,
         createStream: () =>
             createStream({

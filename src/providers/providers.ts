@@ -7,7 +7,17 @@ import { provider as openAIProvider } from './openai/provider'
 import { Provider, ProviderSpec } from './provider'
 
 const providers: ProviderSpec[] = [anthropicProvider, openAIProvider, googleProvider, groqProvider, ollamaProvider]
+
 export const modelNames = providers.flatMap(({ models }) => models.map(({ name }) => name)).sort()
+
+if (new Set(modelNames).size !== modelNames.length) {
+    throw new Error('Model names are not unique across providers')
+}
+
+export const formattedModels = providers
+    .map(({ providerName, models }) => `- ${providerName}: ${models.map(({ name }) => name).join(', ')}`)
+    .sort()
+    .join('\n')
 
 export function createProvider(contextState: ContextState, modelName: string, system: string): Promise<Provider> {
     const pairs = providers.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))

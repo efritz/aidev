@@ -30,18 +30,22 @@ async function metaCompleter(context: ChatContext, line: string): Promise<Comple
         return [prefixes, line]
     }
 
-    // Complete a specific command (with a fully provided prefix)
-    const commandResult = await completeCommand(context, line)
-    if (commandResult) {
-        return commandResult
-    }
-
-    // Complete all partially provided commands
+    // Determine which command prefixes match the current line
     const hits = prefixes.filter(completion => completion.startsWith(line))
-    if (hits.length > 0) {
-        return [hits, line]
+
+    if (hits.length <= 1) {
+        // Try to complete a specific command (with a fully provided prefix)
+        const commandResult = await completeCommand(context, line)
+        if (commandResult) {
+            return commandResult
+        }
+
+        // Suppress unhelpful completion of the exact same line
+        if (hits.length === 1 && hits[0] === line) {
+            return [[], line]
+        }
     }
 
-    // No completion suggestions
-    return [[], line]
+    // Complete any partially provided commands
+    return [hits, line]
 }

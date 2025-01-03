@@ -191,7 +191,9 @@ async function chatWithReadline(context: ChatContext, usingDefaultModel: boolean
         await loadHistory(context, usingDefaultModel, historyFilename)
     }
 
-    console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.provider.name}...\n`)
+    console.log(
+        `${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.provider.modelName} (${context.provider.providerName})...\n`,
+    )
     await handler(context)
 }
 

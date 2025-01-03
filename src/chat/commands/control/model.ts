@@ -1,6 +1,6 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { modelNames } from '../../../providers/providers'
+import { formattedModels, modelNames } from '../../../providers/providers'
 import { ChatContext, swapProvider } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -25,7 +25,7 @@ async function handleModel(context: ChatContext, args: string) {
         console.log(chalk.red.bold(`Invalid model name: ${modelName}`))
         console.log()
         console.log('Valid models:')
-        console.log(modelNames.join('\n'))
+        console.log(formattedModels)
         console.log()
         return
     }

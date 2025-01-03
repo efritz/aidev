@@ -13,13 +13,15 @@ export type AbortRegisterer = (abort: Aborter) => void
 export type ProgressFunction = (r?: Response) => void
 
 export type Provider = {
-    name: string
+    providerName: string
+    modelName: string
     system: string
     conversationManager: ConversationManager
     prompt: (progress?: ProgressFunction, abortRegisterer?: AbortRegisterer) => Promise<Response>
 }
 
 export type ProviderSpec = {
+    providerName: string
     models: Model[]
     factory: ProviderFactory
 }
