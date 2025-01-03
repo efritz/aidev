@@ -43,7 +43,7 @@ async function handleStatus(context: ChatContext, args: string) {
 }
 
 function printCurrentModel(context: ChatContext) {
-    console.log(chalk.cyan(context.provider.name))
+    console.log(chalk.cyan(context.provider.modelName))
 }
 
 function printBranch(

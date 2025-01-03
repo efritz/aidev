@@ -46,7 +46,7 @@ export const provider: ProviderSpec = {
 
 async function createOpenAIProvider({
     contextState,
-    model: { name, model, options },
+    model: { name: modelName, model, options },
     system,
     temperature = 0.0,
     maxTokens = 4096,
@@ -60,7 +60,7 @@ async function createOpenAIProvider({
     )
 
     return createProvider({
-        name,
+        modelName,
         system,
         createStream: () =>
             createStream({

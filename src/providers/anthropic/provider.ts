@@ -7,8 +7,6 @@ import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export const providerName = 'Anthropic'
-
 const models: Model[] = [
     {
         name: 'haiku',
@@ -29,14 +27,14 @@ const models: Model[] = [
 ]
 
 export const provider: ProviderSpec = {
-    name: providerName,
+    providerName: 'Anthropic',
     models,
     factory: createAnthropicProvider,
 }
 
 async function createAnthropicProvider({
     contextState,
-    model: { name, model, options },
+    model: { name: modelName, model, options },
     system,
     temperature = 0.0,
     maxTokens = options?.maxTokens || 4096,
@@ -47,7 +45,7 @@ async function createAnthropicProvider({
     const { providerMessages, ...conversationManager } = createConversation(contextState)
 
     return createProvider({
-        name,
+        modelName,
         system,
         createStream: () =>
             createStream({

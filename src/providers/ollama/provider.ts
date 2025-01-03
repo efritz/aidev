@@ -26,7 +26,7 @@ export const provider: ProviderSpec = {
 
 async function createOllamaProvider({
     contextState,
-    model: { name, model },
+    model: { name: modelName, model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
@@ -34,7 +34,7 @@ async function createOllamaProvider({
     const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
-        name,
+        modelName,
         system,
         createStream: () =>
             createStream({

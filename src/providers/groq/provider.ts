@@ -25,7 +25,7 @@ export const provider: ProviderSpec = {
 
 async function createGroqProvider({
     contextState,
-    model: { name, model },
+    model: { name: modelName, model },
     system,
     temperature = 0.0,
     maxTokens = 4096,
@@ -35,7 +35,7 @@ async function createGroqProvider({
     const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
     return createProvider({
-        name,
+        modelName,
         system,
         createStream: () =>
             createStream({
