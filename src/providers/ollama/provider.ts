@@ -1,27 +1,17 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
-import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Preferences } from '../preferences'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createOllamaProviderSpec(): Promise<ProviderSpec> {
+export async function createOllamaProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
     const providerName = 'Ollama'
-
-    const models: Model[] = [
-        {
-            name: 'llama3',
-            model: 'llama3.3',
-        },
-        {
-            name: 'qwen',
-            model: 'qwen2.5-coder:32b',
-        },
-    ]
 
     return {
         providerName,
-        models,
+        models: preferences.providers[providerName] ?? [],
         needsAPIKey: false,
         factory: createOllamaProvider(providerName),
     }

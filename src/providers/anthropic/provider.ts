@@ -3,36 +3,18 @@ import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resour
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
-import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Preferences } from '../preferences'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createAnthropicProviderSpec(): Promise<ProviderSpec> {
+export async function createAnthropicProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
     const providerName = 'Anthropic'
     const apiKey = await getKey(providerName)
 
-    const models: Model[] = [
-        {
-            name: 'haiku',
-            model: 'claude-3-haiku-20240307',
-        },
-        {
-            name: 'sonnet',
-            model: 'claude-3-5-sonnet-20241022',
-            options: {
-                maxTokens: 8192,
-                headers: { 'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15' },
-            },
-        },
-        {
-            name: 'opus',
-            model: 'claude-3-opus-20240229',
-        },
-    ]
-
     return {
         providerName,
-        models,
+        models: preferences.providers[providerName] ?? [],
         needsAPIKey: !apiKey,
         factory: createAnthropicProvider(providerName, apiKey ?? ''),
     }

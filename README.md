@@ -6,7 +6,23 @@ This project provides a personalized AI assistant that can be used through a CLI
 
 Before running the AI assistant, ensure that:
 
-1. API keys are configured for your chosen LLM provider(s). Store your API keys in `~/.config/aidev/keys/` following this convention:
+1. A `preferences.yaml` file exist at the target location. This controls which providers and models are available to aidev.
+
+   ```bash
+   # Create the preferences directory
+   mkdir -p ~/.config/aidev
+
+   # Move the sample preferences to the target location
+   cp preferences.yaml.sample ~/.config/aidev/preferences.yaml
+   ```
+
+   The default location for this file is in `~/.config/aidev/`, but you can override this location by setting the `AIDEV_PREFERENCES_DIR` environment variable:
+
+   ```bash
+   export AIDEV_PREFERENCES_DIR="/custom/path/to/preferences/dir"
+   ```
+
+2. API keys are configured for your chosen LLM provider(s). Store your API keys in `~/.config/aidev/keys/` following this convention:
 
    ```bash
    # Create the config directory
@@ -23,16 +39,16 @@ Before running the AI assistant, ensure that:
    export AIDEV_KEY_DIR="/custom/path/to/keys/dir"
    ```
 
-   Key files for each provider will be expected upon use:
+   Key files for each provider are required to use the provider's configured models:
 
    - `anthropic.key`
    - `openai.key`
    - `google.key`
    - `groq.key`
 
-2. The `code` command is available on your PATH. This is typically installed with Visual Studio Code.
+3. The `code` command is available on your PATH. This is typically installed with Visual Studio Code.
 
-3. For the VSCode extension to work properly, the CLI run instructions must be aliased to 'ai'. Add this alias to your shell configuration file:
+4. For the VSCode extension to work properly, the CLI run instructions must be aliased to 'ai'. Add this alias to your shell configuration file:
 
    ```bash
    alias ai='node /path/to/aidev/dist/cli.js'

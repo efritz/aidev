@@ -4,6 +4,7 @@ import { createGoogleProviderSpec } from './google/provider'
 import { createGroqProviderSpec } from './groq/provider'
 import { createOllamaProviderSpec } from './ollama/provider'
 import { createOpenAIProviderSpec } from './openai/provider'
+import { Preferences } from './preferences'
 import { Provider, ProviderSpec } from './provider'
 
 export type Providers = {
@@ -21,10 +22,10 @@ const providerSpecFactories = [
     createOpenAIProviderSpec,
 ]
 
-export const initProviders = async (): Promise<Providers> => {
+export const initProviders = async (preferences: Preferences): Promise<Providers> => {
     const providerSpecs: ProviderSpec[] = []
     for (const factory of providerSpecFactories) {
-        providerSpecs.push(await factory())
+        providerSpecs.push(await factory(preferences))
     }
 
     const allModelNames = providerSpecs.flatMap(({ models }) => models.map(({ name }) => name)).sort()

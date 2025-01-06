@@ -3,46 +3,18 @@ import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } f
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
-import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Preferences } from '../preferences'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createOpenAIProviderSpec(): Promise<ProviderSpec> {
+export async function createOpenAIProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
     const providerName = 'OpenAI'
     const apiKey = await getKey(providerName)
 
-    const models: Model[] = [
-        {
-            name: 'o1-preview',
-            model: 'o1-preview-2024-09-12',
-            options: {
-                supportsDeveloperMessage: false,
-                supportsTools: false,
-                minimumTempature: 1.0,
-            },
-        },
-        {
-            name: 'o1-mini',
-            model: 'o1-mini-2024-09-12',
-            options: {
-                supportsDeveloperMessage: false,
-                supportsTools: false,
-                minimumTempature: 1.0,
-            },
-        },
-        {
-            name: 'gpt-4o',
-            model: 'gpt-4o-2024-08-06',
-        },
-        {
-            name: 'gpt-4',
-            model: 'gpt-4',
-        },
-    ]
-
     return {
         providerName,
-        models,
+        models: preferences.providers[providerName] ?? [],
         needsAPIKey: !apiKey,
         factory: createOpenAIProvider(providerName, apiKey ?? ''),
     }

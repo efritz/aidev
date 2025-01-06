@@ -9,6 +9,7 @@ import { loadHistory } from './chat/history'
 import { createContextState } from './context/state'
 import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
+import { getPreferences, Preferences } from './providers/preferences'
 import { initProviders, Providers } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
@@ -17,7 +18,8 @@ async function main() {
     // Make EventSource available globally for the MCP SSE transport
     ;(global as any).EventSource = EventSource
 
-    const providers = await initProviders()
+    const preferences = await getPreferences()
+    const providers = await initProviders(preferences)
 
     program
         .name('ai')
@@ -35,7 +37,7 @@ async function main() {
     program
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
-        .action(options => chat(providers, options.history, options.port))
+        .action(options => chat(preferences, providers, options.history, options.port))
 
     program.parse(process.argv)
 }
@@ -98,9 +100,7 @@ async function buildProjectInstructions(): Promise<string> {
     return ''
 }
 
-const defaultModel = 'sonnet'
-
-async function chat(providers: Providers, historyFilename?: string, port?: number) {
+async function chat(preferences: Preferences, providers: Providers, historyFilename?: string, port?: number) {
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
@@ -127,7 +127,7 @@ async function chat(providers: Providers, historyFilename?: string, port?: numbe
     try {
         const interruptHandler = createInterruptHandler(rl)
         const prompter = createPrompter(rl, interruptHandler)
-        const provider = await providers.createProvider(contextStateManager, defaultModel, system)
+        const provider = await providers.createProvider(contextStateManager, preferences.defaultModel, system)
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
 
         context = {

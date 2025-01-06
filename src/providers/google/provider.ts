@@ -7,24 +7,18 @@ import {
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
-import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Preferences } from '../preferences'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createGoogleProviderSpec(): Promise<ProviderSpec> {
+export async function createGoogleProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
     const providerName = 'Google'
     const apiKey = await getKey(providerName)
 
-    const models: Model[] = [
-        {
-            name: 'gemini',
-            model: 'gemini-2.0-flash-exp',
-        },
-    ]
-
     return {
         providerName,
-        models,
+        models: preferences.providers[providerName] ?? [],
         needsAPIKey: !apiKey,
         factory: createGoogleProvider(providerName, apiKey ?? ''),
     }

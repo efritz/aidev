@@ -4,24 +4,18 @@ import { ChatCompletionTool } from 'openai/resources'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
-import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
+import { Preferences } from '../preferences'
+import { Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createGroqProviderSpec(): Promise<ProviderSpec> {
+export async function createGroqProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
     const providerName = 'Groq'
     const apiKey = await getKey(providerName)
 
-    const models: Model[] = [
-        {
-            name: 'llama3-70b',
-            model: 'llama3-8b-8192',
-        },
-    ]
-
     return {
         providerName,
-        models,
+        models: preferences.providers[providerName] ?? [],
         needsAPIKey: !apiKey,
         factory: createGroqProvider(providerName, apiKey ?? ''),
     }
