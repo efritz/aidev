@@ -1,5 +1,6 @@
 import { ContextState } from '../context/state'
 import { createAnthropicProviderSpec } from './anthropic/provider'
+import { createDeepSeekProviderSpec } from './deepseek/provider'
 import { createGoogleProviderSpec } from './google/provider'
 import { createGroqProviderSpec } from './groq/provider'
 import { createOllamaProviderSpec } from './ollama/provider'
@@ -20,6 +21,7 @@ const providerSpecFactories = [
     createGroqProviderSpec,
     createOllamaProviderSpec,
     createOpenAIProviderSpec,
+    createDeepSeekProviderSpec,
 ]
 
 export const initProviders = async (preferences: Preferences): Promise<Providers> => {

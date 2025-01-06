@@ -40,3 +40,8 @@ providers:
       model: llama3.3
     - name: qwen
       model: qwen2.5-coder:32b
+  DeepSeek:
+    - name: deepseek-chat
+      model: deepseek-chat
+      options:
+        supportsDeveloperMessage: false

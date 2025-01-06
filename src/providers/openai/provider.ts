@@ -21,6 +21,14 @@ export async function createOpenAIProviderSpec(preferences: Preferences): Promis
 }
 
 function createOpenAIProvider(providerName: string, apiKey: string): ProviderFactory {
+    return createOpenAICompatibleProvider(providerName, apiKey)
+}
+
+export function createOpenAICompatibleProvider(
+    providerName: string,
+    apiKey: string,
+    baseURL?: string,
+): ProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model, options },
@@ -28,7 +36,7 @@ function createOpenAIProvider(providerName: string, apiKey: string): ProviderFac
         temperature = 0.0,
         maxTokens = 4096,
     }: ProviderOptions): Promise<Provider> => {
-        const client = new OpenAI({ apiKey })
+        const client = new OpenAI({ apiKey, baseURL })
         const { providerMessages, ...conversationManager } = createConversation(
             contextState,
             system,
