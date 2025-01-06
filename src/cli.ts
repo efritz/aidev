@@ -131,6 +131,7 @@ async function chat(preferences: Preferences, providers: Providers, historyFilen
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
 
         context = {
+            preferences,
             providers,
             interruptHandler,
             prompter,

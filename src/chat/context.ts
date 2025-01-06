@@ -1,10 +1,12 @@
 import { ContextStateManager } from '../context/state'
+import { Preferences } from '../providers/preferences'
 import { Provider } from '../providers/provider'
 import { Providers } from '../providers/providers'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
 
 export type ChatContext = {
+    preferences: Preferences
     providers: Providers
     interruptHandler: InterruptHandler
     prompter: Prompter

@@ -1,4 +1,5 @@
 defaultModel: sonnet
+reprompterModel: haiku
 providers:
   Anthropic:
     - name: haiku

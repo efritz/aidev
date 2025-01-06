@@ -6,6 +6,7 @@ import { Model } from './provider'
 
 export type Preferences = {
     defaultModel: string
+    reprompterModel: string
     providers: {
         [key: string]: Model[]
     }

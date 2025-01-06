@@ -3,10 +3,14 @@ import { Message } from '../messages/messages'
 import { createXmlPattern } from '../util/xml/xml'
 import { ChatContext } from './context'
 
-const reprompterModel = 'haiku'
 const decisionPattern = createXmlPattern('decision')
 
 export async function shouldReprompt(context: ChatContext): Promise<boolean> {
+    const reprompterModel = context.preferences.reprompterModel
+    if (!reprompterModel) {
+        return false
+    }
+
     const system = buildSystemPrompt(context)
     const userMessage = buildUserMessage(context)
     const provider = await context.providers.createProvider(createEmptyContextState(), reprompterModel, system)
