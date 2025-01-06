@@ -1,13 +1,13 @@
-import { readFile } from 'fs/promises'
 import { homedir } from 'os'
 import path from 'path'
+import { safeReadFile } from '../util/fs/safe'
 
-export async function getKey(name: string): Promise<string> {
-    return (await readFile(keyPath(name), 'utf8')).trim()
+export async function getKey(name: string): Promise<string | undefined> {
+    return (await safeReadFile(keyPath(name))).trim()
 }
 
 function keyPath(name: string): string {
-    return path.join(keyDir(), `${name}.key`)
+    return path.join(keyDir(), `${name.toLowerCase()}.key`)
 }
 
 function keyDir(): string {

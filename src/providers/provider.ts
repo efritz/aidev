@@ -23,6 +23,7 @@ export type Provider = {
 export type ProviderSpec = {
     providerName: string
     models: Model[]
+    needsAPIKey: boolean
     factory: ProviderFactory
 }
 

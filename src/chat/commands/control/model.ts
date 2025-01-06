@@ -1,6 +1,5 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { formattedModels, modelNames } from '../../../providers/providers'
 import { ChatContext, swapProvider } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -21,11 +20,11 @@ async function handleModel(context: ChatContext, args: string) {
     }
 
     const modelName = parts[0]
-    if (!modelNames.includes(modelName)) {
+    if (!context.providers.modelNames.includes(modelName)) {
         console.log(chalk.red.bold(`Invalid model name: ${modelName}`))
         console.log()
         console.log('Valid models:')
-        console.log(formattedModels)
+        console.log(context.providers.formattedModels)
         console.log()
         return
     }
@@ -41,5 +40,5 @@ async function handleModel(context: ChatContext, args: string) {
 }
 
 async function completeModel(context: ChatContext, args: string): Promise<CompleterResult> {
-    return [modelNames.filter(name => name.startsWith(args)), args]
+    return [context.providers.modelNames.filter(name => name.startsWith(args)), args]
 }

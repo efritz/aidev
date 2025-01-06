@@ -1,52 +1,57 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
-import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
+import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-const providerName = 'Ollama'
+export async function createOllamaProviderSpec(): Promise<ProviderSpec> {
+    const providerName = 'Ollama'
 
-const models: Model[] = [
-    {
-        name: 'llama3',
-        model: 'llama3.3',
-    },
-    {
-        name: 'qwen',
-        model: 'qwen2.5-coder:32b',
-    },
-]
+    const models: Model[] = [
+        {
+            name: 'llama3',
+            model: 'llama3.3',
+        },
+        {
+            name: 'qwen',
+            model: 'qwen2.5-coder:32b',
+        },
+    ]
 
-export const provider: ProviderSpec = {
-    providerName,
-    models,
-    factory: createOllamaProvider,
+    return {
+        providerName,
+        models,
+        needsAPIKey: false,
+        factory: createOllamaProvider(providerName),
+    }
 }
 
-async function createOllamaProvider({
-    contextState,
-    model: { name: modelName, model },
-    system,
-    temperature = 0.0,
-    maxTokens = 4096,
-}: ProviderOptions): Promise<Provider> {
-    const { providerMessages, ...conversationManager } = createConversation(contextState, system)
-
-    return createProvider({
-        providerName,
-        modelName,
+function createOllamaProvider(providerName: string): ProviderFactory {
+    return async ({
+        contextState,
+        model: { name: modelName, model },
         system,
-        createStream: () =>
-            createStream({
-                model,
-                messages: providerMessages(),
-                temperature,
-                maxTokens,
-            }),
-        createStreamReducer,
-        conversationManager,
-    })
+        temperature = 0.0,
+        maxTokens = 4096,
+    }: ProviderOptions): Promise<Provider> => {
+        const { providerMessages, ...conversationManager } = createConversation(contextState, system)
+
+        return createProvider({
+            providerName,
+            modelName,
+            system,
+            createStream: () =>
+                createStream({
+                    model,
+                    messages: providerMessages(),
+                    temperature,
+                    maxTokens,
+                }),
+            createStreamReducer,
+            conversationManager,
+        })
+    }
 }
 
 async function createStream({

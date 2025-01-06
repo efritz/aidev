@@ -1,6 +1,5 @@
 import { createEmptyContextState } from '../context/state'
 import { Message } from '../messages/messages'
-import { createProvider } from '../providers/providers'
 import { createXmlPattern } from '../util/xml/xml'
 import { ChatContext } from './context'
 
@@ -10,7 +9,7 @@ const decisionPattern = createXmlPattern('decision')
 export async function shouldReprompt(context: ChatContext): Promise<boolean> {
     const system = buildSystemPrompt(context)
     const userMessage = buildUserMessage(context)
-    const provider = await createProvider(createEmptyContextState(), reprompterModel, system)
+    const provider = await context.providers.createProvider(createEmptyContextState(), reprompterModel, system)
 
     provider.conversationManager.pushUser({
         type: 'text',

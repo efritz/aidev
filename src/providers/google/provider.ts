@@ -7,52 +7,57 @@ import {
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
-import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
+import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-const providerName = 'Google'
+export async function createGoogleProviderSpec(): Promise<ProviderSpec> {
+    const providerName = 'Google'
+    const apiKey = await getKey(providerName)
 
-const models: Model[] = [
-    {
-        name: 'gemini',
-        model: 'gemini-2.0-flash-exp',
-    },
-]
+    const models: Model[] = [
+        {
+            name: 'gemini',
+            model: 'gemini-2.0-flash-exp',
+        },
+    ]
 
-export const provider: ProviderSpec = {
-    providerName,
-    models,
-    factory: createGoogleProvider,
+    return {
+        providerName,
+        models,
+        needsAPIKey: !apiKey,
+        factory: createGoogleProvider(providerName, apiKey ?? ''),
+    }
 }
 
-async function createGoogleProvider({
-    contextState,
-    model: { name: modelName, model },
-    system,
-    temperature = 0.0,
-    maxTokens = 4096,
-}: ProviderOptions): Promise<Provider> {
-    const apiKey = await getKey('google')
-    const client = new GoogleGenerativeAI(apiKey)
-    const { providerMessages, ...conversationManager } = createConversation(contextState)
-
-    return createProvider({
-        providerName,
-        modelName,
+function createGoogleProvider(providerName: string, apiKey: string): ProviderFactory {
+    return async ({
+        contextState,
+        model: { name: modelName, model },
         system,
-        createStream: () =>
-            createStream({
-                client,
-                modelName: model,
-                system,
-                messages: providerMessages(),
-                temperature,
-                maxTokens,
-            }),
-        createStreamReducer,
-        conversationManager,
-    })
+        temperature = 0.0,
+        maxTokens = 4096,
+    }: ProviderOptions): Promise<Provider> => {
+        const client = new GoogleGenerativeAI(apiKey)
+        const { providerMessages, ...conversationManager } = createConversation(contextState)
+
+        return createProvider({
+            providerName,
+            modelName,
+            system,
+            createStream: () =>
+                createStream({
+                    client,
+                    modelName: model,
+                    system,
+                    messages: providerMessages(),
+                    temperature,
+                    maxTokens,
+                }),
+            createStreamReducer,
+            conversationManager,
+        })
+    }
 }
 
 async function createStream({

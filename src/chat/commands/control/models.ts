@@ -1,4 +1,3 @@
-import { formattedModels } from '../../../providers/providers'
 import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 
@@ -10,7 +9,7 @@ export const modelsCommand: CommandDescription = {
 
 async function handleModels(context: ChatContext, args: string) {
     console.log()
-    console.log(formattedModels)
+    console.log(context.providers.formattedModels)
     console.log()
     return
 }

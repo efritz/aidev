@@ -1,26 +1,68 @@
 import { ContextState } from '../context/state'
-import { provider as anthropicProvider } from './anthropic/provider'
-import { provider as googleProvider } from './google/provider'
-import { provider as groqProvider } from './groq/provider'
-import { provider as ollamaProvider } from './ollama/provider'
-import { provider as openAIProvider } from './openai/provider'
+import { createAnthropicProviderSpec } from './anthropic/provider'
+import { createGoogleProviderSpec } from './google/provider'
+import { createGroqProviderSpec } from './groq/provider'
+import { createOllamaProviderSpec } from './ollama/provider'
+import { createOpenAIProviderSpec } from './openai/provider'
 import { Provider, ProviderSpec } from './provider'
 
-const providers: ProviderSpec[] = [anthropicProvider, openAIProvider, googleProvider, groqProvider, ollamaProvider]
-
-export const modelNames = providers.flatMap(({ models }) => models.map(({ name }) => name)).sort()
-
-if (new Set(modelNames).size !== modelNames.length) {
-    throw new Error('Model names are not unique across providers')
+export type Providers = {
+    providerSpecs: ProviderSpec[]
+    modelNames: string[]
+    formattedModels: string
+    createProvider(contextState: ContextState, modelName: string, system: string): Promise<Provider>
 }
 
-export const formattedModels = providers
-    .map(({ providerName, models }) => `- ${providerName}: ${models.map(({ name }) => name).join(', ')}`)
-    .sort()
-    .join('\n')
+const providerSpecFactories = [
+    createAnthropicProviderSpec,
+    createGoogleProviderSpec,
+    createGroqProviderSpec,
+    createOllamaProviderSpec,
+    createOpenAIProviderSpec,
+]
 
-export function createProvider(contextState: ContextState, modelName: string, system: string): Promise<Provider> {
-    const pairs = providers.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
+export const initProviders = async (): Promise<Providers> => {
+    const providerSpecs: ProviderSpec[] = []
+    for (const factory of providerSpecFactories) {
+        providerSpecs.push(await factory())
+    }
+
+    const allModelNames = providerSpecs.flatMap(({ models }) => models.map(({ name }) => name)).sort()
+    if (new Set(allModelNames).size !== allModelNames.length) {
+        throw new Error('Model names are not unique across providers')
+    }
+
+    const availableModelNames = providerSpecs
+        .filter(({ needsAPIKey }) => !needsAPIKey)
+        .flatMap(({ models }) => models.map(({ name }) => name))
+        .sort()
+
+    return {
+        providerSpecs,
+        modelNames: availableModelNames,
+        formattedModels: formatModels(providerSpecs),
+        createProvider: async (contextState: ContextState, modelName: string, system: string) =>
+            createProvider(providerSpecs, contextState, modelName, system),
+    }
+}
+
+function formatModels(providerSpecs: ProviderSpec[]): string {
+    return providerSpecs
+        .map(
+            ({ providerName, needsAPIKey, models }) =>
+                `- ${providerName}${needsAPIKey ? ' (no API key provided)' : ''}: ${models.map(({ name }) => name).join(', ')}`,
+        )
+        .sort()
+        .join('\n')
+}
+
+async function createProvider(
+    providerSpecs: ProviderSpec[],
+    contextState: ContextState,
+    modelName: string,
+    system: string,
+): Promise<Provider> {
+    const pairs = providerSpecs.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
 
     const pair = pairs.find(({ model: { name } }) => name === modelName)
     if (!pair) {

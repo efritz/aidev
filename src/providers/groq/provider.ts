@@ -8,47 +8,52 @@ import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-const providerName = 'Groq'
+export async function createGroqProviderSpec(): Promise<ProviderSpec> {
+    const providerName = 'Groq'
+    const apiKey = await getKey(providerName)
 
-const models: Model[] = [
-    {
-        name: 'llama3-70b',
-        model: 'llama3-8b-8192',
-    },
-]
+    const models: Model[] = [
+        {
+            name: 'llama3-70b',
+            model: 'llama3-8b-8192',
+        },
+    ]
 
-export const provider: ProviderSpec = {
-    providerName,
-    models,
-    factory: createGroqProvider,
+    return {
+        providerName,
+        models,
+        needsAPIKey: !apiKey,
+        factory: createGroqProvider(providerName, apiKey ?? ''),
+    }
 }
 
-async function createGroqProvider({
-    contextState,
-    model: { name: modelName, model },
-    system,
-    temperature = 0.0,
-    maxTokens = 4096,
-}: ProviderOptions): Promise<Provider> {
-    const apiKey = await getKey('groq')
-    const client = new Groq({ apiKey })
-    const { providerMessages, ...conversationManager } = createConversation(contextState, system)
-
-    return createProvider({
-        providerName,
-        modelName,
+function createGroqProvider(providerName: string, apiKey: string) {
+    return async ({
+        contextState,
+        model: { name: modelName, model },
         system,
-        createStream: () =>
-            createStream({
-                client,
-                model,
-                messages: providerMessages(),
-                temperature,
-                maxTokens,
-            }),
-        createStreamReducer,
-        conversationManager,
-    })
+        temperature = 0.0,
+        maxTokens = 4096,
+    }: ProviderOptions): Promise<Provider> => {
+        const client = new Groq({ apiKey })
+        const { providerMessages, ...conversationManager } = createConversation(contextState, system)
+
+        return createProvider({
+            providerName,
+            modelName,
+            system,
+            createStream: () =>
+                createStream({
+                    client,
+                    model,
+                    messages: providerMessages(),
+                    temperature,
+                    maxTokens,
+                }),
+            createStreamReducer,
+            conversationManager,
+        })
+    }
 }
 
 async function createStream({

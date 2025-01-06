@@ -6,17 +6,18 @@ import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
-import { ContextStateManager, createContextState } from './context/state'
+import { createContextState } from './context/state'
 import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
-import { Provider } from './providers/provider'
-import { createProvider, modelNames } from './providers/providers'
+import { initProviders, Providers } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 
 async function main() {
     // Make EventSource available globally for the MCP SSE transport
     ;(global as any).EventSource = EventSource
+
+    const providers = await initProviders()
 
     program
         .name('ai')
@@ -25,9 +26,6 @@ async function main() {
         .allowExcessArguments(false)
         .storeOptionsAsProperties()
 
-    const modelFlags = '-m, --model <string>'
-    const modelDescription = `Model to use. Valid options are ${modelNames.join(', ')}.`
-
     const historyFlags = '-h, --history <string>'
     const historyDescription = 'File to load chat history from.'
 
@@ -35,10 +33,9 @@ async function main() {
     const portDescription = 'Port number of the vscode extension server providing editor information.'
 
     program
-        .option(modelFlags, modelDescription)
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
-        .action(options => chat(options.model, options.history, options.port))
+        .action(options => chat(providers, options.history, options.port))
 
     program.parse(process.argv)
 }
@@ -101,24 +98,16 @@ async function buildProjectInstructions(): Promise<string> {
     return ''
 }
 
-async function chat(model: string, historyFilename?: string, port?: number) {
+const defaultModel = 'sonnet'
+
+async function chat(providers: Providers, historyFilename?: string, port?: number) {
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
 
     const contextStateManager = createContextState()
     const system = await buildSystemPrompt()
-    const provider = await createProvider(contextStateManager, model || 'sonnet', system)
-    await chatWithProvider(contextStateManager, provider, !model, historyFilename, port)
-}
 
-async function chatWithProvider(
-    contextStateManager: ContextStateManager,
-    provider: Provider,
-    usingDefaultModel: boolean,
-    historyFilename?: string,
-    port?: number,
-) {
     let context: ChatContext
 
     const rl = readline.createInterface({
@@ -138,9 +127,11 @@ async function chatWithProvider(
     try {
         const interruptHandler = createInterruptHandler(rl)
         const prompter = createPrompter(rl, interruptHandler)
+        const provider = await providers.createProvider(contextStateManager, defaultModel, system)
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
 
         context = {
+            providers,
             interruptHandler,
             prompter,
             provider,
@@ -150,7 +141,7 @@ async function chatWithProvider(
         await registerContextListeners(context, client)
 
         await interruptHandler.withInterruptHandler(
-            () => chatWithReadline(context, usingDefaultModel, historyFilename),
+            () => chatWithReadline(context, historyFilename),
             interruptInputOptions,
         )
     } finally {
@@ -186,9 +177,9 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
-async function chatWithReadline(context: ChatContext, usingDefaultModel: boolean, historyFilename?: string) {
+async function chatWithReadline(context: ChatContext, historyFilename?: string) {
     if (historyFilename) {
-        await loadHistory(context, usingDefaultModel, historyFilename)
+        await loadHistory(context, historyFilename)
     }
 
     console.log(

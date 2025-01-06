@@ -7,18 +7,11 @@ import { reviver, SaveFilePayload } from './commands/conversation/save'
 import { ChatContext, swapProvider } from './context'
 import { formatMessage } from './output'
 
-export async function loadHistory(
-    context: ChatContext,
-    usingDefaultModel: boolean,
-    historyFilename: string,
-): Promise<void> {
+export async function loadHistory(context: ChatContext, historyFilename: string): Promise<void> {
     const content = await readFile(historyFilename, 'utf8')
     const { model, messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
 
-    if (usingDefaultModel) {
-        await swapProvider(context, model)
-    }
-
+    await swapProvider(context, model)
     context.provider.conversationManager.setMessages(messages)
     context.contextStateManager.files = new Map(Object.entries(contextFiles))
     context.contextStateManager.directories = new Map(Object.entries(contextDirectories))

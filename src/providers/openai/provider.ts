@@ -3,78 +3,83 @@ import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } f
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
-import { Model, Provider, ProviderOptions, ProviderSpec } from '../provider'
+import { Model, Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-const providerName = 'OpenAI'
+export async function createOpenAIProviderSpec(): Promise<ProviderSpec> {
+    const providerName = 'OpenAI'
+    const apiKey = await getKey(providerName)
 
-const models: Model[] = [
-    {
-        name: 'o1-preview',
-        model: 'o1-preview-2024-09-12',
-        options: {
-            supportsDeveloperMessage: false,
-            supportsTools: false,
-            minimumTempature: 1.0,
+    const models: Model[] = [
+        {
+            name: 'o1-preview',
+            model: 'o1-preview-2024-09-12',
+            options: {
+                supportsDeveloperMessage: false,
+                supportsTools: false,
+                minimumTempature: 1.0,
+            },
         },
-    },
-    {
-        name: 'o1-mini',
-        model: 'o1-mini-2024-09-12',
-        options: {
-            supportsDeveloperMessage: false,
-            supportsTools: false,
-            minimumTempature: 1.0,
+        {
+            name: 'o1-mini',
+            model: 'o1-mini-2024-09-12',
+            options: {
+                supportsDeveloperMessage: false,
+                supportsTools: false,
+                minimumTempature: 1.0,
+            },
         },
-    },
-    {
-        name: 'gpt-4o',
-        model: 'gpt-4o-2024-08-06',
-    },
-    {
-        name: 'gpt-4',
-        model: 'gpt-4',
-    },
-]
+        {
+            name: 'gpt-4o',
+            model: 'gpt-4o-2024-08-06',
+        },
+        {
+            name: 'gpt-4',
+            model: 'gpt-4',
+        },
+    ]
 
-export const provider: ProviderSpec = {
-    providerName,
-    models,
-    factory: createOpenAIProvider,
+    return {
+        providerName,
+        models,
+        needsAPIKey: !apiKey,
+        factory: createOpenAIProvider(providerName, apiKey ?? ''),
+    }
 }
 
-async function createOpenAIProvider({
-    contextState,
-    model: { name: modelName, model, options },
-    system,
-    temperature = 0.0,
-    maxTokens = 4096,
-}: ProviderOptions): Promise<Provider> {
-    const apiKey = await getKey('openai')
-    const client = new OpenAI({ apiKey })
-    const { providerMessages, ...conversationManager } = createConversation(
+function createOpenAIProvider(providerName: string, apiKey: string): ProviderFactory {
+    return async ({
         contextState,
+        model: { name: modelName, model, options },
         system,
-        options?.supportsDeveloperMessage ?? true,
-    )
+        temperature = 0.0,
+        maxTokens = 4096,
+    }: ProviderOptions): Promise<Provider> => {
+        const client = new OpenAI({ apiKey })
+        const { providerMessages, ...conversationManager } = createConversation(
+            contextState,
+            system,
+            options?.supportsDeveloperMessage ?? true,
+        )
 
-    return createProvider({
-        providerName,
-        modelName,
-        system,
-        createStream: () =>
-            createStream({
-                client,
-                model,
-                messages: providerMessages(),
-                temperature: Math.max(temperature, options?.minimumTempature ?? 0),
-                maxTokens,
-                supportsTools: options?.supportsTools ?? true,
-            }),
-        createStreamReducer,
-        conversationManager,
-    })
+        return createProvider({
+            providerName,
+            modelName,
+            system,
+            createStream: () =>
+                createStream({
+                    client,
+                    model,
+                    messages: providerMessages(),
+                    temperature: Math.max(temperature, options?.minimumTempature ?? 0),
+                    maxTokens,
+                    supportsTools: options?.supportsTools ?? true,
+                }),
+            createStreamReducer,
+            conversationManager,
+        })
+    }
 }
 
 async function createStream({

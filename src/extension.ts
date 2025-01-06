@@ -4,7 +4,6 @@ import { AddressInfo } from 'net'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
 import { createModelContextProtocolServer } from './mcp/server/server'
-import { modelNames } from './providers/providers'
 
 const sseHeaders = {
     'Content-Type': 'text/event-stream',
@@ -140,15 +139,6 @@ export function activate(context: ExtensionContext) {
         }
     }
 
-    const chatModel = async () => {
-        const selection = await window.showQuickPick(modelNames)
-        if (!selection) {
-            return
-        }
-
-        return chat({ model: selection })
-    }
-
     const chatHistory = async () => {
         const selection = await window.showOpenDialog({ title: 'Open chat history' })
         if (!selection) {
@@ -181,7 +171,6 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(
         ...[
             commands.registerCommand('aidev.chat', chat),
-            commands.registerCommand('aidev.chat-model', chatModel),
             commands.registerCommand('aidev.chat-history', chatHistory),
             workspace.onDidOpenTextDocument(onTextDocumentChange(true)),
             workspace.onDidCloseTextDocument(onTextDocumentChange(false)),
