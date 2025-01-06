@@ -1,6 +1,8 @@
 import { readFile } from 'fs/promises'
 import path from 'path'
+import chalk from 'chalk'
 import { parse } from 'yaml'
+import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
 import { Model } from './provider'
 
@@ -12,12 +14,20 @@ export type Preferences = {
     }
 }
 
+const defaultPreferencesPath = path.join(__dirname, '..', 'preferences.yaml.sample')
+
 export async function getPreferences(): Promise<Preferences> {
-    return parse(await readFile(preferencesPath(), 'utf-8'))
+    return parse(await readFile(await preferencesPath(), 'utf-8'))
 }
 
-function preferencesPath(): string {
-    return path.join(preferencesDir(), 'preferences.yaml')
+async function preferencesPath(): Promise<string> {
+    const userPreferencesPath = path.join(preferencesDir(), 'preferences.yaml')
+    if (await exists(userPreferencesPath)) {
+        return userPreferencesPath
+    }
+
+    console.log(chalk.red('Falling back to default preferences'))
+    return defaultPreferencesPath
 }
 
 function preferencesDir(): string {
