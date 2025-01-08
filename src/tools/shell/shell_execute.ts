@@ -1,8 +1,12 @@
-import { spawn } from 'child_process'
 import chalk from 'chalk'
-import treeKill from 'tree-kill'
 import { CancelError } from '../../util/interrupts/interrupts'
-import { prefixFormatter, Updater, withProgress } from '../../util/progress/progress'
+import {
+    ShellResult as BaseShellResult,
+    executeCommand,
+    formatCommand,
+    formatShellResult,
+    serializeOutput,
+} from '../../util/shell/exec'
 import { withContentEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
@@ -12,9 +16,8 @@ type OutputLine = {
     content: string
 }
 
-type ShellResult = {
+type ShellResult = BaseShellResult & {
     userEditedCommand?: string
-    output: OutputLine[]
 }
 
 export const shellExecute: Tool<ShellResult> = {
@@ -40,20 +43,7 @@ export const shellExecute: Tool<ShellResult> = {
         console.log(`${chalk.dim('ℹ')} ${verb} shell command${edited ? ' (edited by user)' : ''}:`)
         console.log()
         console.log(formatCommand(command))
-
-        if (canceled) {
-            console.log()
-            console.log(chalk.dim('ℹ') + ' No code was executed.')
-        }
-        if (result) {
-            console.log(`${error ? chalk.red('✖') : chalk.green('✔')} Command ${error ? 'failed' : 'succeeded'}.`)
-            console.log()
-            console.log(formatOutput(result.output))
-        }
-        if (error) {
-            console.log()
-            console.log(chalk.bold.red(error))
-        }
+        console.log(formatShellResult({ result, error, canceled }))
     },
     execute: async (
         context: ExecutionContext,
@@ -65,26 +55,18 @@ export const shellExecute: Tool<ShellResult> = {
 
         const editedCommand = await confirmCommand(context, command)
         if (!editedCommand) {
-            console.log(chalk.dim('ℹ') + ' No code was executed.\n')
+            console.log(chalk.red('✖') + ' Command canceled.\n')
             return { canceled: true, reprompt: false }
         }
 
-        const response = await withProgress<OutputLine[]>(update => runCommand(context, editedCommand, update), {
-            progress: prefixFormatter('Executing command...', formatOutput),
-            success: prefixFormatter('Command succeeded.', formatOutput),
-            failure: prefixFormatter('Command failed.', formatOutput),
-        })
+        const { result: baseResult, error, canceled } = await executeCommand(context, editedCommand)
 
         const userEditedCommand = editedCommand !== command ? editedCommand : undefined
+        const output = baseResult?.output ?? []
+        const result = { userEditedCommand, output }
+        const reprompt = canceled === true ? false : undefined
 
-        if (!response.ok) {
-            console.log(chalk.bold.red(response.error))
-            console.log()
-
-            return { result: { userEditedCommand, output: response.snapshot ?? [] }, error: response.error }
-        } else {
-            return { result: { userEditedCommand, output: response.response } }
-        }
+        return { result, error, canceled, reprompt }
     },
     serialize: ({ result, error, canceled }: ToolResult<ShellResult>) =>
         JSON.stringify({
@@ -93,10 +75,6 @@ export const shellExecute: Tool<ShellResult> = {
             userEditedCommand: result?.userEditedCommand ?? false,
             output: serializeOutput(result?.output),
         }),
-}
-
-function serializeOutput(output?: OutputLine[]): string {
-    return (output || []).map(o => o.content).join('')
 }
 
 async function confirmCommand(context: ExecutionContext, command: string): Promise<string | undefined> {
@@ -132,45 +110,6 @@ async function confirmCommand(context: ExecutionContext, command: string): Promi
                 break
         }
     }
-}
-
-async function runCommand(
-    context: ExecutionContext,
-    command: string,
-    update: Updater<OutputLine[]>,
-): Promise<OutputLine[]> {
-    return await context.interruptHandler.withInterruptHandler(signal => {
-        return new Promise((resolve, reject) => {
-            const output: OutputLine[] = []
-            const aggregate = (type: 'stdout' | 'stderr', s: string) => {
-                if (!signal.aborted) {
-                    output.push({ content: s, type })
-                    update(output)
-                }
-            }
-
-            const cmd = spawn('zsh', ['-c', command])
-            cmd.stdout.on('data', data => aggregate('stdout', data.toString()))
-            cmd.stderr.on('data', data => aggregate('stderr', data.toString()))
-
-            signal.addEventListener('abort', () => treeKill(cmd.pid!, 'SIGKILL'))
-
-            cmd.on('exit', exitCode => {
-                if (exitCode === 0 && !signal.aborted) {
-                    resolve(output)
-                } else {
-                    reject(new Error(`exit code ${exitCode}`))
-                }
-            })
-        })
-    })
-}
-
-function formatCommand(command: string): string {
-    return command
-        .split('\n')
-        .map(line => `> ${chalk.red(line)}`)
-        .join('\n')
 }
 
 function formatOutput(output?: OutputLine[]): string {

@@ -112,27 +112,29 @@ Tools available to the LLMs:
 
 The following meta commands have special behaviors to manipulate the context or conversation. All other user input is added as a user message to the conversation.
 
-- `:help`: Display available commands.
-- `:exit`: Exit the conversation.
-- `:model <model>`: Change the model backing the assistant.
-- `:prompt`: Draft a prompt in VSCode.
+- `:branch <branch>`: Create a new branch in the conversation.
+- `:clear`: Clear all messages in the conversation.
 - `:continue`: Re-prompt the model without a user message.
-- `:save`: Save the conversation to a file.
+- `:exit`: Exit the conversation.
+- `:help`: Display available commands.
 - `:load <patterns, ...>`: Load file contents into the conversation.
 - `:loaddir <patterns, ...>`: Load directory entries into the conversation.
-- `:unload [<patterns, ...>]`: Remove matching files or directories from the conversation.
-- `:clear`: Clear all messages in the conversation.
-- `:savepoint <name>`: Mark a point in the conversation to which you can rollback.
-- `:rollback <savepoint>`: Rollback to a previously defined savepoint.
-- `:undo`: Undo the last user action.
+- `:model <model>`: Change the model backing the assistant.
+- `:models`: List available models.
+- `:prompt`: Draft a prompt in VSCode.
 - `:redo`: Redo the last undone action.
-- `:status`: Show the branch topology of the conversation.
-- `:branch <branch>`: Create a new branch in the conversation.
-- `:switch <branch>`: Switch to an existing branch.
-- `:rename <from_branch> <to_branch>`: Rename an existing branch.
 - `:remove <branch>`: Remove a branch and all its messages.
-- `:write <path>`: Write a stashed file to disk.
+- `:rename <from_branch> <to_branch>`: Rename an existing branch.
+- `:rollback <savepoint>`: Rollback to a previously defined savepoint.
+- `:save`: Save the conversation to a file.
+- `:savepoint <name>`: Mark a point in the conversation to which you can rollback.
+- `:shell`: Run a shell command and include its output in the conversation.
+- `:status`: Show the branch topology of the conversation.
+- `:switch <branch>`: Switch to an existing branch.
+- `:undo`: Undo the last user action.
+- `:unload [<patterns, ...>]`: Remove matching files or directories from the conversation.
 - `:unstash [<patterns, ...>]`: Remove stashed file(s) from the chat context.
+- `:write <path>`: Write a stashed file to disk.
 
 ### Project Configuration
 

@@ -11,6 +11,7 @@ import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
 import { modelCommand } from './control/model'
 import { modelsCommand } from './control/models'
+import { shellCommand } from './control/shell'
 import { branchCommand } from './conversation/branch'
 import { clearCommand } from './conversation/clear'
 import { continueCommand } from './conversation/continue'
@@ -39,6 +40,7 @@ export const commands: CommandDescription[] = [
     modelsCommand,
     promptCommand,
     redoCommand,
+    shellCommand,
     removeCommand,
     renameCommand,
     rollbackCommand,
