@@ -24,6 +24,31 @@ export function createConversation(
         userMessageToParam,
         assistantMessagesToParam,
         initialMessage: systemMessageToParam(system, supportsDeveloperMessage),
+
+        // Each time we push a message on the conversation, we check if the last two messages
+        // have the same role and are both simple string content payloads, which happens to
+        // always be true for user messages by construction.
+        //
+        // This an expectation from DeepSeek's reasoning models, which does not elegantly hande
+        // the initial "system" message immediately followed by an opening user query.
+        postPush: (messages: ChatCompletionMessageParam[]) => {
+            while (messages.length > 1) {
+                const n = messages.length
+                const last = messages[n - 1]
+                const penultimate = messages[n - 2]
+
+                if (
+                    penultimate.role !== last.role ||
+                    typeof last.content !== 'string' ||
+                    typeof penultimate.content !== 'string'
+                ) {
+                    break
+                }
+
+                penultimate.content = penultimate.content + last.content
+                messages.pop()
+            }
+        },
     })
 }
 

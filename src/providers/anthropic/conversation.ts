@@ -21,18 +21,22 @@ export function createConversation(contextState: ContextState): Conversation<Mes
         contextState,
         userMessageToParam,
         assistantMessagesToParam,
+
+        // Each time we push a message on the conversation, we check if the last two messages
+        // have the same role. If so, we'll merge them together so that we have alternating
+        // user and assistant roles, as the Anthropic API expects.
         postPush: (messages: Params[]) => {
             while (messages.length > 1) {
                 const n = messages.length
                 const last = messages[n - 1]
                 const penultimate = messages[n - 2]
 
-                if (penultimate.role === last.role) {
-                    penultimate.content.push(...last.content)
-                    messages.pop()
-                } else {
+                if (penultimate.role !== last.role) {
                     break
                 }
+
+                penultimate.content.push(...last.content)
+                messages.pop()
             }
         },
     })

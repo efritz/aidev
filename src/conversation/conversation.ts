@@ -114,6 +114,7 @@ export function createConversation<T>({
         const providerMessages: T[] = []
         if (initialMessage) {
             providerMessages.push(initialMessage)
+            postPush?.(providerMessages)
         }
 
         for (const message of injectContextMessages(contextState, visibleMessages())) {

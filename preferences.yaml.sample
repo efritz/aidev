@@ -45,3 +45,8 @@ providers:
       model: deepseek-chat
       options:
         supportsDeveloperMessage: false
+    - name: deepseek-reasoner
+      model: deepseek-reasoner
+      options:
+        supportsDeveloperMessage: false
+        supportsTools: false
