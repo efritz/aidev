@@ -40,7 +40,7 @@ export function createOpenAICompatibleProvider(
         const { providerMessages, ...conversationManager } = createConversation(
             contextState,
             system,
-            options?.supportsDeveloperMessage ?? true,
+            options?.systemMessageRole ?? 'developer',
         )
 
         return createProvider({

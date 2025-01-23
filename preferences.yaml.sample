@@ -20,13 +20,13 @@ providers:
     - name: o1-preview
       model: o1-preview-2024-09-12
       options:
-        supportsDeveloperMessage: false
+        systemMessageRole: user
         supportsTools: false
         minimumTempature: 1.0
     - name: o1-mini
       model: o1-mini-2024-09-12
       options:
-        supportsDeveloperMessage: false
+        systemMessageRole: user
         supportsTools: false
         minimumTempature: 1.0
   Google:
@@ -44,9 +44,9 @@ providers:
     - name: deepseek-chat
       model: deepseek-chat
       options:
-        supportsDeveloperMessage: false
+        systemMessageRole: system
     - name: deepseek-reasoner
       model: deepseek-reasoner
       options:
-        supportsDeveloperMessage: false
+        systemMessageRole: system
         supportsTools: false
