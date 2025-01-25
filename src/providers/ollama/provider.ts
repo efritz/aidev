@@ -1,5 +1,6 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
 import { tools as toolDefinitions } from '../../tools/tools'
+import { toIterable } from '../../util/iterable/iterable'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
@@ -55,8 +56,9 @@ async function createStream({
     temperature?: number
     maxTokens?: number
 }): Promise<Stream<ChatResponse>> {
-    async function* createIterable() {
-        const response = ollama.chat({
+    // https://github.com/ollama/ollama-js/issues/123
+    const iterable = toIterable(async () =>
+        ollama.chat({
             model,
             messages,
             options: {
@@ -73,11 +75,8 @@ async function createStream({
                     },
                 }),
             ),
-        })
+        }),
+    )
 
-        // https://github.com/ollama/ollama-js/issues/123
-        yield response
-    }
-
-    return abortableIterator(createIterable(), () => {})
+    return abortableIterator(iterable, () => {})
 }
