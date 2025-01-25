@@ -1,4 +1,4 @@
-import { ChatCompletionChunk } from 'openai/resources'
+import { ChatCompletion, ChatCompletionChunk } from 'openai/resources'
 import { AssistantMessage, ToolUse } from '../../messages/messages'
 import { Reducer } from '../reducer'
 
@@ -51,4 +51,26 @@ export function createStreamReducer(): Reducer<ChatCompletionChunk> {
     }
 
     return { messages, handleEvent }
+}
+
+export function toChunk({ choices, ...rest }: ChatCompletion): ChatCompletionChunk {
+    return {
+        ...rest,
+        choices: choices.map(toChunkChoice),
+        object: 'chat.completion.chunk',
+    }
+}
+
+function toChunkChoice({
+    message: { tool_calls, ...messageRest },
+    ...choiceRest
+}: ChatCompletion.Choice): ChatCompletionChunk.Choice {
+    return {
+        ...choiceRest,
+        delta: {
+            ...messageRest,
+            function_call: undefined, // deprecated; eliminate null value
+            tool_calls: tool_calls?.map((call, index) => ({ ...call, index })),
+        },
+    }
 }

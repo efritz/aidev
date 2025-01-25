@@ -1,12 +1,13 @@
 import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
 import { tools as toolDefinitions } from '../../tools/tools'
+import { toIterable } from '../../util/iterable/iterable'
 import { abortableIterator, createProvider, Stream } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
-import { createStreamReducer } from './reducer'
+import { createStreamReducer, toChunk } from './reducer'
 
 export async function createOpenAIProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
     const providerName = 'OpenAI'
@@ -55,6 +56,7 @@ export function createOpenAICompatibleProvider(
                     temperature: Math.max(temperature, options?.minimumTempature ?? 0),
                     maxTokens,
                     supportsTools: options?.supportsTools ?? true,
+                    supportsStreaming: options?.supportsStreaming ?? true,
                 }),
             createStreamReducer,
             conversationManager,
@@ -69,6 +71,7 @@ async function createStream({
     temperature,
     maxTokens,
     supportsTools,
+    supportsStreaming,
 }: {
     client: OpenAI
     model: string
@@ -76,8 +79,9 @@ async function createStream({
     temperature?: number
     maxTokens?: number
     supportsTools: boolean
+    supportsStreaming: boolean
 }): Promise<Stream<ChatCompletionChunk>> {
-    const iterable = await client.chat.completions.create({
+    const options = {
         model,
         messages,
         stream: true,
@@ -95,7 +99,15 @@ async function createStream({
                   }),
               )
             : undefined,
-    })
+    }
 
+    if (!supportsStreaming) {
+        const iterable = toIterable(async () =>
+            toChunk(await client.chat.completions.create({ ...options, stream: false })),
+        )
+        return abortableIterator(iterable, () => {})
+    }
+
+    const iterable = await client.chat.completions.create({ ...options, stream: true })
     return abortableIterator(iterable, () => iterable.controller.abort())
 }
