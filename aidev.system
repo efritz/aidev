@@ -1,2 +1,2 @@
-- Use yarn to install dependencies.
-- After modifying code, run `yarn build` to check for errors.
+- Use bun to install dependencies.
+- After modifying code, run `bun run build` to check for errors.

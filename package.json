@@ -1,13 +1,15 @@
 {
     "name": "ai",
     "description": "Personalized AI assistant",
+    "displayName": "aidev",
     "version": "0.0.0",
     "publisher": "efritz",
     "license": "MIT",
-    "main": "./dist/extension.js",
-    "bin": {
-        "ai": "dist/cli.js"
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/efritz/aidev"
     },
+    "main": "./dist/extension.cjs",
     "engines": {
         "vscode": "^1.92.0"
     },
@@ -33,10 +35,11 @@
         ]
     },
     "scripts": {
-        "clean": "rm -rf dist ai-0.0.0.vsix",
-        "build": "yarn clean && tsc --noEmit && node esbuild.config.js",
-        "dev": "yarn build && node dist/cli.js",
-        "vsix": "yarn build && yarn vsce package --no-dependencies --allow-missing-repository",
+        "dev": "bun ./src/cli.ts",
+        "clean": "rm -rf ./dist ai-0.0.0.vsix",
+        "build": "bun run ./scripts/build-extension.ts",
+        "vsce-package": "bun run vsce package",
+        "package": "bun run build && bun run vsce-package",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest"
