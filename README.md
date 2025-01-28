@@ -73,7 +73,7 @@ To build and install the VSCode extension:
 
 ```bash
 bun install
-bun vsix
+bun package
 ```
 
 In VSCode, select `Extensions: Install from VSIX` from the command palette and select the `ai-0.0.0.vsix` payload from the above command.

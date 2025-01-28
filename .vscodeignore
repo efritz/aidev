@@ -1,0 +1,9 @@
+# Ignore everything by default
+*
+*/**
+
+# Whitelist only what's needed
+!README.md
+!LICENSE
+!.vscodeignore
+!dist/*
