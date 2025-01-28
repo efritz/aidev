@@ -44,6 +44,7 @@ Before running the AI assistant, ensure that:
    - `anthropic.key`
    - `openai.key`
    - `google.key`
+   - `deepseek.key`
    - `groq.key`
 
 3. The `code` command is available on your PATH. This is typically installed with Visual Studio Code.
@@ -87,6 +88,7 @@ Available LLM API providers:
 - Anthropic
 - OpenAI
 - Google
+- DeepSeek
 - Groq
 - Ollama
 
