@@ -51,7 +51,7 @@ Before running the AI assistant, ensure that:
 4. For the VSCode extension to work properly, the CLI run instructions must be aliased to 'ai'. Add this alias to your shell configuration file:
 
    ```bash
-   alias ai='node /path/to/aidev/dist/cli.js'
+   alias ai='bun --cwd /path/to/aidev dev "$@"'
    ```
 
    Replace `/path/to/aidev` with the path to this project.
@@ -63,16 +63,8 @@ Before running the AI assistant, ensure that:
 To build and run the latest from source:
 
 ```bash
-yarn
-yarn dev
-```
-
-Or:
-
-```bash
-yarn
-yarn build
-node ./dist/cli.js "$@"
+bun install
+bun dev
 ```
 
 ### VSCode Extension
@@ -80,8 +72,8 @@ node ./dist/cli.js "$@"
 To build and install the VSCode extension:
 
 ```bash
-yarn
-yarn vsix
+bun install
+bun vsix
 ```
 
 In VSCode, select `Extensions: Install from VSIX` from the command palette and select the `ai-0.0.0.vsix` payload from the above command.

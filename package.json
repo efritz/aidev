@@ -33,10 +33,10 @@
         ]
     },
     "scripts": {
+        "dev": "bun ./src/cli.ts",
         "clean": "rm -rf dist ai-0.0.0.vsix",
-        "build": "yarn clean && tsc --noEmit && node esbuild.config.js",
-        "dev": "yarn build && node dist/cli.js",
-        "vsix": "yarn build && yarn vsce package --no-dependencies --allow-missing-repository",
+        "build": "bun run clean && tsc --noEmit && node esbuild.config.js",
+        "vsix": "bun run build && bun run vsce package --no-dependencies --allow-missing-repository",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest"
