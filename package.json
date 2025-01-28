@@ -1,6 +1,7 @@
 {
     "name": "ai",
     "description": "Personalized AI assistant",
+    "displayName": "aidev",
     "version": "0.0.0",
     "publisher": "efritz",
     "license": "MIT",
@@ -9,9 +10,6 @@
         "url": "https://github.com/efritz/aidev"
     },
     "main": "./dist/extension.cjs",
-    "bin": {
-        "ai": "dist/cli.js"
-    },
     "engines": {
         "vscode": "^1.92.0"
     },
