@@ -32,5 +32,5 @@ async function preferencesPath(): Promise<string> {
 }
 
 function preferencesDir(): string {
-    return process.env.AIDEV_PREFERENCES_DIR || path.join(xdgConfigHome(), 'aidev')
+    return process.env['AIDEV_PREFERENCES_DIR'] || path.join(xdgConfigHome(), 'aidev')
 }

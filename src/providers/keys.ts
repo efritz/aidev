@@ -11,5 +11,5 @@ function keyPath(name: string): string {
 }
 
 function keyDir(): string {
-    return process.env.AIDEV_KEY_DIR || path.join(xdgConfigHome(), 'aidev', 'keys')
+    return process.env['AIDEV_KEY_DIR'] || path.join(xdgConfigHome(), 'aidev', 'keys')
 }
