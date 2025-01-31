@@ -1,7 +1,6 @@
 // Create a regex pattern matching a paired opening and closing XML tag
 // with the given name. The capture groups are the opening tag, content,
-// and closing tag. If requireClosingTag is false, content will extend
-// to the end of the text if no paired closing tag can be found.
+// and closing tag.
 export function createXmlPattern(name: string): RegExp {
     return new RegExp(
         [
