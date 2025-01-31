@@ -45,6 +45,7 @@ providers:
           model: gemini-2.0-flash-exp
     Groq:
         - name: llama3-70b
+          model: llama3-70b-8192
           model: llama3-8b-8192
     Ollama:
         - name: llama3
