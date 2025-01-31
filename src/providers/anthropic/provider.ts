@@ -39,8 +39,8 @@ function createAnthropicProvider(providerName: string, apiKey: string): Provider
             createStream: () =>
                 createStream({
                     client,
-                    system,
                     model,
+                    system,
                     messages: providerMessages(),
                     temperature,
                     maxTokens,
