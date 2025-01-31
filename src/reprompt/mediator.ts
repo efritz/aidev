@@ -1,35 +1,28 @@
-import { createEmptyContextState } from '../context/state'
+import { Agent, runAgent } from '../agent/agent'
+import { ChatContext } from '../chat/context'
 import { Message } from '../messages/messages'
 import { createXmlPattern } from '../util/xml/xml'
-import { ChatContext } from './context'
-
-const decisionPattern = createXmlPattern('decision')
 
 export async function shouldReprompt(context: ChatContext): Promise<boolean> {
-    const reprompterModel = context.preferences.reprompterModel
-    if (!reprompterModel) {
-        return false
-    }
+    return (await runAgent(context, repromptMediator, undefined)) ?? false
+}
 
-    const system = buildSystemPrompt(context)
-    const userMessage = buildUserMessage(context)
-    const provider = await context.providers.createProvider(createEmptyContextState(), reprompterModel, system)
+const repromptMediator: Agent<never, boolean> = {
+    model: context => context.preferences.reprompterModel,
+    buildSystemPrompt: () => systemPromptTemplate,
+    buildUserMessage: context =>
+        userMessageTemplate.replace(
+            '{{conversation}}',
+            serializeMessages(context.provider.conversationManager.visibleMessages()),
+        ),
+    processMessage: async (_, content) => {
+        const match = createXmlPattern('decision').exec(content)
+        if (!match) {
+            return false
+        }
 
-    provider.conversationManager.pushUser({
-        type: 'text',
-        content: userMessage,
-    })
-
-    const response = await provider.prompt()
-    const mediatorMessage = response.messages[0]
-    const content = mediatorMessage.type === 'text' ? mediatorMessage.content : ''
-
-    const match = decisionPattern.exec(content)
-    if (!match) {
-        return false
-    }
-
-    return match[2].trim().toLocaleLowerCase() === 'reprompt'
+        return match[2].trim().toLocaleLowerCase() === 'reprompt'
+    },
 }
 
 const systemPromptTemplate = `
@@ -146,17 +139,6 @@ Here is the conversation transcript you need to analyze:
 {{conversation}}
 </conversation>
 `
-
-function buildSystemPrompt(context: ChatContext): string {
-    return systemPromptTemplate
-}
-
-function buildUserMessage(context: ChatContext): string {
-    return userMessageTemplate.replace(
-        '{{conversation}}',
-        serializeMessages(context.provider.conversationManager.visibleMessages()),
-    )
-}
 
 function serializeMessages(messages: Message[]): string {
     return messages

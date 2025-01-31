@@ -1,12 +1,12 @@
 import chalk from 'chalk'
 import { Response } from '../messages/messages'
 import { ProgressFunction } from '../providers/provider'
+import { shouldReprompt } from '../reprompt/mediator'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'
 import { ChatContext } from './context'
 import { formatMessage } from './output'
-import { shouldReprompt } from './reprompt_mediator'
 import { runToolsInMessages } from './tools'
 
 export async function handler(context: ChatContext) {
