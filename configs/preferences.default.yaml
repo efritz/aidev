@@ -34,6 +34,10 @@ providers:
               systemMessageRole: user
               supportsTools: false
               minimumTempature: 1.0
+        - name: o3-mini
+          model: o3-mini-2025-01-31
+          options:
+              minimumTempature: 1.0
     Google:
         - name: gemini
           model: gemini-2.0-flash-exp
