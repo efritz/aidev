@@ -46,7 +46,6 @@ providers:
     Groq:
         - name: llama3-70b
           model: llama3-70b-8192
-          model: llama3-8b-8192
     Ollama:
         - name: llama3
           model: llama3.3
