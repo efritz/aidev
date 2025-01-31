@@ -1,7 +1,5 @@
 defaultModel: sonnet
 reprompterModel: haiku
-embeddingsModel: mxbai-embed-large
-summarizerModel: gpt-4o-mini
 providers:
     Anthropic:
         - name: haiku
@@ -65,12 +63,3 @@ providers:
           options:
               systemMessageRole: system
               supportsTools: false
-embeddings:
-    OpenAI:
-        - name: text-embedding-3-small
-          model: text-embedding-3-small
-          dimensions: 1536
-    Ollama:
-        - name: mxbai-embed-large
-          model: mxbai-embed-large
-          dimensions: 1024
