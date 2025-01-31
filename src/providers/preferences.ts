@@ -15,7 +15,7 @@ export type Preferences = {
 }
 
 const repoRoot = path.join(__dirname, '..', '..')
-const defaultPreferencesPath = path.join(repoRoot, 'preferences.yaml.sample')
+const defaultPreferencesPath = path.join(repoRoot, 'configs', 'preferences.default.yaml')
 
 export async function getPreferences(): Promise<Preferences> {
     return parse(await readFile(await preferencesPath(), 'utf-8'))

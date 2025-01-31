@@ -13,7 +13,7 @@ Before running the AI assistant, ensure that:
    mkdir -p ~/.config/aidev
 
    # Move the sample preferences to the target location
-   cp preferences.yaml.sample ~/.config/aidev/preferences.yaml
+   cp ./configs/preferences.default.yaml ~/.config/aidev/preferences.yaml
    ```
 
    The default location for this file is in `~/.config/aidev/`, but you can override this location by setting the `AIDEV_PREFERENCES_DIR` environment variable:
