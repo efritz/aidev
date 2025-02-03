@@ -4,13 +4,17 @@ import { Message } from '../messages/messages'
 import { createXmlPattern } from '../util/xml/xml'
 
 export async function shouldReprompt(context: ChatContext): Promise<boolean> {
-    return (await runAgent(context, repromptMediator, undefined)) ?? false
+    if (!context.preferences.reprompterModel) {
+        return false
+    }
+
+    return await runAgent(context, repromptMediator, undefined)
 }
 
 const repromptMediator: Agent<never, boolean> = {
     model: context => context.preferences.reprompterModel,
-    buildSystemPrompt: () => systemPromptTemplate,
-    buildUserMessage: context =>
+    buildSystemPrompt: async () => systemPromptTemplate,
+    buildUserMessage: async context =>
         userMessageTemplate.replace(
             '{{conversation}}',
             serializeMessages(context.provider.conversationManager.visibleMessages()),

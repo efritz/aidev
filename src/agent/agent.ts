@@ -2,21 +2,17 @@ import { ChatContext } from '../chat/context'
 import { createEmptyContextState } from '../context/state'
 
 export interface Agent<T, R> {
-    model(context: ChatContext): string | undefined
-    buildSystemPrompt(context: ChatContext, args: T): string
-    buildUserMessage(context: ChatContext, args: T): string
+    model(context: ChatContext): string
+    buildSystemPrompt(context: ChatContext, args: T): Promise<string>
+    buildUserMessage(context: ChatContext, args: T): Promise<string>
     processMessage(context: ChatContext, content: string, args: T): Promise<R>
 }
 
-export async function runAgent<T, R>(context: ChatContext, agent: Agent<T, R>, args: T): Promise<R | undefined> {
+export async function runAgent<T, R>(context: ChatContext, agent: Agent<T, R>, args: T): Promise<R> {
     const modelName = agent.model(context)
-    if (!modelName) {
-        return undefined
-    }
-
     const contextState = createEmptyContextState()
-    const system = agent.buildSystemPrompt(context, args)
-    const userMessage = agent.buildUserMessage(context, args)
+    const system = await agent.buildSystemPrompt(context, args)
+    const userMessage = await agent.buildUserMessage(context, args)
 
     const provider = await context.providers.createProvider({
         contextState,
