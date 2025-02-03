@@ -9,15 +9,21 @@ export interface Agent<T, R> {
 }
 
 export async function runAgent<T, R>(context: ChatContext, agent: Agent<T, R>, args: T): Promise<R | undefined> {
-    const model = agent.model(context)
-    if (!model) {
+    const modelName = agent.model(context)
+    if (!modelName) {
         return undefined
     }
 
+    const contextState = createEmptyContextState()
     const system = agent.buildSystemPrompt(context, args)
     const userMessage = agent.buildUserMessage(context, args)
-    const state = createEmptyContextState()
-    const provider = await context.providers.createProvider(state, model, system)
+
+    const provider = await context.providers.createProvider({
+        contextState,
+        modelName,
+        system,
+        disableTools: true,
+    })
 
     provider.conversationManager.pushUser({
         type: 'text',

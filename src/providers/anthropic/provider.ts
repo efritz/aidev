@@ -27,6 +27,7 @@ function createAnthropicProvider(providerName: string, apiKey: string): Provider
         system,
         temperature = 0.0,
         maxTokens = options?.maxTokens || 4096,
+        disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const defaultHeaders = options?.headers
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
@@ -44,6 +45,7 @@ function createAnthropicProvider(providerName: string, apiKey: string): Provider
                     messages: providerMessages(),
                     temperature,
                     maxTokens,
+                    disableTools,
                 }),
             createStreamReducer,
             conversationManager,
@@ -58,6 +60,7 @@ async function createStream({
     messages,
     temperature,
     maxTokens,
+    disableTools,
 }: {
     client: Anthropic
     model: string
@@ -65,6 +68,7 @@ async function createStream({
     messages: MessageParam[]
     temperature?: number
     maxTokens: number
+    disableTools?: boolean
 }): Promise<Stream<MessageStreamEvent>> {
     const iterable = client.messages.stream({
         model,
@@ -73,13 +77,15 @@ async function createStream({
         stream: true,
         temperature,
         max_tokens: maxTokens,
-        tools: toolDefinitions.map(
-            ({ name, description, parameters }): Tool => ({
-                name,
-                description,
-                input_schema: parameters,
-            }),
-        ),
+        tools: disableTools
+            ? []
+            : toolDefinitions.map(
+                  ({ name, description, parameters }): Tool => ({
+                      name,
+                      description,
+                      input_schema: parameters,
+                  }),
+              ),
     })
 
     return abortableIterator(iterable, () => iterable.controller.abort())

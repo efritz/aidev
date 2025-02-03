@@ -28,6 +28,7 @@ function createGroqProvider(providerName: string, apiKey: string) {
         system,
         temperature = 0.0,
         maxTokens = 4096,
+        disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new Groq({ apiKey })
         const { providerMessages, ...conversationManager } = createConversation(contextState, system)
@@ -43,6 +44,7 @@ function createGroqProvider(providerName: string, apiKey: string) {
                     messages: providerMessages(),
                     temperature,
                     maxTokens,
+                    disableTools,
                 }),
             createStreamReducer,
             conversationManager,
@@ -56,12 +58,14 @@ async function createStream({
     messages,
     temperature,
     maxTokens,
+    disableTools,
 }: {
     client: Groq
     model: string
     messages: ChatCompletionMessageParam[]
     temperature?: number
     maxTokens?: number
+    disableTools?: boolean
 }): Promise<Stream<ChatCompletionChunk>> {
     const iterable = await client.chat.completions.create({
         model,
@@ -69,16 +73,18 @@ async function createStream({
         stream: true,
         temperature,
         max_tokens: maxTokens,
-        tools: toolDefinitions.map(
-            ({ name, description, parameters }): ChatCompletionTool => ({
-                type: 'function',
-                function: {
-                    name,
-                    description,
-                    parameters,
-                },
-            }),
-        ),
+        tools: disableTools
+            ? []
+            : toolDefinitions.map(
+                  ({ name, description, parameters }): ChatCompletionTool => ({
+                      type: 'function',
+                      function: {
+                          name,
+                          description,
+                          parameters,
+                      },
+                  }),
+              ),
     })
 
     return abortableIterator(iterable, () => iterable.controller.abort())

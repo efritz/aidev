@@ -25,6 +25,7 @@ function createOllamaProvider(providerName: string): ProviderFactory {
         system,
         temperature = 0.0,
         maxTokens = 4096,
+        disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const { providerMessages, ...conversationManager } = createConversation(contextState, system)
 
@@ -38,6 +39,7 @@ function createOllamaProvider(providerName: string): ProviderFactory {
                     messages: providerMessages(),
                     temperature,
                     maxTokens,
+                    disableTools,
                 }),
             createStreamReducer,
             conversationManager,
@@ -50,11 +52,13 @@ async function createStream({
     messages,
     temperature,
     maxTokens,
+    disableTools,
 }: {
     model: string
     messages: Message[]
     temperature?: number
     maxTokens?: number
+    disableTools?: boolean
 }): Promise<Stream<ChatResponse>> {
     // https://github.com/ollama/ollama-js/issues/123
     const iterable = toIterable(async () =>
@@ -65,16 +69,18 @@ async function createStream({
                 temperature,
                 num_predict: maxTokens,
             },
-            tools: toolDefinitions.map(
-                ({ name, description, parameters }): Tool => ({
-                    type: '',
-                    function: {
-                        name,
-                        description,
-                        parameters,
-                    },
-                }),
-            ),
+            tools: disableTools
+                ? []
+                : toolDefinitions.map(
+                      ({ name, description, parameters }): Tool => ({
+                          type: '',
+                          function: {
+                              name,
+                              description,
+                              parameters,
+                          },
+                      }),
+                  ),
         }),
     )
 

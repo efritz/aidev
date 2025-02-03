@@ -1,4 +1,3 @@
-import { ContextState } from '../context/state'
 import { createAnthropicProviderSpec } from './anthropic/provider'
 import { createDeepSeekProviderSpec } from './deepseek/provider'
 import { createGoogleProviderSpec } from './google/provider'
@@ -6,14 +5,16 @@ import { createGroqProviderSpec } from './groq/provider'
 import { createOllamaProviderSpec } from './ollama/provider'
 import { createOpenAIProviderSpec } from './openai/provider'
 import { Preferences } from './preferences'
-import { Provider, ProviderSpec } from './provider'
+import { ProviderOptions as BaseProviderOptions, Provider, ProviderSpec } from './provider'
 
 export type Providers = {
     providerSpecs: ProviderSpec[]
     modelNames: string[]
     formattedModels: string
-    createProvider(contextState: ContextState, modelName: string, system: string): Promise<Provider>
+    createProvider(opts: ProviderOptions): Promise<Provider>
 }
+
+export type ProviderOptions = Omit<BaseProviderOptions, 'model'> & { modelName: string }
 
 const providerSpecFactories = [
     createAnthropicProviderSpec,
@@ -44,8 +45,7 @@ export const initProviders = async (preferences: Preferences): Promise<Providers
         providerSpecs,
         modelNames: availableModelNames,
         formattedModels: formatModels(providerSpecs),
-        createProvider: async (contextState: ContextState, modelName: string, system: string) =>
-            createProvider(providerSpecs, contextState, modelName, system),
+        createProvider: async opts => createProvider(opts, providerSpecs),
     }
 }
 
@@ -60,10 +60,8 @@ function formatModels(providerSpecs: ProviderSpec[]): string {
 }
 
 async function createProvider(
+    { modelName, ...opts }: ProviderOptions,
     providerSpecs: ProviderSpec[],
-    contextState: ContextState,
-    modelName: string,
-    system: string,
 ): Promise<Provider> {
     const pairs = providerSpecs.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
 
@@ -73,5 +71,5 @@ async function createProvider(
     }
 
     const { factory, model } = pair
-    return factory({ contextState, model, system })
+    return factory({ model, ...opts })
 }

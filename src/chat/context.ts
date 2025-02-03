@@ -15,12 +15,14 @@ export type ChatContext = {
 }
 
 export async function swapProvider(context: ChatContext, modelName: string): Promise<void> {
-    const messages = context.provider.conversationManager.messages()
-    context.provider = await context.providers.createProvider(
-        context.contextStateManager,
+    const provider = await context.providers.createProvider({
+        contextState: context.contextStateManager,
         modelName,
-        context.provider.system,
-    )
+        system: context.provider.system,
+    })
+
+    const messages = context.provider.conversationManager.messages()
+    context.provider = provider
     context.provider.conversationManager.setMessages(messages)
 }
 

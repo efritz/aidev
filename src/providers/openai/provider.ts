@@ -36,6 +36,7 @@ export function createOpenAICompatibleProvider(
         system,
         temperature = 0.0,
         maxTokens = 4096,
+        disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new OpenAI({ apiKey, baseURL })
         const { providerMessages, ...conversationManager } = createConversation(
@@ -55,7 +56,7 @@ export function createOpenAICompatibleProvider(
                     messages: providerMessages(),
                     temperature: Math.max(temperature, options?.minimumTempature ?? 0),
                     maxTokens,
-                    supportsTools: options?.supportsTools ?? true,
+                    supportsTools: (options?.supportsTools ?? true) && !disableTools,
                     supportsStreaming: options?.supportsStreaming ?? true,
                 }),
             createStreamReducer,

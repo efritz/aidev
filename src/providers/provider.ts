@@ -33,6 +33,7 @@ export type ProviderOptions = {
     system: string
     temperature?: number
     maxTokens?: number
+    disableTools?: boolean
 }
 
 export type ProviderFactory = (opts: ProviderOptions) => Promise<Provider>

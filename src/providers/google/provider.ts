@@ -31,6 +31,7 @@ function createGoogleProvider(providerName: string, apiKey: string): ProviderFac
         system,
         temperature = 0.0,
         maxTokens = 4096,
+        disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new GoogleGenerativeAI(apiKey)
         const { providerMessages, ...conversationManager } = createConversation(contextState)
@@ -47,6 +48,7 @@ function createGoogleProvider(providerName: string, apiKey: string): ProviderFac
                     messages: providerMessages(),
                     temperature,
                     maxTokens,
+                    disableTools,
                 }),
             createStreamReducer,
             conversationManager,
@@ -61,6 +63,7 @@ async function createStream({
     messages,
     temperature,
     maxTokens,
+    disableTools,
 }: {
     client: GoogleGenerativeAI
     modelName: string
@@ -68,6 +71,7 @@ async function createStream({
     messages: Content[]
     temperature?: number
     maxTokens?: number
+    disableTools?: boolean
 }): Promise<Stream<EnhancedGenerateContentResponse>> {
     const model = client.getGenerativeModel({
         model: modelName,
@@ -76,17 +80,19 @@ async function createStream({
             temperature,
             maxOutputTokens: maxTokens,
         },
-        tools: [
-            {
-                functionDeclarations: toolDefinitions.map(
-                    ({ name, description, parameters }): FunctionDeclaration => ({
-                        name,
-                        description,
-                        parameters: parameters as any,
-                    }),
-                ),
-            },
-        ],
+        tools: disableTools
+            ? []
+            : [
+                  {
+                      functionDeclarations: toolDefinitions.map(
+                          ({ name, description, parameters }): FunctionDeclaration => ({
+                              name,
+                              description,
+                              parameters: parameters as any,
+                          }),
+                      ),
+                  },
+              ],
     })
 
     const controller = new AbortController()
