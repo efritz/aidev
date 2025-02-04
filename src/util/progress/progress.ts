@@ -4,7 +4,7 @@ import ora from 'ora'
 export type Updater<T> = (snapshot?: T, error?: Error) => void
 export type Formatter<T> = (snapshot?: T, error?: Error) => string
 export type ProgressSubject<T> = (update: Updater<T>) => Promise<T>
-export type ProgressResult<T> = { ok: false; snapshot?: T; error: Error } | { ok: true; response: T }
+export type ProgressResult<T> = { ok: true; response: T } | { ok: false; snapshot?: T; error: Error }
 
 export type ProgressOptions<T> = {
     progress: Formatter<T>
