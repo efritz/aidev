@@ -4,9 +4,10 @@ import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 import { safeReadFile } from './safe'
 
+const ignorePatternPaths = ['.gitignore', 'aidev.ignore']
+
 export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
-    const ignorePatternsPath = 'aidev.ignore'
-    const ignorePatterns = (await safeReadLines(ignorePatternsPath)).map(gitignoreToMinimatch)
+    const ignorePatterns = (await Promise.all(ignorePatternPaths.map(safeReadLines))).flat().map(gitignoreToMinimatch)
     const pathAndMatchingIgnorePatterns = new Map(
         paths.map<[string, string[]]>(path => [path, ignorePatterns.filter(pattern => matchPattern(path, pattern))]),
     )
