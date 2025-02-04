@@ -45,7 +45,7 @@ async function main() {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, providers, embeddingsClients, options.history, options.port)
+            chat(preferences, providers, options.history, options.port)
         })
 
     program.parse(process.argv)
@@ -135,9 +135,14 @@ async function chat(preferences: Preferences, providers: Providers, historyFilen
 
     try {
         const interruptHandler = createInterruptHandler(rl)
-        const prompter = createPrompter(rl, interruptHandler)
-        const provider = await providers.createProvider(contextStateManager, preferences.defaultModel, system)
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
+        const prompter = createPrompter(rl, interruptHandler)
+
+        const provider = await providers.createProvider({
+            contextState: contextStateManager,
+            modelName: preferences.defaultModel,
+            system,
+        })
 
         context = {
             preferences,
