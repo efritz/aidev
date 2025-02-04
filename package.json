@@ -35,7 +35,7 @@
         ]
     },
     "scripts": {
-        "dev": "bun ./src/cli.ts",
+        "dev": "bun ./src/cli.ts --cwd ${PWD}",
         "clean": "rm -rf ./dist ai-0.0.0.vsix",
         "build": "bun run ./scripts/build-extension.ts",
         "vsce-package": "bun run vsce package",

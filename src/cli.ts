@@ -34,10 +34,19 @@ async function main() {
     const portFlags = '-p, --port <number>'
     const portDescription = 'Port number of the vscode extension server providing editor information.'
 
+    const cwdFlags = '--cwd <string>'
+    const cwdDescription = 'Working directory for the AI assistant.'
+
     program
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
-        .action(options => chat(preferences, providers, options.history, options.port))
+        .option(cwdFlags, cwdDescription)
+        .action(options => {
+            if (options.cwd) {
+                process.chdir(options.cwd)
+            }
+            chat(preferences, providers, embeddingsClients, options.history, options.port)
+        })
 
     program.parse(process.argv)
 }
