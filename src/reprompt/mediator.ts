@@ -3,12 +3,12 @@ import { ChatContext } from '../chat/context'
 import { Message } from '../messages/messages'
 import { createXmlPattern } from '../util/xml/xml'
 
-export async function shouldReprompt(context: ChatContext): Promise<boolean> {
+export async function shouldReprompt(context: ChatContext, signal?: AbortSignal): Promise<boolean> {
     if (!context.preferences.reprompterModel) {
         return false
     }
 
-    return await runAgent(context, repromptMediator, undefined)
+    return await runAgent(context, repromptMediator, undefined, signal)
 }
 
 const repromptMediator: Agent<never, boolean> = {

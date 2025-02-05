@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { Response } from '../messages/messages'
 import { ProgressFunction } from '../providers/provider'
 import { shouldReprompt } from '../reprompt/mediator'
+import { CancelError } from '../util/interrupts/interrupts'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'
@@ -62,51 +63,73 @@ async function handle(context: ChatContext, message: string): Promise<void> {
 }
 
 async function prompt(context: ChatContext): Promise<void> {
-    while (true) {
-        const result = await promptWithProgress(context)
-        if (!result.ok) {
-            console.log(chalk.red(result.error))
-            console.log()
-            break
-        }
-
-        const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
-
-        if (ranTools && (reprompt === true || (reprompt === undefined && (await shouldReprompt(context))))) {
-            // Re-prompt if we ran tools and either (a) any tool requested we should explicitly re-prompt,
-            // or (b) no tool requested we should NOT explicitly reprompt and our reprompt mediator indicates
-            // we should continue.
-            continue
-        } else {
-            break
-        }
-    }
+    while (await promptOnce(context)) {}
 }
 
-async function promptWithProgress(context: ChatContext): Promise<ProgressResult<Response>> {
+function promptOnce(context: ChatContext): Promise<boolean> {
+    return context.interruptHandler.withInterruptHandler(
+        async signal => {
+            const result = await promptWithProgress(context, signal)
+            if (!result.ok) {
+                return false
+            }
+
+            const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
+
+            if (ranTools) {
+                if (reprompt === true) {
+                    // Some tool explicitly requested a re-prompt
+                    return true
+                }
+
+                if (reprompt === false) {
+                    // Some tool explicitly requested to not re-prompt
+                    return false
+                }
+
+                // All tools are ambivalent; check with reprmopt mediator if there is more to do
+                // to fulfill the current user request.
+                const result = await shouldRepromptWithProgress(context, signal)
+                if (!result.ok) {
+                    return false
+                }
+
+                return result.response
+            }
+
+            return false
+        },
+        {
+            throwOnCancel: false,
+        },
+    )
+}
+
+function promptWithProgress(context: ChatContext, signal?: AbortSignal): Promise<ProgressResult<Response>> {
     const formatResponse = (r?: Response): string =>
         (r?.messages || [])
             .map(formatMessage)
             .filter(message => message !== '')
             .join('\n\n')
 
-    let cancel = () => {}
-    const prompt = (progress?: ProgressFunction): Promise<Response> => {
-        return context.provider.prompt(progress, abort => {
-            cancel = abort
-        })
-    }
+    return withProgress<Response>(progress => context.provider.prompt(progress, signal), {
+        progress: prefixFormatter('Generating response...', formatResponse),
+        success: prefixFormatter('Generated response.', formatResponse),
+        failure: prefixFormatter('Failed to generate response.', formatResponse),
+    })
+}
 
-    return await context.interruptHandler.withInterruptHandler(
-        () =>
-            withProgress<Response>(prompt, {
-                progress: prefixFormatter('Generating response...', formatResponse),
-                success: prefixFormatter('Generated response.', formatResponse),
-                failure: prefixFormatter('Failed to generate response.', formatResponse),
-            }),
+function shouldRepromptWithProgress(context: ChatContext, signal?: AbortSignal): Promise<ProgressResult<boolean>> {
+    return withProgress(
+        async progress => {
+            const reprompt = await shouldReprompt(context, signal)
+            progress(reprompt)
+            return reprompt
+        },
         {
-            throwOnCancel: false,
-            onAbort: () => cancel(),
+            progress: () => 'Checking if re-prompt is necessary...',
+            success: reprompt => (reprompt ? 'Assistant will continue...' : 'Assistant is done.'),
+            failure: (_, error) => `Failed to check if re-prmopt is necessary.\n\n${chalk.red(error)}`,
         },
     )
 }

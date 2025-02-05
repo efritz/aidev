@@ -2,7 +2,7 @@ import Groq from 'groq-sdk'
 import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 import { ChatCompletionTool } from 'openai/resources'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { abortableIterator, createProvider, Stream } from '../factory'
+import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
 import { Provider, ProviderOptions, ProviderSpec } from '../provider'
@@ -62,28 +62,31 @@ function createStreamFactory({
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): (messages: ChatCompletionMessageParam[]) => Promise<Stream<ChatCompletionChunk>> {
-    return async messages => {
-        const iterable = await client.chat.completions.create({
-            model,
-            messages,
-            stream: true,
-            temperature,
-            max_tokens: maxTokens,
-            tools: disableTools
-                ? []
-                : toolDefinitions.map(
-                      ({ name, description, parameters }): ChatCompletionTool => ({
-                          type: 'function',
-                          function: {
-                              name,
-                              description,
-                              parameters,
-                          },
-                      }),
-                  ),
-        })
+}): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
+    const tools = disableTools
+        ? []
+        : toolDefinitions.map(
+              ({ name, description, parameters }): ChatCompletionTool => ({
+                  type: 'function',
+                  function: {
+                      name,
+                      description,
+                      parameters,
+                  },
+              }),
+          )
 
-        return abortableIterator(iterable, () => iterable.controller.abort())
+    return async (messages, signal) => {
+        return client.chat.completions.create(
+            {
+                model,
+                messages,
+                stream: true,
+                temperature,
+                max_tokens: maxTokens,
+                tools,
+            },
+            { signal },
+        )
     }
 }

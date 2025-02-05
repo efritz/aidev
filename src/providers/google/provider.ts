@@ -5,7 +5,7 @@ import {
     GoogleGenerativeAI,
 } from '@google/generative-ai'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { abortableIterator, createProvider, Stream } from '../factory'
+import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
@@ -68,8 +68,22 @@ function createStreamFactory({
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): (messages: Content[]) => Promise<Stream<EnhancedGenerateContentResponse>> {
-    return async messages => {
+}): StreamFactory<EnhancedGenerateContentResponse, Content> {
+    const tools = disableTools
+        ? []
+        : [
+              {
+                  functionDeclarations: toolDefinitions.map(
+                      ({ name, description, parameters }): FunctionDeclaration => ({
+                          name,
+                          description,
+                          parameters: parameters as any,
+                      }),
+                  ),
+              },
+          ]
+
+    return async (messages, signal) => {
         const model = client.getGenerativeModel({
             model: modelName,
             systemInstruction: system,
@@ -77,30 +91,11 @@ function createStreamFactory({
                 temperature,
                 maxOutputTokens: maxTokens,
             },
-            tools: disableTools
-                ? []
-                : [
-                      {
-                          functionDeclarations: toolDefinitions.map(
-                              ({ name, description, parameters }): FunctionDeclaration => ({
-                                  name,
-                                  description,
-                                  parameters: parameters as any,
-                              }),
-                          ),
-                      },
-                  ],
+            tools,
         })
 
-        const controller = new AbortController()
-        const { response, stream } = await model.generateContentStream(
-            { contents: messages },
-            { signal: controller.signal },
-        )
-
-        // Catch errors also emitted by the stream
-        response.catch(() => {})
-
-        return abortableIterator(stream, () => controller.abort())
+        const { response, stream } = await model.generateContentStream({ contents: messages }, { signal })
+        response.catch(() => {}) // Prevent uncaught exception (errors are also emitted by the stream)
+        return stream
     }
 }

@@ -2,7 +2,7 @@ import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
-import { abortableIterator, createProvider, Stream } from '../factory'
+import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
@@ -74,36 +74,36 @@ function createStreamFactory({
     maxTokens?: number
     supportsTools: boolean
     supportsStreaming: boolean
-}): (messages: ChatCompletionMessageParam[]) => Promise<Stream<ChatCompletionChunk>> {
-    return async messages => {
+}): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
+    const tools = supportsTools
+        ? toolDefinitions.map(
+              ({ name, description, parameters }): ChatCompletionTool => ({
+                  type: 'function',
+                  function: {
+                      name,
+                      description,
+                      parameters,
+                  },
+              }),
+          )
+        : undefined
+
+    return async (messages, signal) => {
         const options = {
             model,
             messages,
             stream: true,
             temperature,
             max_completion_tokens: maxTokens,
-            tools: supportsTools
-                ? toolDefinitions.map(
-                      ({ name, description, parameters }): ChatCompletionTool => ({
-                          type: 'function',
-                          function: {
-                              name,
-                              description,
-                              parameters,
-                          },
-                      }),
-                  )
-                : undefined,
+            tools,
         }
 
         if (!supportsStreaming) {
-            const iterable = toIterable(async () =>
-                toChunk(await client.chat.completions.create({ ...options, stream: false })),
+            return toIterable(async () =>
+                toChunk(await client.chat.completions.create({ ...options, stream: false }, { signal })),
             )
-            return abortableIterator(iterable, () => {})
         }
 
-        const iterable = await client.chat.completions.create({ ...options, stream: true })
-        return abortableIterator(iterable, () => iterable.controller.abort())
+        return await client.chat.completions.create({ ...options, stream: true }, { signal })
     }
 }

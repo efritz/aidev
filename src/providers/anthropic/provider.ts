@@ -1,7 +1,7 @@
 import { Anthropic } from '@anthropic-ai/sdk'
 import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resources/messages'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { abortableIterator, createProvider, Stream } from '../factory'
+import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
@@ -65,26 +65,29 @@ function createStreamFactory({
     temperature?: number
     maxTokens: number
     disableTools?: boolean
-}): (messages: MessageParam[]) => Promise<Stream<MessageStreamEvent>> {
-    return async messages => {
-        const iterable = client.messages.stream({
-            model,
-            system,
-            messages,
-            stream: true,
-            temperature,
-            max_tokens: maxTokens,
-            tools: disableTools
-                ? []
-                : toolDefinitions.map(
-                      ({ name, description, parameters }): Tool => ({
-                          name,
-                          description,
-                          input_schema: parameters,
-                      }),
-                  ),
-        })
+}): StreamFactory<MessageStreamEvent, MessageParam> {
+    const tools = disableTools
+        ? []
+        : toolDefinitions.map(
+              ({ name, description, parameters }): Tool => ({
+                  name,
+                  description,
+                  input_schema: parameters,
+              }),
+          )
 
-        return abortableIterator(iterable, () => iterable.controller.abort())
+    return async (messages, signal) => {
+        return client.messages.stream(
+            {
+                model,
+                system,
+                messages,
+                stream: true,
+                temperature,
+                max_tokens: maxTokens,
+                tools,
+            },
+            { signal },
+        )
     }
 }

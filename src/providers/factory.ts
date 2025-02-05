@@ -1,11 +1,9 @@
 import { Conversation } from '../conversation/conversation'
-import { CancelError } from '../util/interrupts/interrupts'
-import { invertPromise } from '../util/promises/promise'
-import { Aborter, AbortRegisterer, ProgressFunction, Provider } from './provider'
+import { ProgressFunction, Provider } from './provider'
 import { Reducer, reduceStream } from './reducer'
 
-export type Stream<T> = { iterator: AsyncIterable<T>; abort: Aborter }
-export type StreamFactory<T, R> = (messages: R[]) => Promise<Stream<T>>
+export type Stream<T> = AsyncIterable<T>
+export type StreamFactory<T, R> = (messages: R[], signal?: AbortSignal) => Promise<Stream<T>>
 export type ReducerFactory<T> = () => Reducer<T>
 export type ConversationFactory<T> = () => Conversation<T>
 
@@ -33,12 +31,9 @@ export function createProvider<T, M>({
         modelName,
         system,
         conversationManager,
-        prompt: async (progress?: ProgressFunction, abortRegisterer?: AbortRegisterer) => {
-            const { iterator, abort } = await createStream(providerMessages())
-            abortRegisterer?.(abort)
-
+        prompt: async (progress?: ProgressFunction, signal?: AbortSignal) => {
             const response = await reduceStream({
-                iterator,
+                iterator: await createStream(providerMessages(), signal),
                 reducer: createStreamReducer(),
                 progress,
             })
@@ -48,23 +43,6 @@ export function createProvider<T, M>({
             }
 
             return response
-        },
-    }
-}
-
-export function abortableIterator<T>(iterable: AsyncIterable<T>, abortIterable: () => void): Stream<T> {
-    const { promise: aborted, reject: abort } = invertPromise()
-    const innerIterator = iterable[Symbol.asyncIterator]()
-    const iterator: AsyncIterableIterator<T> = {
-        [Symbol.asyncIterator]: () => iterator, // return self
-        next: () => Promise.race([innerIterator.next(), aborted]), // AsyncIterator
-    }
-
-    return {
-        iterator,
-        abort: () => {
-            abortIterable()
-            abort(new CancelError('Provider stream canceled'))
         },
     }
 }

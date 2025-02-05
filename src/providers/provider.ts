@@ -8,8 +8,6 @@ export type Model = {
     options?: any
 }
 
-export type Aborter = () => void
-export type AbortRegisterer = (abort: Aborter) => void
 export type ProgressFunction = (r?: Response) => void
 
 export type Provider = {
@@ -17,7 +15,7 @@ export type Provider = {
     modelName: string
     system: string
     conversationManager: ConversationManager
-    prompt: (progress?: ProgressFunction, abortRegisterer?: AbortRegisterer) => Promise<Response>
+    prompt: (progress?: ProgressFunction, signal?: AbortSignal) => Promise<Response>
 }
 
 export type ProviderSpec = {

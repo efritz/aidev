@@ -1,7 +1,9 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
 import { tools as toolDefinitions } from '../../tools/tools'
+import { CancelError } from '../../util/interrupts/interrupts'
 import { toIterable } from '../../util/iterable/iterable'
-import { abortableIterator, createProvider, Stream } from '../factory'
+import { invertPromise } from '../../util/promises/promise'
+import { createProvider, Stream, StreamFactory } from '../factory'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
 import { createConversation } from './conversation'
@@ -55,8 +57,21 @@ function createStreamFactory({
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): (messages: Message[]) => Promise<Stream<ChatResponse>> {
-    return async messages => {
+}): StreamFactory<ChatResponse, Message> {
+    const tools = disableTools
+        ? []
+        : toolDefinitions.map(
+              ({ name, description, parameters }): Tool => ({
+                  type: '',
+                  function: {
+                      name,
+                      description,
+                      parameters,
+                  },
+              }),
+          )
+
+    return async (messages, signal) => {
         // https://github.com/ollama/ollama-js/issues/123
         const iterable = toIterable(async () =>
             ollama.chat({
@@ -66,21 +81,22 @@ function createStreamFactory({
                     temperature,
                     num_predict: maxTokens,
                 },
-                tools: disableTools
-                    ? []
-                    : toolDefinitions.map(
-                          ({ name, description, parameters }): Tool => ({
-                              type: '',
-                              function: {
-                                  name,
-                                  description,
-                                  parameters,
-                              },
-                          }),
-                      ),
+                tools,
             }),
         )
 
-        return abortableIterator(iterable, () => {})
+        return abortableIterator(iterable, signal)
     }
+}
+
+function abortableIterator<T>(iterable: AsyncIterable<T>, signal?: AbortSignal): Stream<T> {
+    const { promise: aborted, reject: abort } = invertPromise()
+    const innerIterator = iterable[Symbol.asyncIterator]()
+    const iterator: AsyncIterableIterator<T> = {
+        [Symbol.asyncIterator]: () => iterator, // return self
+        next: () => Promise.race([innerIterator.next(), aborted]), // AsyncIterator
+    }
+
+    signal?.addEventListener('abort', () => abort(new CancelError('Request was aborted.')))
+    return iterator
 }

@@ -8,7 +8,12 @@ export interface Agent<T, R> {
     processMessage(context: ChatContext, content: string, args: T): Promise<R>
 }
 
-export async function runAgent<T, R>(context: ChatContext, agent: Agent<T, R>, args: T): Promise<R> {
+export async function runAgent<T, R>(
+    context: ChatContext,
+    agent: Agent<T, R>,
+    args: T,
+    signal?: AbortSignal,
+): Promise<R> {
     const modelName = agent.model(context)
     const contextState = createEmptyContextState()
     const system = await agent.buildSystemPrompt(context, args)
@@ -26,7 +31,7 @@ export async function runAgent<T, R>(context: ChatContext, agent: Agent<T, R>, a
         content: userMessage,
     })
 
-    const response = await provider.prompt()
+    const response = await provider.prompt(undefined, signal)
     const message = response.messages[0]
     const content = message.type === 'text' ? message.content : ''
 
