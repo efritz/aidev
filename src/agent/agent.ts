@@ -1,5 +1,6 @@
 import { ChatContext } from '../chat/context'
 import { createEmptyContextState } from '../context/state'
+import { CancelError } from '../util/interrupts/interrupts'
 
 export interface Agent<T, R> {
     model(context: ChatContext): string
@@ -32,8 +33,14 @@ export async function runAgent<T, R>(
     })
 
     const response = await provider.prompt(undefined, signal)
-    const message = response.messages[0]
-    const content = message.type === 'text' ? message.content : ''
+    if (signal?.aborted) {
+        throw new CancelError('Agent aborted.')
+    }
 
-    return agent.processMessage(context, content, args)
+    const message = response.messages[0]
+    if (message.type !== 'text') {
+        throw new Error(`Unexpected message type ${message.type} from agent.`)
+    }
+
+    return agent.processMessage(context, message.content, args)
 }

@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises'
 import path from 'path'
 import chalk from 'chalk'
 import { parse } from 'yaml'
+import { Model as EmbeddingModel } from '../embeddings/client/client'
 import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
 import { Model } from './provider'
@@ -9,8 +10,13 @@ import { Model } from './provider'
 export type Preferences = {
     defaultModel: string
     reprompterModel: string
+    embeddingsModel: string
+    summarizerModel: string
     providers: {
         [key: string]: Model[]
+    }
+    embeddings: {
+        [key: string]: EmbeddingModel[]
     }
 }
 
