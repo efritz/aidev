@@ -59,13 +59,11 @@ export function createInterruptHandler(rl: readline.Interface) {
         f: (signal: AbortSignal) => Promise<T>,
         { permanent = false, onAbort, throwOnCancel = true }: InterruptHandlerOptions = {},
     ): Promise<T> => {
-        let canceled = false
         const controller = new AbortController()
 
         push({
             permanent,
             onAbort: () => {
-                canceled = true
                 controller.abort()
                 onAbort?.()
             },
@@ -76,7 +74,7 @@ export function createInterruptHandler(rl: readline.Interface) {
         } finally {
             pop()
 
-            if (throwOnCancel && canceled) {
+            if (throwOnCancel && controller.signal.aborted) {
                 throw new CancelError('User canceled.')
             }
         }
