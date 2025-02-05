@@ -1,11 +1,3 @@
-import { ContextStateManager } from '../context/state'
-import { Provider } from '../providers/provider'
-import { InterruptHandler } from '../util/interrupts/interrupts'
-import { Prompter } from '../util/prompter/prompter'
+import { ChatContext } from '../chat/context'
 
-export type ExecutionContext = {
-    interruptHandler: InterruptHandler
-    prompter: Prompter
-    provider: Provider
-    contextStateManager: ContextStateManager
-}
+export type ExecutionContext = ChatContext
