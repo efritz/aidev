@@ -28,7 +28,7 @@ export async function withProgress<T>(f: ProgressSubject<T>, options: ProgressOp
             spinner.text = options.progress(snapshot)
         })
 
-        spinner.succeed(options.success(snapshot))
+        spinner.succeed(options.success(response))
         return { ok: true, response }
     } catch (error: any) {
         spinner.fail(options.failure(snapshot, error))

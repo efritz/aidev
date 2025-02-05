@@ -118,16 +118,9 @@ function promptWithProgress(context: ChatContext, signal?: AbortSignal): Promise
 }
 
 function shouldRepromptWithProgress(context: ChatContext, signal?: AbortSignal): Promise<ProgressResult<boolean>> {
-    return withProgress(
-        async progress => {
-            const reprompt = await shouldReprompt(context, signal)
-            progress(reprompt)
-            return reprompt
-        },
-        {
-            progress: () => 'Checking if re-prompt is necessary...',
-            success: reprompt => (reprompt ? 'Assistant will continue...' : 'Assistant is done.'),
-            failure: (_, error) => `Failed to check if re-prmopt is necessary.\n\n${chalk.red(error)}`,
-        },
-    )
+    return withProgress(() => shouldReprompt(context, signal), {
+        progress: () => 'Checking if re-prompt is necessary...',
+        success: reprompt => (reprompt ? 'Assistant will continue...' : 'Assistant is done.'),
+        failure: (_, error) => `Failed to check if re-prmopt is necessary.\n\n${chalk.red(error)}`,
+    })
 }
