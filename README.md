@@ -101,6 +101,7 @@ Tools available to the LLMs:
 - `read_files`: Reads the contents of files into the conversation.
 - `write_file`: Writes contents to a file.
 - `edit_file`: Modifies the contents of an existing file.
+- `search_workspace`: Searches a local embeddings index for files closely related to an arbitrary query.
 
 ### Meta Commands
 
