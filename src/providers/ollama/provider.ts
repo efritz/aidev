@@ -27,62 +27,60 @@ function createOllamaProvider(providerName: string): ProviderFactory {
         maxTokens = 4096,
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
-        const { providerMessages, ...conversationManager } = createConversation(contextState, system)
+        const createStream = createStreamFactory({
+            model,
+            temperature,
+            maxTokens,
+            disableTools,
+        })
 
         return createProvider({
             providerName,
             modelName,
             system,
-            createStream: () =>
-                createStream({
-                    model,
-                    messages: providerMessages(),
-                    temperature,
-                    maxTokens,
-                    disableTools,
-                }),
+            createStream,
             createStreamReducer,
-            conversationManager,
+            createConversation: () => createConversation(contextState, system),
         })
     }
 }
 
-async function createStream({
+function createStreamFactory({
     model,
-    messages,
     temperature,
     maxTokens,
     disableTools,
 }: {
     model: string
-    messages: Message[]
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): Promise<Stream<ChatResponse>> {
-    // https://github.com/ollama/ollama-js/issues/123
-    const iterable = toIterable(async () =>
-        ollama.chat({
-            model,
-            messages,
-            options: {
-                temperature,
-                num_predict: maxTokens,
-            },
-            tools: disableTools
-                ? []
-                : toolDefinitions.map(
-                      ({ name, description, parameters }): Tool => ({
-                          type: '',
-                          function: {
-                              name,
-                              description,
-                              parameters,
-                          },
-                      }),
-                  ),
-        }),
-    )
+}): (messages: Message[]) => Promise<Stream<ChatResponse>> {
+    return async messages => {
+        // https://github.com/ollama/ollama-js/issues/123
+        const iterable = toIterable(async () =>
+            ollama.chat({
+                model,
+                messages,
+                options: {
+                    temperature,
+                    num_predict: maxTokens,
+                },
+                tools: disableTools
+                    ? []
+                    : toolDefinitions.map(
+                          ({ name, description, parameters }): Tool => ({
+                              type: '',
+                              function: {
+                                  name,
+                                  description,
+                                  parameters,
+                              },
+                          }),
+                      ),
+            }),
+        )
 
-    return abortableIterator(iterable, () => {})
+        return abortableIterator(iterable, () => {})
+    }
 }

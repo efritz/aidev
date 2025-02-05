@@ -31,33 +31,30 @@ function createAnthropicProvider(providerName: string, apiKey: string): Provider
     }: ProviderOptions): Promise<Provider> => {
         const defaultHeaders = options?.headers
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
-        const { providerMessages, ...conversationManager } = createConversation(contextState)
+        const createStream = createStreamFactory({
+            client,
+            model,
+            system,
+            temperature,
+            maxTokens,
+            disableTools,
+        })
 
         return createProvider({
             providerName,
             modelName,
             system,
-            createStream: () =>
-                createStream({
-                    client,
-                    model,
-                    system,
-                    messages: providerMessages(),
-                    temperature,
-                    maxTokens,
-                    disableTools,
-                }),
+            createStream,
             createStreamReducer,
-            conversationManager,
+            createConversation: () => createConversation(contextState),
         })
     }
 }
 
-async function createStream({
+function createStreamFactory({
     client,
     model,
     system,
-    messages,
     temperature,
     maxTokens,
     disableTools,
@@ -65,28 +62,29 @@ async function createStream({
     client: Anthropic
     model: string
     system: string
-    messages: MessageParam[]
     temperature?: number
     maxTokens: number
     disableTools?: boolean
-}): Promise<Stream<MessageStreamEvent>> {
-    const iterable = client.messages.stream({
-        model,
-        system,
-        messages,
-        stream: true,
-        temperature,
-        max_tokens: maxTokens,
-        tools: disableTools
-            ? []
-            : toolDefinitions.map(
-                  ({ name, description, parameters }): Tool => ({
-                      name,
-                      description,
-                      input_schema: parameters,
-                  }),
-              ),
-    })
+}): (messages: MessageParam[]) => Promise<Stream<MessageStreamEvent>> {
+    return async messages => {
+        const iterable = client.messages.stream({
+            model,
+            system,
+            messages,
+            stream: true,
+            temperature,
+            max_tokens: maxTokens,
+            tools: disableTools
+                ? []
+                : toolDefinitions.map(
+                      ({ name, description, parameters }): Tool => ({
+                          name,
+                          description,
+                          input_schema: parameters,
+                      }),
+                  ),
+        })
 
-    return abortableIterator(iterable, () => iterable.controller.abort())
+        return abortableIterator(iterable, () => iterable.controller.abort())
+    }
 }

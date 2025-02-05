@@ -31,61 +31,59 @@ function createGroqProvider(providerName: string, apiKey: string) {
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new Groq({ apiKey })
-        const { providerMessages, ...conversationManager } = createConversation(contextState, system)
+        const createStream = createStreamFactory({
+            client,
+            model,
+            temperature,
+            maxTokens,
+            disableTools,
+        })
 
         return createProvider({
             providerName,
             modelName,
             system,
-            createStream: () =>
-                createStream({
-                    client,
-                    model,
-                    messages: providerMessages(),
-                    temperature,
-                    maxTokens,
-                    disableTools,
-                }),
+            createStream,
             createStreamReducer,
-            conversationManager,
+            createConversation: () => createConversation(contextState, system),
         })
     }
 }
 
-async function createStream({
+function createStreamFactory({
     client,
     model,
-    messages,
     temperature,
     maxTokens,
     disableTools,
 }: {
     client: Groq
     model: string
-    messages: ChatCompletionMessageParam[]
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): Promise<Stream<ChatCompletionChunk>> {
-    const iterable = await client.chat.completions.create({
-        model,
-        messages,
-        stream: true,
-        temperature,
-        max_tokens: maxTokens,
-        tools: disableTools
-            ? []
-            : toolDefinitions.map(
-                  ({ name, description, parameters }): ChatCompletionTool => ({
-                      type: 'function',
-                      function: {
-                          name,
-                          description,
-                          parameters,
-                      },
-                  }),
-              ),
-    })
+}): (messages: ChatCompletionMessageParam[]) => Promise<Stream<ChatCompletionChunk>> {
+    return async messages => {
+        const iterable = await client.chat.completions.create({
+            model,
+            messages,
+            stream: true,
+            temperature,
+            max_tokens: maxTokens,
+            tools: disableTools
+                ? []
+                : toolDefinitions.map(
+                      ({ name, description, parameters }): ChatCompletionTool => ({
+                          type: 'function',
+                          function: {
+                              name,
+                              description,
+                              parameters,
+                          },
+                      }),
+                  ),
+        })
 
-    return abortableIterator(iterable, () => iterable.controller.abort())
+        return abortableIterator(iterable, () => iterable.controller.abort())
+    }
 }

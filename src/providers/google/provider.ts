@@ -34,33 +34,30 @@ function createGoogleProvider(providerName: string, apiKey: string): ProviderFac
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new GoogleGenerativeAI(apiKey)
-        const { providerMessages, ...conversationManager } = createConversation(contextState)
+        const createStream = createStreamFactory({
+            client,
+            modelName: model,
+            system,
+            temperature,
+            maxTokens,
+            disableTools,
+        })
 
         return createProvider({
             providerName,
             modelName,
             system,
-            createStream: () =>
-                createStream({
-                    client,
-                    modelName: model,
-                    system,
-                    messages: providerMessages(),
-                    temperature,
-                    maxTokens,
-                    disableTools,
-                }),
+            createStream,
             createStreamReducer,
-            conversationManager,
+            createConversation: () => createConversation(contextState),
         })
     }
 }
 
-async function createStream({
+function createStreamFactory({
     client,
     modelName,
     system,
-    messages,
     temperature,
     maxTokens,
     disableTools,
@@ -68,41 +65,42 @@ async function createStream({
     client: GoogleGenerativeAI
     modelName: string
     system: string
-    messages: Content[]
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): Promise<Stream<EnhancedGenerateContentResponse>> {
-    const model = client.getGenerativeModel({
-        model: modelName,
-        systemInstruction: system,
-        generationConfig: {
-            temperature,
-            maxOutputTokens: maxTokens,
-        },
-        tools: disableTools
-            ? []
-            : [
-                  {
-                      functionDeclarations: toolDefinitions.map(
-                          ({ name, description, parameters }): FunctionDeclaration => ({
-                              name,
-                              description,
-                              parameters: parameters as any,
-                          }),
-                      ),
-                  },
-              ],
-    })
+}): (messages: Content[]) => Promise<Stream<EnhancedGenerateContentResponse>> {
+    return async messages => {
+        const model = client.getGenerativeModel({
+            model: modelName,
+            systemInstruction: system,
+            generationConfig: {
+                temperature,
+                maxOutputTokens: maxTokens,
+            },
+            tools: disableTools
+                ? []
+                : [
+                      {
+                          functionDeclarations: toolDefinitions.map(
+                              ({ name, description, parameters }): FunctionDeclaration => ({
+                                  name,
+                                  description,
+                                  parameters: parameters as any,
+                              }),
+                          ),
+                      },
+                  ],
+        })
 
-    const controller = new AbortController()
-    const { response, stream } = await model.generateContentStream(
-        { contents: messages },
-        { signal: controller.signal },
-    )
+        const controller = new AbortController()
+        const { response, stream } = await model.generateContentStream(
+            { contents: messages },
+            { signal: controller.signal },
+        )
 
-    // Catch errors also emitted by the stream
-    response.catch(() => {})
+        // Catch errors also emitted by the stream
+        response.catch(() => {})
 
-    return abortableIterator(stream, () => controller.abort())
+        return abortableIterator(stream, () => controller.abort())
+    }
 }

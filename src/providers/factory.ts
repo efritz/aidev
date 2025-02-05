@@ -1,48 +1,55 @@
-import { ConversationManager } from '../conversation/conversation'
+import { Conversation } from '../conversation/conversation'
 import { CancelError } from '../util/interrupts/interrupts'
 import { invertPromise } from '../util/promises/promise'
 import { Aborter, AbortRegisterer, ProgressFunction, Provider } from './provider'
 import { Reducer, reduceStream } from './reducer'
 
 export type Stream<T> = { iterator: AsyncIterable<T>; abort: Aborter }
-export type StreamFactory<T> = () => Promise<Stream<T>>
+export type StreamFactory<T, R> = (messages: R[]) => Promise<Stream<T>>
 export type ReducerFactory<T> = () => Reducer<T>
+export type ConversationFactory<T> = () => Conversation<T>
 
-export type ProviderOptions<T> = {
+export type ProviderOptions<T, R> = {
     providerName: string
     modelName: string
     system: string
-    createStream: StreamFactory<T>
+    createStream: StreamFactory<T, R>
     createStreamReducer: ReducerFactory<T>
-    conversationManager: ConversationManager
+    createConversation: ConversationFactory<R>
 }
 
-export function createProvider<T>({
+export function createProvider<T, M>({
     providerName,
     modelName,
     system,
     createStream,
     createStreamReducer,
-    conversationManager,
-}: ProviderOptions<T>): Provider {
-    const prompt = async (progress?: ProgressFunction, abortRegisterer?: AbortRegisterer) => {
-        const { iterator, abort } = await createStream()
-        abortRegisterer?.(abort)
+    createConversation,
+}: ProviderOptions<T, M>): Provider {
+    const { providerMessages, ...conversationManager } = createConversation()
 
-        const response = await reduceStream({
-            iterator,
-            reducer: createStreamReducer(),
-            progress,
-        })
+    return {
+        providerName,
+        modelName,
+        system,
+        conversationManager,
+        prompt: async (progress?: ProgressFunction, abortRegisterer?: AbortRegisterer) => {
+            const { iterator, abort } = await createStream(providerMessages())
+            abortRegisterer?.(abort)
 
-        for (const message of response.messages) {
-            conversationManager.pushAssistant(message)
-        }
+            const response = await reduceStream({
+                iterator,
+                reducer: createStreamReducer(),
+                progress,
+            })
 
-        return response
+            for (const message of response.messages) {
+                conversationManager.pushAssistant(message)
+            }
+
+            return response
+        },
     }
-
-    return { providerName, modelName, system, conversationManager, prompt }
 }
 
 export function abortableIterator<T>(iterable: AsyncIterable<T>, abortIterable: () => void): Stream<T> {
