@@ -1,0 +1,137 @@
+languages:
+    - name: typescript
+      queries:
+          function: |
+              [
+                (function_declaration
+                  name: (identifier) @name) @function
+
+                (lexical_declaration
+                  (variable_declarator
+                    name: (identifier) @name
+                    value: [(arrow_function) (function_expression)]) @function_expr)
+
+                (variable_declaration
+                  (variable_declarator
+                    name: (identifier) @name
+                    value: [(arrow_function) (function_expression)]) @function_expr)
+              ]
+          method: |
+              (
+                (method_definition
+                  name: (property_identifier) @name)
+                @method
+              )
+          variable: |
+              ; Top-level let/const (no export)
+              (
+                (program
+                  (lexical_declaration
+                    (variable_declarator
+                      name: (identifier) @name))
+                  @declaration
+                )
+              )
+
+              ; Top-level let/const (with export)
+              (
+                (program
+                  (export_statement
+                    (lexical_declaration
+                      (variable_declarator
+                        name: (identifier) @name)))
+                  @declaration
+                )
+              )
+
+              ; Top-level var (no export)
+              (
+                (program
+                  (variable_declaration
+                    (variable_declarator
+                      name: (identifier) @name))
+                  @declaration
+                )
+              )
+
+              ; Top-level var (with export)
+              (
+                (program
+                  (export_statement
+                    (variable_declaration
+                      (variable_declarator
+                        name: (identifier) @name)))
+                  @declaration
+                )
+              )
+          interface: |
+              (
+                (interface_declaration
+                  name: (type_identifier) @name)
+                @interface
+              )
+          type: |
+              (
+                (type_alias_declaration
+                  name: (type_identifier) @name)
+                @type
+              )
+          classe: |
+              (
+                (class_declaration
+                  name: (type_identifier) @name)
+                @class
+              )
+
+    - name: go
+      queries:
+          function: |
+              [
+                (
+                  (source_file
+                    (function_declaration
+                      name: (identifier) @name))
+                  @function
+                )
+              ]
+          method: |
+              (
+                (method_declaration
+                  receiver: (parameter_list)
+                  name: (field_identifier) @name)
+                @method
+              )
+          variable: |
+              [
+                (
+                  (source_file
+                    (var_declaration
+                      (var_spec
+                        name: (identifier) @name)))
+                  @var_decl
+                )
+                (
+                  (source_file
+                    (const_declaration
+                      (const_spec
+                        name: (identifier) @name)))
+                  @const_decl
+                )
+              ]
+          type: |
+              [
+                (type_declaration
+                  (type_spec
+                    name: (type_identifier) @name
+                    type: (struct_type))
+                  @struct)
+                (type_declaration
+                  (type_spec
+                    name: (type_identifier) @name
+                    type: (interface_type))
+                  @interface)
+                (type_declaration
+                  (type_spec
+                    name: (type_identifier) @name)
+                  @type)
+              ]

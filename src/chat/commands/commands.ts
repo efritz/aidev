@@ -26,6 +26,7 @@ import { savepointCommand } from './conversation/savepoint'
 import { statusCommand } from './conversation/status'
 import { switchCommand } from './conversation/switch'
 import { undoCommand } from './conversation/undo'
+import { indexCommand } from './embeddings'
 
 export const commands: CommandDescription[] = [
     branchCommand,
@@ -34,18 +35,19 @@ export const commands: CommandDescription[] = [
     dumpCommand,
     exitCommand,
     helpCommand,
+    indexCommand,
     loadCommand,
     loaddirCommand,
     modelCommand,
     modelsCommand,
     promptCommand,
     redoCommand,
-    shellCommand,
     removeCommand,
     renameCommand,
     rollbackCommand,
     saveCommand,
     savepointCommand,
+    shellCommand,
     statusCommand,
     switchCommand,
     undoCommand,
