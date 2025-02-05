@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import { Response } from '../messages/messages'
 import { shouldReprompt } from '../reprompt/mediator'
+import { CancelError } from '../util/interrupts/interrupts'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'
@@ -61,46 +62,54 @@ async function handle(context: ChatContext, message: string): Promise<void> {
 }
 
 async function prompt(context: ChatContext): Promise<void> {
-    while (await promptOnce(context)) {}
+    while (true) {
+        try {
+            const reprompt = await promptOnce(context)
+            if (reprompt) {
+                continue
+            }
+        } catch (error: any) {
+            if (!(error instanceof CancelError)) {
+                throw error
+            }
+        }
+
+        break
+    }
 }
 
 function promptOnce(context: ChatContext): Promise<boolean> {
-    return context.interruptHandler.withInterruptHandler(
-        async signal => {
-            const result = await promptWithProgress(context, signal)
+    return context.interruptHandler.withInterruptHandler(async signal => {
+        const result = await promptWithProgress(context, signal)
+        if (!result.ok) {
+            return false
+        }
+
+        const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
+
+        if (ranTools) {
+            if (reprompt === true) {
+                // Some tool explicitly requested a re-prompt
+                return true
+            }
+
+            if (reprompt === false) {
+                // Some tool explicitly requested to not re-prompt
+                return false
+            }
+
+            // All tools are ambivalent; check with reprmopt mediator if there is more to do
+            // to fulfill the current user request.
+            const result = await shouldRepromptWithProgress(context, signal)
             if (!result.ok) {
                 return false
             }
 
-            const { ranTools, reprompt } = await runToolsInMessages(context, result.response.messages)
+            return result.response
+        }
 
-            if (ranTools) {
-                if (reprompt === true) {
-                    // Some tool explicitly requested a re-prompt
-                    return true
-                }
-
-                if (reprompt === false) {
-                    // Some tool explicitly requested to not re-prompt
-                    return false
-                }
-
-                // All tools are ambivalent; check with reprmopt mediator if there is more to do
-                // to fulfill the current user request.
-                const result = await shouldRepromptWithProgress(context, signal)
-                if (!result.ok) {
-                    return false
-                }
-
-                return result.response
-            }
-
-            return false
-        },
-        {
-            throwOnCancel: false,
-        },
-    )
+        return false
+    })
 }
 
 function promptWithProgress(context: ChatContext, signal?: AbortSignal): Promise<ProgressResult<Response>> {

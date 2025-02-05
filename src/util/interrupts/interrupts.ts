@@ -1,5 +1,4 @@
 import readline from 'readline'
-import { invertPromise } from '../../util/promises/promise'
 
 export interface InterruptHandler {
     withInterruptHandler: <T>(f: (signal: AbortSignal) => Promise<T>, options?: InterruptHandlerOptions) => Promise<T>
@@ -60,25 +59,26 @@ export function createInterruptHandler(rl: readline.Interface) {
         f: (signal: AbortSignal) => Promise<T>,
         { permanent = false, onAbort, throwOnCancel = true }: InterruptHandlerOptions = {},
     ): Promise<T> => {
+        let canceled = false
         const controller = new AbortController()
-        const { promise, reject } = invertPromise()
 
         push({
             permanent,
             onAbort: () => {
-                if (throwOnCancel) {
-                    reject(new CancelError('User canceled'))
-                }
-
+                canceled = true
                 controller.abort()
                 onAbort?.()
             },
         })
 
         try {
-            return await Promise.race([promise, f(controller.signal)])
+            return await f(controller.signal)
         } finally {
             pop()
+
+            if (throwOnCancel && canceled) {
+                throw new CancelError('User canceled.')
+            }
         }
     }
 
