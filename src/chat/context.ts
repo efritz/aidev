@@ -1,4 +1,5 @@
 import { ContextStateManager } from '../context/state'
+import { EmbeddingsClients } from '../embeddings/client/clients'
 import { Preferences } from '../providers/preferences'
 import { Provider } from '../providers/provider'
 import { Providers } from '../providers/providers'
@@ -8,6 +9,7 @@ import { Prompter } from '../util/prompter/prompter'
 export type ChatContext = {
     preferences: Preferences
     providers: Providers
+    embeddingsClients: EmbeddingsClients
     interruptHandler: InterruptHandler
     prompter: Prompter
     provider: Provider

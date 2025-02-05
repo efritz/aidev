@@ -7,6 +7,7 @@ import { ChatContext } from './chat/context'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
 import { createContextState } from './context/state'
+import { EmbeddingsClients, initClients } from './embeddings/client/clients'
 import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { getPreferences, Preferences } from './providers/preferences'
@@ -20,6 +21,7 @@ async function main() {
 
     const preferences = await getPreferences()
     const providers = await initProviders(preferences)
+    const embeddingsClients = await initClients(preferences)
 
     program
         .name('ai')
@@ -45,7 +47,7 @@ async function main() {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, providers, options.history, options.port)
+            chat(preferences, providers, embeddingsClients, options.history, options.port)
         })
 
     program.parse(process.argv)
@@ -109,7 +111,13 @@ async function buildProjectInstructions(): Promise<string> {
     return ''
 }
 
-async function chat(preferences: Preferences, providers: Providers, historyFilename?: string, port?: number) {
+async function chat(
+    preferences: Preferences,
+    providers: Providers,
+    embeddingsClients: EmbeddingsClients,
+    historyFilename?: string,
+    port?: number,
+) {
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
@@ -147,6 +155,7 @@ async function chat(preferences: Preferences, providers: Providers, historyFilen
         context = {
             preferences,
             providers,
+            embeddingsClients,
             interruptHandler,
             prompter,
             provider,
