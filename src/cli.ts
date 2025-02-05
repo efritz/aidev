@@ -155,10 +155,14 @@ async function chat(preferences: Preferences, providers: Providers, historyFilen
 
         await registerContextListeners(context, client)
 
-        await interruptHandler.withInterruptHandler(
-            () => chatWithReadline(context, historyFilename),
-            interruptInputOptions,
-        )
+        if (historyFilename) {
+            await loadHistory(context, historyFilename)
+        }
+
+        const modelName = `${context.provider.modelName} (${context.provider.providerName})`
+        console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${modelName}...\n`)
+
+        await interruptHandler.withInterruptHandler(() => handler(context), interruptInputOptions)
     } finally {
         rl.close()
         contextStateManager.dispose()
@@ -190,17 +194,6 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
         throwOnCancel: false,
         onAbort,
     }
-}
-
-async function chatWithReadline(context: ChatContext, historyFilename?: string) {
-    if (historyFilename) {
-        await loadHistory(context, historyFilename)
-    }
-
-    console.log(
-        `${historyFilename ? 'Resuming' : 'Beginning'} session with ${context.provider.modelName} (${context.provider.providerName})...\n`,
-    )
-    await handler(context)
 }
 
 main()
