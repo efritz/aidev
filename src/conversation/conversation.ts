@@ -498,7 +498,7 @@ function createContextMessage(
     referencedFiles: ContextFile[],
     referencedDirectories: ContextDirectory[],
 ): Message | undefined {
-    if (referencedFiles.length == 0 && referencedDirectories.length === 0) {
+    if (referencedFiles.length === 0 && referencedDirectories.length === 0) {
         return undefined
     }
 

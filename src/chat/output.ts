@@ -10,7 +10,7 @@ const partialTagPatterns = ['thought'].flatMap(name => [
 const formattedPatterns = [
     {
         pattern: createXmlPattern('thought'),
-        formatter: (openingTag: string, content: string, closingTag: string) => {
+        formatter: (_openingTag: string, content: string, _closingTag: string) => {
             return chalk.italic.grey(content.trim())
         },
     },

@@ -6,8 +6,8 @@ export const continueCommand: CommandDescription = {
     prefix: ':continue',
     description: 'Re-prompt the assistant for a response without supplying a user message.',
     handler: handleContinue,
-    valid: continueValid,
-    continuePrompt: continueContinue,
+    valid: canPromptAssistant,
+    continuePrompt: () => true,
 }
 
 async function handleContinue(context: ChatContext, args: string) {
@@ -20,12 +20,4 @@ async function handleContinue(context: ChatContext, args: string) {
     if (!canPromptAssistant(context)) {
         console.log(chalk.red('Cannot continue assistant response directly after an assistant message.'))
     }
-}
-
-function continueValid(context: ChatContext): boolean {
-    return canPromptAssistant(context)
-}
-
-function continueContinue(context: ChatContext, args: string): boolean {
-    return true
 }

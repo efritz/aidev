@@ -11,11 +11,6 @@ import { withContentEditor } from '../../util/vscode/edit'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
-type OutputLine = {
-    type: 'stdout' | 'stderr'
-    content: string
-}
-
 type ShellResult = BaseShellResult & {
     userEditedCommand?: string
 }
@@ -110,21 +105,4 @@ async function confirmCommand(context: ExecutionContext, command: string): Promi
                 break
         }
     }
-}
-
-function formatOutput(output?: OutputLine[]): string {
-    const lines = (output || []).map(o => ({ ...o }))
-
-    while (lines.length) {
-        const n = lines.length
-        const trimmed = lines[n - 1].content.trimEnd()
-        lines[n - 1].content = trimmed
-        if (trimmed) {
-            break
-        }
-
-        lines.pop()
-    }
-
-    return lines.map(({ content, type }) => (type === 'stdout' ? chalk.cyanBright.bold : chalk.red)(content)).join('')
 }

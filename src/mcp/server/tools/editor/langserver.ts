@@ -160,8 +160,8 @@ function extractLocationRange(loc: Location): LocationRange {
     return { uri: loc.uri, range: loc.range }
 }
 
-async function extractImplementationInfo(locations: Location[]): Promise<ImplementationMetadata[]> {
-    return await Promise.all(
+function extractImplementationInfo(locations: Location[]): Promise<ImplementationMetadata[]> {
+    return Promise.all(
         extractLocationRanges(locations).map(async ({ uri, ranges }) => extractImplementationContext(uri, ranges)),
     )
 }

@@ -104,7 +104,7 @@ async function buildProjectInstructions(): Promise<string> {
         const instructions = await readFile(path, 'utf-8')
 
         return `# Project-specific instructions\n\n${instructions}`
-    } catch (error: any) {}
+    } catch (_error: any) {}
 
     return ''
 }

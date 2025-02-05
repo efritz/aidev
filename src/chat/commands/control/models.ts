@@ -7,7 +7,7 @@ export const modelsCommand: CommandDescription = {
     handler: handleModels,
 }
 
-async function handleModels(context: ChatContext, args: string) {
+async function handleModels(context: ChatContext, _args: string) {
     console.log()
     console.log(context.providers.formattedModels)
     console.log()

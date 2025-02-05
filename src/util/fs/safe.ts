@@ -3,9 +3,9 @@ import { isBinaryFile } from 'isbinaryfile'
 
 export async function exists(path: string): Promise<boolean> {
     try {
-        const _ = await lstat(path)
+        await lstat(path)
         return true
-    } catch (error: any) {
+    } catch (_error: any) {
         return false
     }
 }
@@ -13,7 +13,7 @@ export async function exists(path: string): Promise<boolean> {
 export async function isDir(path: string): Promise<boolean> {
     try {
         return (await lstat(path)).isDirectory()
-    } catch (error: any) {
+    } catch (_error: any) {
         return false
     }
 }
@@ -29,7 +29,7 @@ export async function safeReadFile(path: string): Promise<string> {
                 return content
             }
         }
-    } catch (error: any) {
+    } catch (_error: any) {
         // swallow
     }
 

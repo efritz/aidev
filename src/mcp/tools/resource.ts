@@ -20,7 +20,7 @@ export function parseResource<T>(
 ): T | undefined {
     for (const content of contents) {
         if (
-            content.type == 'resource' &&
+            content.type === 'resource' &&
             (!selector.uri || selector.uri === content.resource.uri) &&
             (!selector.mimeType || selector.mimeType === content.resource.mimeType)
         ) {

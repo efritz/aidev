@@ -8,7 +8,7 @@ export const promptCommand: CommandDescription = {
     prefix: ':prompt',
     description: 'Draft a prompt in VSCode.',
     handler: handlePrompt,
-    continuePrompt: continuePrompt,
+    continuePrompt: canPromptAssistant,
 }
 
 async function handlePrompt(context: ChatContext, args: string) {
@@ -28,8 +28,4 @@ async function handlePrompt(context: ChatContext, args: string) {
             throw error
         }
     }
-}
-
-function continuePrompt(context: ChatContext, args: string): boolean {
-    return canPromptAssistant(context)
 }

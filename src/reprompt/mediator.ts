@@ -8,7 +8,7 @@ export async function shouldReprompt(context: ChatContext, signal?: AbortSignal)
         return false
     }
 
-    return await runAgent(context, repromptMediator, undefined, signal)
+    return runAgent(context, repromptMediator, undefined, signal)
 }
 
 const repromptMediator: Agent<never, boolean> = {

@@ -35,6 +35,6 @@ export async function withTempFileContents<T>(
 ): Promise<T> {
     return withTempFile(async filePath => {
         await writeFile(filePath, contents)
-        return await f(filePath)
+        return f(filePath)
     }, referencePath)
 }

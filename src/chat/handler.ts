@@ -1,8 +1,6 @@
 import chalk from 'chalk'
 import { Response } from '../messages/messages'
-import { ProgressFunction } from '../providers/provider'
 import { shouldReprompt } from '../reprompt/mediator'
-import { CancelError } from '../util/interrupts/interrupts'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { handleCommand } from './commands/commands'
 import { ExitError } from './commands/control/exit'

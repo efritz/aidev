@@ -41,7 +41,7 @@ async function runCommand(
     command: string,
     update: Updater<OutputLine[]>,
 ): Promise<OutputLine[]> {
-    return await context.interruptHandler.withInterruptHandler(signal => {
+    return context.interruptHandler.withInterruptHandler(signal => {
         return new Promise((resolve, reject) => {
             const output: OutputLine[] = []
             const aggregate = (type: 'stdout' | 'stderr', s: string) => {

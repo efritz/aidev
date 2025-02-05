@@ -10,7 +10,7 @@ export async function expandFilePatterns(patterns: string[]): Promise<string[]> 
                     return (await isDir(pattern)) ? [] : [pattern]
                 }
 
-                return await glob.glob(pattern, { nodir: true })
+                return glob.glob(pattern, { nodir: true })
             }),
         )
     ).flat()

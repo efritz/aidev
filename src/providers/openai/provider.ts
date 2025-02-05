@@ -104,6 +104,6 @@ function createStreamFactory({
             )
         }
 
-        return await client.chat.completions.create({ ...options, stream: true }, { signal })
+        return client.chat.completions.create({ ...options, stream: true }, { signal })
     }
 }

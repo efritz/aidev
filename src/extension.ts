@@ -5,12 +5,6 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import { commands, ExtensionContext, Tab, TabInputText, Terminal, TextDocument, window, workspace } from 'vscode'
 import { createModelContextProtocolServer } from './mcp/server/server'
 
-const sseHeaders = {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-}
-
 const jsonHeaders = {
     'Content-Type': 'application/json',
 }
@@ -25,7 +19,7 @@ export function activate(context: ExtensionContext) {
 
     // This will be set to the base URL of the server when it starts.
     // We don't know this ahead of time because the server uses a random port.
-    var baseURL: string
+    let baseURL: string
 
     const createServer = () => {
         const safe =
@@ -193,14 +187,4 @@ function pathFromTab(tab: Tab): string | undefined {
     }
 
     return tab.input.uri.fsPath
-}
-
-function pathsRelativeToWorkspaceRoot(paths: string[]): string[] {
-    const folders = workspace.workspaceFolders ?? []
-    if (folders.length !== 1) {
-        return []
-    }
-
-    const root = folders[0].uri.fsPath
-    return paths.filter(path => path.startsWith(root)).map(path => path.replace(root, '.'))
 }
