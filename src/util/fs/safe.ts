@@ -1,4 +1,5 @@
 import { lstat, readFile } from 'fs/promises'
+import { isBinaryFile } from 'isbinaryfile'
 
 export async function exists(path: string): Promise<boolean> {
     try {
@@ -19,8 +20,14 @@ export async function isDir(path: string): Promise<boolean> {
 
 export async function safeReadFile(path: string): Promise<string> {
     try {
-        return await readFile(path, 'utf-8')
+        const content = await readFile(path, 'utf-8')
+
+        if (!(await isBinaryFile(Buffer.from(content)))) {
+            return content
+        }
     } catch (error: any) {
-        return ''
+        // swallow
     }
+
+    return ''
 }
