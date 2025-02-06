@@ -57,10 +57,24 @@ export async function splitSourceCode(content: string, languageName: SupportedLa
     return blocks
 }
 
-async function createParser(languageName: SupportedLanguage): Promise<{
+type ParserAndQueries = {
     parser: Parser
     queries: Map<string, Parser.Query>
-}> {
+}
+
+const parserMap = new Map<SupportedLanguage, Promise<ParserAndQueries>>()
+
+async function createParser(languageName: SupportedLanguage): Promise<ParserAndQueries> {
+    if (parserMap.has(languageName)) {
+        return parserMap.get(languageName)!
+    }
+
+    const promise = createParserUncached(languageName)
+    parserMap.set(languageName, promise)
+    return await promise
+}
+
+async function createParserUncached(languageName: SupportedLanguage): Promise<ParserAndQueries> {
     const { language, queries: queryTexts } = await readLanguageConfiguration(languageName)
 
     const parser = new Parser()
