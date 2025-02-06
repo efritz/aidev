@@ -30,9 +30,7 @@ const providerSpecFactories: ProviderSpecFactory[] = [
     createDeepSeekProviderSpec,
 ]
 
-export const initProviders = async (preferences: Preferences): Promise<Providers> => {
-    const limiter = createLimiter()
-
+export const initProviders = async (preferences: Preferences, limiter: Limiter): Promise<Providers> => {
     const providerSpecs: ProviderSpec[] = []
     for (const factory of providerSpecFactories) {
         providerSpecs.push(await factory(preferences, limiter))

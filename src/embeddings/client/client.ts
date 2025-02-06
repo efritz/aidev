@@ -1,3 +1,5 @@
+import { Limiter } from '../../util/ratelimits/limiter'
+
 export type Model = {
     name: string
     model: string
@@ -5,6 +7,14 @@ export type Model = {
     maxInput: number
     maxPerSecond?: number
     maxConcurrent?: number
+}
+
+export function registerModelLimits(limiter: Limiter, model: Model) {
+    limiter.setConfig({
+        name: model.model,
+        maxPerSecond: model.maxPerSecond,
+        maxConcurrent: model.maxConcurrent,
+    })
 }
 
 export interface Client {
