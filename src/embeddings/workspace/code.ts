@@ -71,7 +71,7 @@ async function createParser(languageName: SupportedLanguage): Promise<ParserAndQ
 
     const promise = createParserUncached(languageName)
     parserMap.set(languageName, promise)
-    return await promise
+    return promise
 }
 
 async function createParserUncached(languageName: SupportedLanguage): Promise<ParserAndQueries> {
