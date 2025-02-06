@@ -1,26 +1,29 @@
 import { Anthropic } from '@anthropic-ai/sdk'
 import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resources/messages'
 import { tools as toolDefinitions } from '../../tools/tools'
+import { Limiter } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createAnthropicProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
+export async function createAnthropicProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
     const providerName = 'Anthropic'
     const apiKey = await getKey(providerName)
+    const models = preferences.providers[providerName] ?? []
+    models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
-        models: preferences.providers[providerName] ?? [],
+        models,
         needsAPIKey: !apiKey,
-        factory: createAnthropicProvider(providerName, apiKey ?? ''),
+        factory: createAnthropicProvider(providerName, apiKey ?? '', limiter),
     }
 }
 
-function createAnthropicProvider(providerName: string, apiKey: string): ProviderFactory {
+function createAnthropicProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model, options },
@@ -33,6 +36,7 @@ function createAnthropicProvider(providerName: string, apiKey: string): Provider
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
         const createStream = createStreamFactory({
             client,
+            limiter,
             model,
             system,
             temperature,
@@ -53,6 +57,7 @@ function createAnthropicProvider(providerName: string, apiKey: string): Provider
 
 function createStreamFactory({
     client,
+    limiter,
     model,
     system,
     temperature,
@@ -60,6 +65,7 @@ function createStreamFactory({
     disableTools,
 }: {
     client: Anthropic
+    limiter: Limiter
     model: string
     system: string
     temperature?: number
@@ -76,7 +82,7 @@ function createStreamFactory({
               }),
           )
 
-    return async (messages, signal) => {
+    return limiter.wrap(model, async (messages, signal) => {
         return client.messages.stream(
             {
                 model,
@@ -89,5 +95,5 @@ function createStreamFactory({
             },
             { signal },
         )
-    }
+    })
 }

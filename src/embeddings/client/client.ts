@@ -3,6 +3,8 @@ export type Model = {
     model: string
     dimensions: number
     maxInput: number
+    maxPerSecond?: number
+    maxConcurrent?: number
 }
 
 export interface Client {
