@@ -1,4 +1,4 @@
-import { createLimiter, Limiter } from '../util/ratelimits/limiter'
+import { Limiter } from '../util/ratelimits/limiter'
 import { createAnthropicProviderSpec } from './anthropic/provider'
 import { createDeepSeekProviderSpec } from './deepseek/provider'
 import { createGoogleProviderSpec } from './google/provider'

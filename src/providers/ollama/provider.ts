@@ -1,8 +1,8 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
+import pDefer from 'p-defer'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { CancelError } from '../../util/interrupts/interrupts'
 import { toIterable } from '../../util/iterable/iterable'
-import { invertPromise } from '../../util/promises/promise'
 import { Limiter } from '../../util/ratelimits/limiter'
 import { createProvider, Stream, StreamFactory } from '../factory'
 import { Preferences } from '../preferences'
@@ -96,7 +96,7 @@ function createStreamFactory({
 }
 
 function abortableIterator<T>(iterable: AsyncIterable<T>, signal?: AbortSignal): Stream<T> {
-    const { promise: aborted, reject: abort } = invertPromise()
+    const { promise: aborted, reject: abort } = pDefer<never>()
     const innerIterator = iterable[Symbol.asyncIterator]()
     const iterator: AsyncIterableIterator<T> = {
         [Symbol.asyncIterator]: () => iterator, // return self
