@@ -5,26 +5,29 @@ import {
     GoogleGenerativeAI,
 } from '@google/generative-ai'
 import { tools as toolDefinitions } from '../../tools/tools'
+import { Limiter } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createGoogleProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
+export async function createGoogleProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
     const providerName = 'Google'
     const apiKey = await getKey(providerName)
+    const models = preferences.providers[providerName] ?? []
+    models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
-        models: preferences.providers[providerName] ?? [],
+        models,
         needsAPIKey: !apiKey,
-        factory: createGoogleProvider(providerName, apiKey ?? ''),
+        factory: createGoogleProvider(providerName, apiKey ?? '', limiter),
     }
 }
 
-function createGoogleProvider(providerName: string, apiKey: string): ProviderFactory {
+function createGoogleProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -36,7 +39,8 @@ function createGoogleProvider(providerName: string, apiKey: string): ProviderFac
         const client = new GoogleGenerativeAI(apiKey)
         const createStream = createStreamFactory({
             client,
-            modelName: model,
+            limiter,
+            model,
             system,
             temperature,
             maxTokens,
@@ -56,14 +60,16 @@ function createGoogleProvider(providerName: string, apiKey: string): ProviderFac
 
 function createStreamFactory({
     client,
-    modelName,
+    limiter,
+    model,
     system,
     temperature,
     maxTokens,
     disableTools,
 }: {
     client: GoogleGenerativeAI
-    modelName: string
+    limiter: Limiter
+    model: string
     system: string
     temperature?: number
     maxTokens?: number
@@ -83,9 +89,9 @@ function createStreamFactory({
               },
           ]
 
-    return async (messages, signal) => {
-        const model = client.getGenerativeModel({
-            model: modelName,
+    return limiter.wrap(model, async (messages, signal) => {
+        const m = client.getGenerativeModel({
+            model,
             systemInstruction: system,
             generationConfig: {
                 temperature,
@@ -94,8 +100,8 @@ function createStreamFactory({
             tools,
         })
 
-        const { response, stream } = await model.generateContentStream({ contents: messages }, { signal })
+        const { response, stream } = await m.generateContentStream({ contents: messages }, { signal })
         response.catch(() => {}) // Prevent uncaught exception (errors are also emitted by the stream)
         return stream
-    }
+    })
 }

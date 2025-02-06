@@ -1,3 +1,4 @@
+import { createLimiter, Limiter } from '../util/ratelimits/limiter'
 import { createAnthropicProviderSpec } from './anthropic/provider'
 import { createDeepSeekProviderSpec } from './deepseek/provider'
 import { createGoogleProviderSpec } from './google/provider'
@@ -14,9 +15,13 @@ export type Providers = {
     createProvider(opts: ProviderOptions): Promise<Provider>
 }
 
-export type ProviderOptions = Omit<BaseProviderOptions, 'model'> & { modelName: string }
+export type ProviderOptions = Omit<BaseProviderOptions, 'model'> & {
+    modelName: string
+}
 
-const providerSpecFactories = [
+export type ProviderSpecFactory = (preferences: Preferences, limiter: Limiter) => Promise<ProviderSpec>
+
+const providerSpecFactories: ProviderSpecFactory[] = [
     createAnthropicProviderSpec,
     createGoogleProviderSpec,
     createGroqProviderSpec,
@@ -26,9 +31,11 @@ const providerSpecFactories = [
 ]
 
 export const initProviders = async (preferences: Preferences): Promise<Providers> => {
+    const limiter = createLimiter()
+
     const providerSpecs: ProviderSpec[] = []
     for (const factory of providerSpecFactories) {
-        providerSpecs.push(await factory(preferences))
+        providerSpecs.push(await factory(preferences, limiter))
     }
 
     const allModelNames = providerSpecs.flatMap(({ models }) => models.map(({ name }) => name)).sort()
