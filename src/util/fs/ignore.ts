@@ -7,10 +7,8 @@ import { safeReadFile } from './safe'
 const ignorePatternPaths = ['.gitignore', 'aidev.ignore']
 
 export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
-    const ignorePatterns = (await Promise.all(ignorePatternPaths.map(safeReadLines))).flat().map(gitignoreToMinimatch)
-    const pathAndMatchingIgnorePatterns = new Map(
-        paths.map<[string, string[]]>(path => [path, ignorePatterns.filter(pattern => matchPattern(path, pattern))]),
-    )
+    const patterns = (await Promise.all(ignorePatternPaths.map(safeReadLines))).flat().map(gitignoreToMinimatch)
+    const pathAndMatchingIgnorePatterns = new Map(paths.map(path => [path, matchPatterns(path, patterns)]))
 
     if (!silent) {
         for (const { path, pattern, count } of collectMinimalPaths(
@@ -28,6 +26,37 @@ export async function filterIgnoredPaths(paths: string[], silent = false): Promi
     // Extract path from pairs with no patterns
     return [...filterMap(pathAndMatchingIgnorePatterns, patterns => patterns.length === 0).keys()]
 }
+
+//
+//
+
+function matchPatterns(path: string, patterns: string[]): string[] {
+    // Match all patterns. For negated patterns, strip off the leading bang symbol
+    // and match the rest of the pattern against this path. We'll separate matches
+    // for negated patterns below.
+    const matchingPatterns = patterns.filter(pattern =>
+        matchPattern(path, pattern.startsWith('!') ? pattern.slice(1) : pattern),
+    )
+
+    // To cover negated patterns, we'll return all matching patterns AFTER the last
+    // matching negated pattern. This has the effect of each negated pattern removing
+    // all the matching patterns that came before it.
+    for (let i = matchingPatterns.length - 1; i >= 0; i--) {
+        if (matchingPatterns[i].startsWith('!')) {
+            return matchingPatterns.slice(i + 1)
+        }
+    }
+
+    // If we didn't have any negated patterns, return any ignore patterns that did match.
+    return matchingPatterns
+}
+
+function matchPattern(path: string, pattern: string): boolean {
+    return minimatch(path, pattern, { dot: true, matchBase: true })
+}
+
+//
+//
 
 function collectMinimalPaths(
     ignoredPathsByPattern: Map<string, string[]>,
@@ -62,9 +91,8 @@ function minimizeMatch(path: string, pattern: string): string {
     return current.endsWith(sep) ? current.slice(0, -1) : current
 }
 
-function matchPattern(path: string, pattern: string): boolean {
-    return minimatch(path, pattern, { dot: true, matchBase: true })
-}
+//
+//
 
 async function safeReadLines(path: string): Promise<string[]> {
     return (await safeReadFile(path))
