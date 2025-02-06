@@ -33,9 +33,7 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
         update(progress)
 
         await Promise.all(
-            newMetaContent.map(async mc => {
-                await handleFile(context, store, mc, signal, progress, () => update(progress))
-            }),
+            newMetaContent.map(mc => handleFile(context, store, mc, signal, progress, () => update(progress))),
         )
 
         return progress
@@ -62,17 +60,21 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
         return `Indexing workspace... ${saved.length}/${entries.length} files indexed\n\n${snapshot}`
     }
 
-    return context.interruptHandler.withInterruptHandler(
-        signal =>
+    try {
+        return await context.interruptHandler.withInterruptHandler(signal =>
             withProgress<IndexingProgress>(update => index(signal, update), {
                 progress: onProgress,
                 success: () => 'Workspace indexed.',
                 failure: (_, err) => `Failed to index workspace: ${err}`,
             }),
-        {
-            throwOnCancel: false,
-        },
-    )
+        )
+    } catch (error: any) {
+        if (!(error instanceof CancelError)) {
+            throw error
+        }
+
+        return { ok: false, error }
+    }
 }
 
 async function analyzeWorkspaceFiles(store: EmbeddingsStore): Promise<{

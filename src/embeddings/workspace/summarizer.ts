@@ -1,5 +1,6 @@
 import { Agent, runAgent } from '../../agent/agent'
 import { ChatContext } from '../../chat/context'
+import { CancelError } from '../../util/interrupts/interrupts'
 import { createXmlPattern } from '../../util/xml/xml'
 import { RawEmbeddableContent } from '../store/store'
 import { CodeBlock } from './code'
@@ -19,7 +20,7 @@ export async function summarizeCodeBlocks(
     onFinish: () => void,
 ): Promise<Map<CodeBlock, Summary>> {
     // Keep a map of code blocks to summary promises
-    const memo = new Map<CodeBlock, Promise<Summary>>()
+    const memo = new Map<CodeBlock, Promise<{ result?: Summary; error: Error }>>()
 
     const populateSummaries = (block: CodeBlock) => {
         // Ensure we populate children promises into the memo map before we attempt
@@ -46,7 +47,24 @@ export async function summarizeCodeBlocks(
     const summariesByBlock = new Map<CodeBlock, Summary>()
     await Promise.all([...memo.values()])
     for (const [block, promise] of memo.entries()) {
-        summariesByBlock.set(block, await promise)
+        const { result, error } = await promise
+
+        if (error) {
+            if (signal?.aborted) {
+                // Return generic error on cancellation instead of leaking any partial
+                // work that was completed before cancellation. If we don't do this we
+                // may get odd messages about partial summary payloads being returned.
+                throw new CancelError('Agent aborted.')
+            }
+
+            throw error
+        }
+
+        if (!result) {
+            throw new Error('Promise settled with undefined result')
+        }
+
+        summariesByBlock.set(block, result)
     }
 
     return summariesByBlock
@@ -56,7 +74,7 @@ async function summarizeCodeBlock(
     context: ChatContext,
     file: RawEmbeddableContent,
     block: CodeBlock,
-    summaryPromises: Map<CodeBlock, Promise<Summary>>,
+    summaryPromises: Map<CodeBlock, Promise<{ result?: Summary; error?: Error }>>,
     signal: AbortSignal,
     onFinish: () => void,
 ): Promise<void> {
@@ -65,7 +83,7 @@ async function summarizeCodeBlock(
         return
     }
 
-    const childSummaries = new Map<string, Promise<Summary>>()
+    const childSummaries = new Map<string, Promise<{ result?: Summary; error?: Error }>>()
     for (const child of block.children) {
         const promise = summaryPromises.get(child)
         if (!promise) {
@@ -79,23 +97,27 @@ async function summarizeCodeBlock(
     // summarizer agent. We'll then store our own promise in the shared memoized map
     // so that any parent blocks can access this summary.
     const promise = runAgent(context, summarizerAgent, { file, block, childSummaries }, signal)
-    summaryPromises.set(block, promise)
-
-    // Call the onFinish callback to signal to the user we've made partial progress on this
-    // batch of block summarizer agents.
-    promise.then(onFinish)
-
-    // Ignore errors happening from this promise _during tree construction_. We will await
-    // these promises when iterating the memoized map later, which will throw on a rejection.
-    // // However, we don't want an uncaught rejection to crash the program.
-    promise.catch(() => {})
+    summaryPromises.set(
+        block,
+        promise
+            // Call the onFinish callback to signal to the user we've made partial
+            // progress on this batch of block summarizer agents.
+            .then(v => {
+                onFinish()
+                return { result: v }
+            })
+            // Ignore errors happening from this promise _during tree construction_.
+            // We will await these promises when iterating the memoized map later,
+            // which will throw the stashed error on a rejection.
+            .catch((error: any) => ({ error })),
+    )
 }
 
 const summarizerAgent: Agent<
     {
         file: RawEmbeddableContent
         block: CodeBlock
-        childSummaries: Map<string, Promise<Summary>>
+        childSummaries: Map<string, Promise<{ result?: Summary; error?: undefined }>>
     },
     Summary
 > = {
@@ -104,7 +126,7 @@ const summarizerAgent: Agent<
     buildUserMessage: async (_, { file, block, childSummaries }) => {
         const resolvedChildSummaries: string[] = []
         for (const [name, summary] of childSummaries.entries()) {
-            resolvedChildSummaries.push(`- ${name}: ${(await summary).conciseSummary}`)
+            resolvedChildSummaries.push(`- ${name}: ${(await summary)?.result?.conciseSummary ?? ''}`)
         }
 
         return userMessageTemplate
