@@ -32,15 +32,19 @@ export async function runAgent<T, R>(
         content: userMessage,
     })
 
-    const response = await provider.prompt(undefined, signal)
-    if (signal?.aborted) {
-        throw new CancelError('Agent aborted.')
-    }
+    try {
+        const response = await provider.prompt(undefined, signal)
+        const message = response.messages[0]
+        if (message.type !== 'text') {
+            throw new Error(`Unexpected message type ${message.type} from agent.`)
+        }
 
-    const message = response.messages[0]
-    if (message.type !== 'text') {
-        throw new Error(`Unexpected message type ${message.type} from agent.`)
-    }
+        return agent.processMessage(context, message.content, args)
+    } catch (error: any) {
+        if (signal?.aborted) {
+            throw new CancelError('Agent aborted.')
+        }
 
-    return agent.processMessage(context, message.content, args)
+        throw error
+    }
 }
