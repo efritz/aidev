@@ -22,6 +22,8 @@ Before running the AI assistant, ensure that:
    export AIDEV_PREFERENCES_DIR="/custom/path/to/preferences/dir"
    ```
 
+   Any model (chat or embedding provider) can be configured with a `maxConcurrency` and/or `maxPerSecond` parameter to limit the number of requests per process.
+
 2. API keys are configured for your chosen LLM provider(s). Store your API keys in `~/.config/aidev/keys/` following this convention:
 
    ```bash

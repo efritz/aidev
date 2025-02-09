@@ -2,32 +2,36 @@ import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
+import { Limiter } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer, toChunk } from './reducer'
 
-export async function createOpenAIProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
+export async function createOpenAIProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
     const providerName = 'OpenAI'
     const apiKey = await getKey(providerName)
+    const models = preferences.providers[providerName] ?? []
+    models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
-        models: preferences.providers[providerName] ?? [],
+        models,
         needsAPIKey: !apiKey,
-        factory: createOpenAIProvider(providerName, apiKey ?? ''),
+        factory: createOpenAIProvider(providerName, apiKey ?? '', limiter),
     }
 }
 
-function createOpenAIProvider(providerName: string, apiKey: string): ProviderFactory {
-    return createOpenAICompatibleProvider(providerName, apiKey)
+function createOpenAIProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
+    return createOpenAICompatibleProvider(providerName, apiKey, limiter)
 }
 
 export function createOpenAICompatibleProvider(
     providerName: string,
     apiKey: string,
+    limiter: Limiter,
     baseURL?: string,
 ): ProviderFactory {
     return async ({
@@ -41,6 +45,7 @@ export function createOpenAICompatibleProvider(
         const client = new OpenAI({ apiKey, baseURL })
         const createStream = createStreamFactory({
             client,
+            limiter,
             model,
             temperature: Math.max(temperature, options?.minimumTempature ?? 0),
             maxTokens,
@@ -62,6 +67,7 @@ export function createOpenAICompatibleProvider(
 
 function createStreamFactory({
     client,
+    limiter,
     model,
     temperature,
     maxTokens,
@@ -69,6 +75,7 @@ function createStreamFactory({
     supportsStreaming,
 }: {
     client: OpenAI
+    limiter: Limiter
     model: string
     temperature?: number
     maxTokens?: number
@@ -88,7 +95,7 @@ function createStreamFactory({
           )
         : undefined
 
-    return async (messages, signal) => {
+    return limiter.wrap(model, async (messages, signal) => {
         const options = {
             model,
             messages,
@@ -105,5 +112,5 @@ function createStreamFactory({
         }
 
         return client.chat.completions.create({ ...options, stream: true }, { signal })
-    }
+    })
 }

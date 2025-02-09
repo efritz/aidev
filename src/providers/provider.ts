@@ -1,11 +1,22 @@
 import { ContextState } from '../context/state'
 import { ConversationManager } from '../conversation/conversation'
 import { Response } from '../messages/messages'
+import { Limiter } from '../util/ratelimits/limiter'
 
 export type Model = {
     name: string
     model: string
     options?: any
+    maxPerSecond?: number
+    maxConcurrent?: number
+}
+
+export function registerModelLimits(limiter: Limiter, model: Model) {
+    limiter.setConfig({
+        name: model.model,
+        maxPerSecond: model.maxPerSecond,
+        maxConcurrent: model.maxConcurrent,
+    })
 }
 
 export type ProgressFunction = (r?: Response) => void

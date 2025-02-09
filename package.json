@@ -65,6 +65,7 @@
         "ollama": "0.5.11",
         "openai": "4.77.0",
         "ora": "^8.0.1",
+        "p-defer": "^4.0.1",
         "sqlite-vec": "^0.1.7-alpha.2",
         "tree-kill": "^1.2.2",
         "tree-sitter": "^0.22.4",

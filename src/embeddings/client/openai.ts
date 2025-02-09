@@ -1,21 +1,24 @@
 import OpenAI from 'openai'
 import { getKey } from '../../providers/keys'
 import { Preferences } from '../../providers/preferences'
-import { Client, ClientFactory, ClientSpec } from './client'
+import { Limiter } from '../../util/ratelimits/limiter'
+import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
 
-export async function createOpenAIClientSpec(preferences: Preferences): Promise<ClientSpec> {
+export async function createOpenAIClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
     const providerName = 'OpenAI'
     const apiKey = await getKey(providerName)
+    const models = preferences.embeddings[providerName] ?? []
+    models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
-        models: preferences.embeddings[providerName] ?? [],
+        models,
         needsAPIKey: !apiKey,
-        factory: createOpenAIClient(providerName, apiKey ?? ''),
+        factory: createOpenAIClient(providerName, apiKey ?? '', limiter),
     }
 }
 
-function createOpenAIClient(providerName: string, apiKey: string): ClientFactory {
+function createOpenAIClient(providerName: string, apiKey: string, limiter: Limiter): ClientFactory {
     return async ({ model: { name: modelName, model, dimensions, maxInput } }): Promise<Client> => {
         const client = new OpenAI({ apiKey })
 
@@ -24,7 +27,7 @@ function createOpenAIClient(providerName: string, apiKey: string): ClientFactory
             modelName,
             dimensions,
             maxInput,
-            embed: async (input: string[]) =>
+            embed: limiter.wrap(modelName, async (input: string[]) =>
                 (
                     await client.embeddings.create({
                         model,
@@ -32,6 +35,7 @@ function createOpenAIClient(providerName: string, apiKey: string): ClientFactory
                         encoding_format: 'float',
                     })
                 ).data.map(({ embedding }) => embedding),
+            ),
         }
     }
 }
