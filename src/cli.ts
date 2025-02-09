@@ -14,14 +14,16 @@ import { getPreferences, Preferences } from './providers/preferences'
 import { initProviders, Providers } from './providers/providers'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
+import { createLimiter } from './util/ratelimits/limiter'
 
 async function main() {
     // Make EventSource available globally for the MCP SSE transport
     ;(global as any).EventSource = EventSource
 
+    const limiter = createLimiter()
     const preferences = await getPreferences()
-    const providers = await initProviders(preferences)
-    const embeddingsClients = await initClients(preferences)
+    const providers = await initProviders(preferences, limiter)
+    const embeddingsClients = await initClients(preferences, limiter)
 
     program
         .name('ai')

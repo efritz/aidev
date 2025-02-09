@@ -1,26 +1,29 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
+import pDefer from 'p-defer'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { CancelError } from '../../util/interrupts/interrupts'
 import { toIterable } from '../../util/iterable/iterable'
-import { invertPromise } from '../../util/promises/promise'
+import { Limiter } from '../../util/ratelimits/limiter'
 import { createProvider, Stream, StreamFactory } from '../factory'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec } from '../provider'
+import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createOllamaProviderSpec(preferences: Preferences): Promise<ProviderSpec> {
+export async function createOllamaProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
     const providerName = 'Ollama'
+    const models = preferences.providers[providerName] ?? []
+    models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
-        models: preferences.providers[providerName] ?? [],
+        models,
         needsAPIKey: false,
-        factory: createOllamaProvider(providerName),
+        factory: createOllamaProvider(providerName, limiter),
     }
 }
 
-function createOllamaProvider(providerName: string): ProviderFactory {
+function createOllamaProvider(providerName: string, limiter: Limiter): ProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -30,6 +33,7 @@ function createOllamaProvider(providerName: string): ProviderFactory {
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const createStream = createStreamFactory({
+            limiter,
             model,
             temperature,
             maxTokens,
@@ -48,11 +52,13 @@ function createOllamaProvider(providerName: string): ProviderFactory {
 }
 
 function createStreamFactory({
+    limiter,
     model,
     temperature,
     maxTokens,
     disableTools,
 }: {
+    limiter: Limiter
     model: string
     temperature?: number
     maxTokens?: number
@@ -71,7 +77,7 @@ function createStreamFactory({
               }),
           )
 
-    return async (messages, signal) => {
+    return limiter.wrap(model, async (messages, signal) => {
         // https://github.com/ollama/ollama-js/issues/123
         const iterable = toIterable(async () =>
             ollama.chat({
@@ -86,11 +92,11 @@ function createStreamFactory({
         )
 
         return abortableIterator(iterable, signal)
-    }
+    })
 }
 
 function abortableIterator<T>(iterable: AsyncIterable<T>, signal?: AbortSignal): Stream<T> {
-    const { promise: aborted, reject: abort } = invertPromise()
+    const { promise: aborted, reject: abort } = pDefer<never>()
     const innerIterator = iterable[Symbol.asyncIterator]()
     const iterator: AsyncIterableIterator<T> = {
         [Symbol.asyncIterator]: () => iterator, // return self

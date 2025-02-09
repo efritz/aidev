@@ -1,26 +1,33 @@
 import ollama from 'ollama'
 import { Preferences } from '../../providers/preferences'
-import { Client, ClientFactory, ClientSpec } from './client'
+import { Limiter } from '../../util/ratelimits/limiter'
+import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
 
-export async function createOllamaClientSpec(preferences: Preferences): Promise<ClientSpec> {
+export async function createOllamaClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
     const providerName = 'Ollama'
+
+    const models = preferences.embeddings[providerName] ?? []
+    models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
-        models: preferences.embeddings[providerName] ?? [],
+        models,
         needsAPIKey: false,
-        factory: createOllamaClient(providerName),
+        factory: createOllamaClient(providerName, limiter),
     }
 }
 
-function createOllamaClient(providerName: string): ClientFactory {
+function createOllamaClient(providerName: string, limiter: Limiter): ClientFactory {
     return async ({ model: { name: modelName, model, dimensions, maxInput } }): Promise<Client> => {
         return {
             providerName,
             modelName,
             dimensions,
             maxInput,
-            embed: async (input: string[]) => (await ollama.embed({ model, input })).embeddings,
+            embed: limiter.wrap(
+                modelName,
+                async (input: string[]) => (await ollama.embed({ model, input })).embeddings,
+            ),
         }
     }
 }
