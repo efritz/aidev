@@ -4,9 +4,10 @@ import { EmbeddedContent } from '../store/store'
 
 export async function queryWorkspace(context: ChatContext, query: string): Promise<EmbeddedContent[]> {
     const store = await embeddingsStore(context)
+    const paths = await store.query(query)
 
     const resultsWithExistsCheck = await Promise.all(
-        (await store.query(query)).map(async result => ({
+        paths.map(async result => ({
             result,
             exists: await exists(result.filename),
         })),

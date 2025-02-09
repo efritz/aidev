@@ -2,7 +2,8 @@ export type EmbeddedContent = {
     filename: string
     filehash: string
     content: string
-    metadata: string
+    name?: string
+    metadata?: string
 }
 
 export type Metadata = {
@@ -10,10 +11,11 @@ export type Metadata = {
     detail: string
 }
 
-export type RawEmbeddableContent = Omit<EmbeddedContent, 'metadata'>
+export type RawEmbeddableContent = Omit<EmbeddedContent, 'name' | 'metadata'>
 
 export type EmbeddableContent = RawEmbeddableContent & {
-    metadata: Metadata
+    name?: string
+    metadata?: Metadata
 }
 
 export interface EmbeddingsStore {

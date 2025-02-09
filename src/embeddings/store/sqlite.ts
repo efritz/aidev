@@ -19,8 +19,11 @@ export async function createSQLiteEmbeddingsStore(client: Client): Promise<Embed
         save: async batch => {
             // Chunks may too big to embed all at once. Chunk them into appropriate sizes. Each
             // of the chunk pages will be embedded into vectors that refer to the same batch item.
-            const serializedChunksWithBatchIndex = batch.flatMap(({ metadata }, batchIndex) =>
-                chunkMetadata(metadata, client.maxInput).map(chunk => ({ chunk, batchIndex })),
+            const serializedChunksWithBatchIndex = batch.flatMap(({ content, metadata }, batchIndex) =>
+                chunkMetadata(metadata ?? { header: '', detail: content }, client.maxInput).map(chunk => ({
+                    chunk,
+                    batchIndex,
+                })),
             )
 
             // Embed all of the chunk pages in parallel
@@ -37,11 +40,12 @@ export async function createSQLiteEmbeddingsStore(client: Client): Promise<Embed
 
             // Insert the embeddings produced for each batch item
             return insertEmbeddings(
-                batch.map(({ filename, filehash, content, metadata }, index) => ({
+                batch.map(({ filename, filehash, content, name, metadata }, index) => ({
                     filename,
                     filehash,
                     content,
-                    metadata: metadata.header + '\n\n' + metadata.detail,
+                    name,
+                    metadata: metadata ? metadata.header + '\n\n' + metadata.detail : '',
                     embeddings: embeddingsByBatchIndex.get(index)!,
                 })),
             )
@@ -128,6 +132,7 @@ async function initDatabase(dbFilePath: string, dimensions: number): Promise<Dat
             filename  text not null,
             filehash  text not null,
             content   text not null,
+            name      text not null,
             metadata  text not null
         );
         CREATE INDEX chunks_filehash ON chunks(filehash);
@@ -168,7 +173,7 @@ function prepDeleteHashes(db: Database): (hashes: Set<string>) => Promise<void> 
 
 function prepSelectEmbeddings(db: Database): (embedding: number[]) => EmbeddedContent[] {
     const select = db.prepare<
-        { filename: string; filehash: string; content: string; metadata: string },
+        { filename: string; filehash: string; content: string; name: string; metadata: string },
         [Float32Array]
     >(`
         WITH matches AS (
@@ -178,7 +183,7 @@ function prepSelectEmbeddings(db: Database): (embedding: number[]) => EmbeddedCo
             ORDER BY distance
             LIMIT 10
         )
-        SELECT c.filename, c.filehash, c.content, c.metadata
+        SELECT c.filename, c.filehash, c.content, c.name, c.metadata
         FROM chunks c
         WHERE c.id IN (
             SELECT cv.chunk_id
@@ -195,9 +200,9 @@ type EmbeddedContentWithEmbeddings = EmbeddedContent & {
 }
 
 function prepInsertEmbeddings(db: Database): (items: EmbeddedContentWithEmbeddings[]) => void {
-    const insertChunk = db.prepare<{}, [string, string, string, string]>(`
-        INSERT INTO chunks(filename, filehash, content, metadata)
-        VALUES (?, ?, ?, ?)
+    const insertChunk = db.prepare<{}, [string, string, string, string, string]>(`
+        INSERT INTO chunks(filename, filehash, content, name,metadata)
+        VALUES (?, ?, ?, ?, ?)
     `)
 
     const insertVector = db.prepare<{}, [Float32Array]>(`
@@ -217,7 +222,8 @@ function prepInsertEmbeddings(db: Database): (items: EmbeddedContentWithEmbeddin
                     meta.filename,
                     meta.filehash,
                     meta.content,
-                    meta.metadata,
+                    meta.name ?? '',
+                    meta.metadata ?? '',
                 )
 
                 embeddings.forEach(embedding => {

@@ -149,7 +149,7 @@ async function chunkFileAndHydrate(
         return blocks.map(block => blockToChunk(file, summariesByBlock, block))
     }
 
-    return [{ ...file, metadata: { header: '', detail: file.content } }]
+    return [file]
 }
 
 function blockToChunk(
@@ -201,6 +201,7 @@ function blockToChunk(
         filename: file.filename,
         filehash: file.filehash,
         content: block.content,
+        name: block.name,
         metadata: {
             header: header.join('\n'),
             detail: metadata.join('\n'),

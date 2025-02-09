@@ -4,7 +4,11 @@ import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile }
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
-type WriteResult = { stashed: boolean; originalContents: string; userEditedContents?: string }
+type WriteResult = {
+    stashed: boolean
+    originalContents: string
+    userEditedContents?: string
+}
 
 export const writeFile: Tool<WriteResult> = {
     name: 'write_file',
