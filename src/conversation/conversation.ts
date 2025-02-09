@@ -484,27 +484,26 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
         directories: directories.filter(d => shouldIncludeDirectory(d, [])),
     })
 
-    // Build context messages and inject any non-empty ones into the message list at the target index.
-    return messages.flatMap((message, index) => {
-        const { files, directories } = contextByIndex.get(index) ?? empty
-        const contextMessage = createContextMessage(files, directories)
-        return contextMessage ? [contextMessage, message] : [message]
-    })
+    // Build context messages and inject them in the correct location in the message list. We do
+    // this by adding a context message directly before the message that requires it and flattening
+    // the resulting list. We need to pad the initial list with a trailing undefined message so that
+    // a context message after the last message has a place to be inserted. Lastly, undefined values
+    // are filtered from the flattened result.
+    return [...messages, undefined]
+        .flatMap((message, index) => [createContextMessage(contextByIndex.get(index) ?? empty), message])
+        .filter(message => !!message)
 }
 
 const fence = '```'
 
-function createContextMessage(
-    referencedFiles: ContextFile[],
-    referencedDirectories: ContextDirectory[],
-): Message | undefined {
-    if (referencedFiles.length === 0 && referencedDirectories.length === 0) {
+function createContextMessage({ files, directories }: FilesAndDirectories): Message | undefined {
+    if (files.length === 0 && directories.length === 0) {
         return undefined
     }
 
     const payloads: string[] = []
-    const normalizedFiles = referencedFiles.map(({ path, content: payload }) => ({ path, payload }))
-    const normalizedDirectories = referencedDirectories.map(({ path, entries: payload }) => ({ path, payload }))
+    const normalizedFiles = files.map(({ path, content: payload }) => ({ path, payload }))
+    const normalizedDirectories = directories.map(({ path, entries: payload }) => ({ path, payload }))
 
     for (const [path, content] of sortPayloadsByPath(normalizedFiles)) {
         if (typeof content === 'string') {
