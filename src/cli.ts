@@ -105,7 +105,7 @@ async function buildSystemPrompt(): Promise<string> {
 }
 
 async function buildProjectInstructions(): Promise<string> {
-    const instructions = await safeReadFile(path.join('.aidev', 'system'))
+    const instructions = (await safeReadFile(path.join('.aidev', 'system'))).trim()
     if (!instructions) {
         return ''
     }
