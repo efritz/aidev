@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises'
+import path from 'path'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
 import EventSource from 'eventsource'
@@ -12,6 +13,7 @@ import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { getPreferences, Preferences } from './providers/preferences'
 import { initProviders, Providers } from './providers/providers'
+import { safeReadFile } from './util/fs/safe'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
@@ -103,14 +105,12 @@ async function buildSystemPrompt(): Promise<string> {
 }
 
 async function buildProjectInstructions(): Promise<string> {
-    try {
-        const path = 'aidev.system'
-        const instructions = await readFile(path, 'utf-8')
+    const instructions = await safeReadFile(path.join('.aidev', 'system'))
+    if (!instructions) {
+        return ''
+    }
 
-        return `# Project-specific instructions\n\n${instructions}`
-    } catch (_error: any) {}
-
-    return ''
+    return `# Project-specific instructions\n\n${instructions}`
 }
 
 async function chat(

@@ -1,10 +1,10 @@
-import { dirname, sep } from 'path'
+import path, { dirname, sep } from 'path'
 import { gitignoreToMinimatch } from '@humanwhocodes/gitignore-to-minimatch'
 import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 import { safeReadFile } from './safe'
 
-const ignorePatternPaths = ['.gitignore', 'aidev.ignore']
+const ignorePatternPaths = ['.gitignore', path.join('.aidev', 'ignore')]
 
 export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
     const patterns = (await Promise.all(ignorePatternPaths.map(safeReadLines))).flat().map(gitignoreToMinimatch)

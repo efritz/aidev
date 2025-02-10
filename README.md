@@ -137,8 +137,8 @@ The following meta commands have special behaviors to manipulate the context or 
 
 The root of your project (where you launch the CLI) can contain special files to configure the behavior of the assistant:
 
-- `aidev.system`: Will be injected verbatim into the system prompt.
-- `aidev.ignore`: Can contain gitignore-like patterns that will filter out files or directories from being read into the context.
+- `.aidev/system`: Will be injected verbatim into the system prompt.
+- `.aidev/ignore`: Can contain gitignore-like patterns that will filter out files or directories from being read into the context.
 
 ### VSCode Extension Features
 
