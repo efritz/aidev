@@ -17,7 +17,7 @@
 
 ## Bugs
 
-1. Concurrency/rate limits for embeddings models/summarizer agent
+1.
 
 ## Refactors
 
