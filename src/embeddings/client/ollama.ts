@@ -1,6 +1,6 @@
 import ollama from 'ollama'
 import { Preferences } from '../../providers/preferences'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
 
 export async function createOllamaClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
@@ -24,12 +24,17 @@ function createOllamaClient(providerName: string, limiter: Limiter): ClientFacto
             modelName,
             dimensions,
             maxInput,
-            embed: limiter.wrap(modelName, onDone => async (input: string[]) => {
-                const params = { model, input }
-                const { embeddings } = await ollama.embed(params)
-                onDone()
-                return embeddings
-            }),
+            embed: wrapPromise(
+                limiter,
+                modelName,
+                async (input: string[]) =>
+                    (
+                        await ollama.embed({
+                            model,
+                            input,
+                        })
+                    ).embeddings,
+            ),
         }
     }
 }

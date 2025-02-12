@@ -1,4 +1,6 @@
 import pDefer, { DeferredPromise } from 'p-defer'
+import { finalizingIterable } from '../iterable/iterable'
+import { finalizingPromise } from '../promise/promise'
 
 type FuncType = (...args: any[]) => any
 
@@ -126,4 +128,30 @@ export function createLimiter(): Limiter {
             return wrapper as T
         },
     }
+}
+
+export function wrapPromise<R, T extends (...args: any[]) => Promise<R>>(
+    limiter: Limiter,
+    name: string,
+    f: T,
+): (...args: Parameters<T>) => Promise<R> {
+    return limiter.wrap(
+        name,
+        onDone =>
+            (...args) =>
+                finalizingPromise(f(...args), onDone),
+    )
+}
+
+export function wrapAsyncIterable<R, T extends (...args: any[]) => Promise<AsyncIterable<R>>>(
+    limiter: Limiter,
+    name: string,
+    f: T,
+): (...args: Parameters<T>) => Promise<AsyncIterable<R>> {
+    return limiter.wrap(
+        name,
+        onDone =>
+            async (...args) =>
+                finalizingIterable(await f(...args), onDone),
+    )
 }

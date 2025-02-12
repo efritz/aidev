@@ -1,9 +1,8 @@
 import Groq from 'groq-sdk'
 import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 import { ChatCompletionTool } from 'openai/resources'
-import { ChatCompletionCreateParamsStreaming } from 'openai/resources/index.mjs'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -83,8 +82,8 @@ function createStreamFactory({
               }),
           )
 
-    return limiter.wrap(model, onDone => async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) => {
-        const stream = client.chat.completions.create(
+    return wrapAsyncIterable(limiter, model, async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) =>
+        client.chat.completions.create(
             {
                 model,
                 messages,
@@ -94,8 +93,6 @@ function createStreamFactory({
                 tools,
             },
             { signal },
-        )
-        stream.then(onDone)
-        return stream
-    })
+        ),
+    )
 }

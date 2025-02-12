@@ -5,7 +5,7 @@ import {
     GoogleGenerativeAI,
 } from '@google/generative-ai'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -89,7 +89,7 @@ function createStreamFactory({
               },
           ]
 
-    return limiter.wrap(model, onDone => async (messages: Content[], signal?: AbortSignal) => {
+    return wrapAsyncIterable(limiter, model, async (messages: Content[], signal?: AbortSignal) => {
         const m = client.getGenerativeModel({
             model,
             systemInstruction: system,
@@ -101,7 +101,7 @@ function createStreamFactory({
         })
 
         const { response, stream } = await m.generateContentStream({ contents: messages }, { signal })
-        response.then(onDone).catch(() => {}) // Prevent uncaught exceptions during streaming
+        response.catch(() => {}) // Prevent uncaught exceptions during streaming
         return stream
     })
 }
