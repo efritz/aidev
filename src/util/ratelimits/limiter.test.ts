@@ -10,11 +10,12 @@ describe('limiter', async () => {
         let active = 0
         let maxActive = 0
 
-        const wrapped = limiter.wrap('test', async () => {
+        const wrapped = limiter.wrap('test', onDone => async () => {
             active++
             maxActive = Math.max(maxActive, active)
             await new Promise(resolve => setTimeout(resolve, 10))
             active--
+            onDone()
         })
 
         await Promise.all(new Array(numTasks).fill(null).map(() => wrapped()))
@@ -30,9 +31,10 @@ describe('limiter', async () => {
 
         const logs: { id: number; startTime: number }[] = []
 
-        const wrapped = limiter.wrap('test', async id => {
+        const wrapped = limiter.wrap('test', onDone => async id => {
             logs.push({ id, startTime: performance.now() })
             await new Promise(resolve => setTimeout(resolve, 10))
+            onDone()
         })
 
         await Promise.all(new Array(numTasks).fill(null).map((_, i) => wrapped(i + 1)))

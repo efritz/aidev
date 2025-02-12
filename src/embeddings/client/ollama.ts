@@ -24,10 +24,12 @@ function createOllamaClient(providerName: string, limiter: Limiter): ClientFacto
             modelName,
             dimensions,
             maxInput,
-            embed: limiter.wrap(
-                modelName,
-                async (input: string[]) => (await ollama.embed({ model, input })).embeddings,
-            ),
+            embed: limiter.wrap(modelName, onDone => async (input: string[]) => {
+                const params = { model, input }
+                const { embeddings } = await ollama.embed(params)
+                onDone()
+                return embeddings
+            }),
         }
     }
 }

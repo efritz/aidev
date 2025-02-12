@@ -77,7 +77,7 @@ function createStreamFactory({
               }),
           )
 
-    return limiter.wrap(model, async (messages, signal) => {
+    return limiter.wrap(model, onDone => async (messages: Message[], signal?: AbortSignal) => {
         // https://github.com/ollama/ollama-js/issues/123
         const iterable = toIterable(async () =>
             ollama.chat({
@@ -91,18 +91,21 @@ function createStreamFactory({
             }),
         )
 
-        return abortableIterator(iterable, signal)
+        const { promise: aborted, reject: abort } = pDefer<never>()
+        const innerIterator = iterable[Symbol.asyncIterator]()
+        const iterator: AsyncIterableIterator<ChatResponse> = {
+            [Symbol.asyncIterator]: () => iterator,
+            next: async () => {
+                const result = await Promise.race([innerIterator.next(), aborted])
+                if (result.done) {
+                    onDone()
+                }
+
+                return result
+            },
+        }
+
+        signal?.addEventListener('abort', () => abort(new CancelError('Request was aborted.')))
+        return iterator
     })
-}
-
-function abortableIterator<T>(iterable: AsyncIterable<T>, signal?: AbortSignal): Stream<T> {
-    const { promise: aborted, reject: abort } = pDefer<never>()
-    const innerIterator = iterable[Symbol.asyncIterator]()
-    const iterator: AsyncIterableIterator<T> = {
-        [Symbol.asyncIterator]: () => iterator, // return self
-        next: () => Promise.race([innerIterator.next(), aborted]), // AsyncIterator
-    }
-
-    signal?.addEventListener('abort', () => abort(new CancelError('Request was aborted.')))
-    return iterator
 }

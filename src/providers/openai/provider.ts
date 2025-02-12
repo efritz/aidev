@@ -95,7 +95,7 @@ function createStreamFactory({
           )
         : undefined
 
-    return limiter.wrap(model, async (messages, signal) => {
+    return limiter.wrap(model, onDone => async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) => {
         const options = {
             model,
             messages,
@@ -106,11 +106,15 @@ function createStreamFactory({
         }
 
         if (!supportsStreaming) {
-            return toIterable(async () =>
-                toChunk(await client.chat.completions.create({ ...options, stream: false }, { signal })),
-            )
+            return toIterable(async () => {
+                const response = await client.chat.completions.create({ ...options, stream: false }, { signal })
+                onDone()
+                return toChunk(response)
+            })
         }
 
-        return client.chat.completions.create({ ...options, stream: true }, { signal })
+        const stream = client.chat.completions.create({ ...options, stream: true }, { signal })
+        stream.then(onDone)
+        return stream
     })
 }

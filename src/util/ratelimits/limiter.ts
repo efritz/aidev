@@ -4,7 +4,10 @@ type FuncType = (...args: any[]) => any
 
 export interface Limiter {
     setConfig(config: LimitConfig): void
-    wrap<T extends FuncType>(name: string, f: T): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>
+    wrap<T extends FuncType>(
+        name: string,
+        f: (onDone: () => void) => T,
+    ): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>
 }
 
 export type LimitConfig = {
@@ -79,10 +82,11 @@ export function createLimiter(): Limiter {
         queue.inFlight++
 
         payload()
-            .then(resolve, reject)
-            .finally(() => {
+            .then(resolve)
+            .catch(err => {
                 queue.inFlight--
                 processQueue(queue)
+                reject(err)
             })
     }
 
@@ -101,20 +105,25 @@ export function createLimiter(): Limiter {
                 processing: false,
             })
         },
-        wrap: <T extends FuncType>(name: string, f: T) => {
+        wrap: <T extends FuncType>(name: string, f: (onDone: () => void) => T) => {
             const wrapper = async (...args: Parameters<T>): Promise<Awaited<ReturnType<T>>> => {
                 const queue = queues.get(name)
                 if (!queue) {
-                    return f(...args)
+                    return f(() => {})(...args)
+                }
+
+                const onDone = () => {
+                    queue.inFlight--
+                    processQueue(queue)
                 }
 
                 const deferred = pDefer<Awaited<ReturnType<T>>>()
-                queue.tasks.push({ payload: () => f(...args), deferred })
+                queue.tasks.push({ payload: () => f(onDone)(...args), deferred })
                 processQueue(queue)
                 return deferred.promise
             }
 
-            return wrapper as typeof f
+            return wrapper as T
         },
     }
 }

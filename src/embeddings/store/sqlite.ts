@@ -16,7 +16,7 @@ export async function createSQLiteEmbeddingsStore(client: Client): Promise<Embed
     const insertEmbeddings = prepInsertEmbeddings(db)
 
     return {
-        save: async batch => {
+        save: async (batch, signal) => {
             // Chunks may too big to embed all at once. Chunk them into appropriate sizes. Each
             // of the chunk pages will be embedded into vectors that refer to the same batch item.
             const serializedChunksWithBatchIndex = batch.flatMap(({ content, metadata }, batchIndex) =>
@@ -27,7 +27,10 @@ export async function createSQLiteEmbeddingsStore(client: Client): Promise<Embed
             )
 
             // Embed all of the chunk pages in parallel
-            const embeddings = await client.embed(serializedChunksWithBatchIndex.map(({ chunk }) => chunk))
+            const embeddings = await client.embed(
+                serializedChunksWithBatchIndex.map(({ chunk }) => chunk),
+                signal,
+            )
 
             // Group the embeddings by the original batch index
             const embeddingsByBatchIndex = new Map<number, number[][]>()
