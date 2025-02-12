@@ -1,7 +1,7 @@
 import { Anthropic } from '@anthropic-ai/sdk'
 import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resources/messages'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -82,8 +82,8 @@ function createStreamFactory({
               }),
           )
 
-    return limiter.wrap(model, onDone => async (messages: MessageParam[], signal?: AbortSignal) => {
-        const stream = client.messages.stream(
+    return wrapAsyncIterable(limiter, model, async (messages: MessageParam[], signal?: AbortSignal) =>
+        client.messages.stream(
             {
                 model,
                 system,
@@ -94,8 +94,6 @@ function createStreamFactory({
                 tools,
             },
             { signal },
-        )
-        stream.done().then(onDone)
-        return stream
-    })
+        ),
+    )
 }

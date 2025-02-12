@@ -1,10 +1,8 @@
 import ollama, { ChatResponse, Message, Tool } from 'ollama'
-import pDefer from 'p-defer'
 import { tools as toolDefinitions } from '../../tools/tools'
-import { CancelError } from '../../util/interrupts/interrupts'
-import { toIterable } from '../../util/iterable/iterable'
-import { Limiter } from '../../util/ratelimits/limiter'
-import { createProvider, Stream, StreamFactory } from '../factory'
+import { abortableIterable, toIterable } from '../../util/iterable/iterable'
+import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
+import { createProvider, StreamFactory } from '../factory'
 import { Preferences } from '../preferences'
 import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
 import { createConversation } from './conversation'
@@ -77,9 +75,9 @@ function createStreamFactory({
               }),
           )
 
-    return limiter.wrap(model, onDone => async (messages: Message[], signal?: AbortSignal) => {
+    return wrapAsyncIterable(limiter, model, async (messages: Message[], signal?: AbortSignal) => {
         // https://github.com/ollama/ollama-js/issues/123
-        const iterable = toIterable(async () =>
+        const iterable = toIterable(() =>
             ollama.chat({
                 model,
                 messages,
@@ -91,21 +89,6 @@ function createStreamFactory({
             }),
         )
 
-        const { promise: aborted, reject: abort } = pDefer<never>()
-        const innerIterator = iterable[Symbol.asyncIterator]()
-        const iterator: AsyncIterableIterator<ChatResponse> = {
-            [Symbol.asyncIterator]: () => iterator,
-            next: async () => {
-                const result = await Promise.race([innerIterator.next(), aborted])
-                if (result.done) {
-                    onDone()
-                }
-
-                return result
-            },
-        }
-
-        signal?.addEventListener('abort', () => abort(new CancelError('Request was aborted.')))
-        return iterator
+        return abortableIterable(iterable, signal)
     })
 }

@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 import { getKey } from '../../providers/keys'
 import { Preferences } from '../../providers/preferences'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
 
 export async function createOpenAIClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
@@ -27,12 +27,18 @@ function createOpenAIClient(providerName: string, apiKey: string, limiter: Limit
             modelName,
             dimensions,
             maxInput,
-            embed: limiter.wrap(modelName, onDone => async (input: string[], signal?: AbortSignal) => {
-                const params = { model, input, encoding_format: 'float' as const }
-                const { data } = await client.embeddings.create(params, { signal })
-                onDone()
-                return data.map(({ embedding }) => embedding)
-            }),
+            embed: wrapPromise(limiter, modelName, async (input: string[], signal?: AbortSignal) =>
+                (
+                    await client.embeddings.create(
+                        {
+                            model,
+                            input,
+                            encoding_format: 'float',
+                        },
+                        { signal },
+                    )
+                ).data.map(({ embedding }) => embedding),
+            ),
         }
     }
 }

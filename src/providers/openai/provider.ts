@@ -2,7 +2,7 @@ import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -95,7 +95,7 @@ function createStreamFactory({
           )
         : undefined
 
-    return limiter.wrap(model, onDone => async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) => {
+    return wrapAsyncIterable(limiter, model, async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) => {
         const options = {
             model,
             messages,
@@ -105,16 +105,11 @@ function createStreamFactory({
             tools,
         }
 
-        if (!supportsStreaming) {
-            return toIterable(async () => {
-                const response = await client.chat.completions.create({ ...options, stream: false }, { signal })
-                onDone()
-                return toChunk(response)
-            })
-        }
-
-        const stream = client.chat.completions.create({ ...options, stream: true }, { signal })
-        stream.then(onDone)
-        return stream
+        return supportsStreaming
+            ? client.chat.completions.create({ ...options, stream: true }, { signal })
+            : client.chat.completions
+                  .create({ ...options, stream: false }, { signal })
+                  .then(toChunk)
+                  .then(toIterable)
     })
 }
