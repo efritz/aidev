@@ -1,7 +1,10 @@
-import ollama from 'ollama'
+import ollama, { Ollama } from 'ollama'
 import { Preferences } from '../../providers/preferences'
 import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
+
+// Create an Ollama client with a configurable host
+const ollamaClient = new Ollama({ host: process.env.OLLAMA_HOST  ||'http://localhost:11434' })
 
 export async function createOllamaClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
     const providerName = 'Ollama'
@@ -29,7 +32,7 @@ function createOllamaClient(providerName: string, limiter: Limiter): ClientFacto
                 modelName,
                 async (input: string[]) =>
                     (
-                        await ollama.embed({
+                        await ollamaClient.embed({
                             model,
                             input,
                         })
