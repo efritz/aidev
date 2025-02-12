@@ -32,9 +32,23 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
         }
         update(progress)
 
-        await Promise.all(
-            newMetaContent.map(mc => handleFile(context, store, mc, signal, progress, () => update(progress))),
-        )
+        // The abort signal passed to us is only used when the user issues a cancellation. To handle
+        // an error in a downstream promise, we create a scoped abort controller which we will cancel
+        // on cancellation (from above) or on error (from below). This will cancel the entire tree of
+        // computation instead of leaving dangling promises finishing up silently in the background.
+        const controller = new AbortController()
+        signal.addEventListener('abort', () => controller.abort())
+
+        try {
+            await Promise.all(
+                newMetaContent.map(mc =>
+                    handleFile(context, store, mc, controller.signal, progress, () => update(progress)),
+                ),
+            )
+        } catch (error: any) {
+            controller.abort()
+            throw error
+        }
 
         return progress
     }
