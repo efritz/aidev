@@ -22,7 +22,7 @@ export interface Client {
     modelName: string
     dimensions: number
     maxInput: number
-    embed: (input: string[]) => Promise<number[][]>
+    embed: (input: string[], signal?: AbortSignal) => Promise<number[][]>
 }
 
 export interface ClientSpec {

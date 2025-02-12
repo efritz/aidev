@@ -82,8 +82,8 @@ function createStreamFactory({
               }),
           )
 
-    return limiter.wrap(model, async (messages, signal) => {
-        return client.messages.stream(
+    return limiter.wrap(model, onDone => async (messages: MessageParam[], signal?: AbortSignal) => {
+        const stream = client.messages.stream(
             {
                 model,
                 system,
@@ -95,5 +95,7 @@ function createStreamFactory({
             },
             { signal },
         )
+        stream.done().then(onDone)
+        return stream
     })
 }

@@ -20,7 +20,7 @@ export type EmbeddableContent = RawEmbeddableContent & {
 
 export interface EmbeddingsStore {
     hashes(): Promise<Set<string>>
-    save(batch: EmbeddableContent[]): Promise<void>
+    save(batch: EmbeddableContent[], signal?: AbortSignal): Promise<void>
     delete(hashes: Set<string>): Promise<void>
     query(query: string): Promise<EmbeddedContent[]>
 }

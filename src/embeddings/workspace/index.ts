@@ -117,7 +117,7 @@ async function handleFile(
 
     const batch = await chunkFileAndHydrate(context, file, signal, updateState)
     updateState(`Embedding ${batch.length} chunks...`)
-    await store.save(batch)
+    await store.save(batch, signal)
     updateState('Saved.')
 }
 

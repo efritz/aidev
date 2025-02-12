@@ -27,15 +27,12 @@ function createOpenAIClient(providerName: string, apiKey: string, limiter: Limit
             modelName,
             dimensions,
             maxInput,
-            embed: limiter.wrap(modelName, async (input: string[]) =>
-                (
-                    await client.embeddings.create({
-                        model,
-                        input,
-                        encoding_format: 'float',
-                    })
-                ).data.map(({ embedding }) => embedding),
-            ),
+            embed: limiter.wrap(modelName, onDone => async (input: string[], signal?: AbortSignal) => {
+                const params = { model, input, encoding_format: 'float' as const }
+                const { data } = await client.embeddings.create(params, { signal })
+                onDone()
+                return data.map(({ embedding }) => embedding)
+            }),
         }
     }
 }

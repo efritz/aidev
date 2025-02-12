@@ -89,7 +89,7 @@ function createStreamFactory({
               },
           ]
 
-    return limiter.wrap(model, async (messages, signal) => {
+    return limiter.wrap(model, onDone => async (messages: Content[], signal?: AbortSignal) => {
         const m = client.getGenerativeModel({
             model,
             systemInstruction: system,
@@ -101,7 +101,7 @@ function createStreamFactory({
         })
 
         const { response, stream } = await m.generateContentStream({ contents: messages }, { signal })
-        response.catch(() => {}) // Prevent uncaught exception (errors are also emitted by the stream)
+        response.then(onDone).catch(() => {}) // Prevent uncaught exceptions during streaming
         return stream
     })
 }
