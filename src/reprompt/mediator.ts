@@ -41,7 +41,7 @@ If the current user request has not been completely fulfilled, you should determ
 
 The current user request may not be the most recent message user in the conversation.
 There may be more recent user messages acknowledging or clarifying the AI assistant's response.
-There may be more recent user messages with specific sub-requests attempting ot refine the AI assistant's response.
+There may be more recent user messages with specific sub-requests attempting to refine the AI assistant's response.
 
 ## Example 1
 
