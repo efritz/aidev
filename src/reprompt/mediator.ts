@@ -50,7 +50,7 @@ There may be more recent user messages with specific sub-requests attempting ot 
     <message role="assistant">I'll help you find where the \`getKey\` function is used. Let me search through the project files.</message>
     <message role="tool_use" id="toolu_01BftBGXc8B21QqpGehBvXTH">
         <name>shell_execute</name>
-        <parameters>"{\"command\": \"find src -type f -name \\\"*.ts\\\" -o -name \\\"*.tsx\\\" | xargs grep -l \\\"getKey\\\"\"}"</parameters>
+        <parameters>{"command": "find src -type f -name \"*.ts\" -o -name \"*.tsx\" | xargs grep -l \"getKey\""}</parameters>
     </message>
     <message role="tool_result" id="toolu_01BftBGXc8B21QqpGehBvXTH" status="success">
         <result>{"output":[{"content":"src/providers/google/provider.ts\nsrc/providers/groq/provider.ts\nsrc/providers/keys.ts\nsrc/providers/anthropic/provider.ts\nsrc/providers/openai/provider.ts\n","type":"stdout"}]}</result>
@@ -69,20 +69,20 @@ You should instruct the AI assistant to continue its response.
     <message role="assistant">I'll help you find and examine the largest file under the src directory. Let me use the shell command to find this information.</message>
     <message role="tool_use" id="toolu_01Gs8FeqYsi7z7oiCoQtJENA">
         <name>shell_execute</name>
-        <parameters>"{\"command\": \"find src -type f -exec ls -l {} \\\\; | sort -n -k 5 | tail -n 1\"}"</parameters>
+        <parameters>{"command": "find src -type f -exec ls -l {} \\; | sort -n -k 5 | tail -n 1"}</parameters>
     </message>
     <message role="tool_result" id="toolu_01Gs8FeqYsi7z7oiCoQtJENA" status="success" />
     <message role="assistant">The largest file is \`src/conversation/conversation.ts\` at 18,083 bytes. Let me show you its contents:</message>
     <message role="tool_use" id="toolu_01LFqgJVBfauy8vQLVdJfEW7">
         <name>shell_execute</name>
-        <parameters>"{\"command\": \"cat src/conversation/conversation.ts\"}"</parameters>
+        <parameters>{"command": "cat src/conversation/conversation.ts"}</parameters>
     </message>
     <message role="tool_result" id="toolu_01LFqgJVBfauy8vQLVdJfEW7" status="canceled" />
     <message role="user">Can you confirm this is a text file?</message>
     <message role="assistant">Let me check the file type using the \`file\` command:</message>
     <message role="tool_use" id="toolu_01S7Mx2H5u2dUpyhkjkfhBZG">
         <name>shell_execute</name>
-        <parameters>"{\"command\": \"file src/conversation/conversation.ts\"}"</parameters>
+        <parameters>{"command": "file src/conversation/conversation.ts"}</parameters>
     </message>
     <message role="tool_result" id="toolu_01S7Mx2H5u2dUpyhkjkfhBZG" status="success">
     <result>{"output":[{"content":"src/conversation/conversation.ts: ASCII text\n","type":"stdout"}]}</result>
@@ -101,14 +101,14 @@ You should instruct the AI assistant to continue its response.
     <message role="assistant">I'll help you list the current environment variables using the shell_execute function to run the \`env\` command.</message>
     <message role="tool_use" id="toolu_0189Mc8JPQKoo1dXy7VvnXsE">
         <name>shell_execute</name>
-        <parameters>"{\"command\": \"env\"}"</parameters>
+        <parameters>{"command": "env"}</parameters>
     </message>
     <message role="tool_result" id="toolu_0189Mc8JPQKoo1dXy7VvnXsE" status="canceled" />
     <message role="user">Nevermind, show the current git branch instead.</message>
     <message role="assistant">I'll help you determine the current git branch using the \`git branch\` command.</message>
         <message role="tool_use" id="toolu_01FnJx1gU2VXdE4mJdZMdVTn">
         <name>shell_execute</name>
-        <parameters>"{\"command\": \"git branch --show-current\"}"</parameters>
+        <parameters>{"command": "git branch --show-current"}</parameters>
     </message>
     <message role="tool_result" id="toolu_01FnJx1gU2VXdE4mJdZMdVTn" status="success">
         <result>{"output":[{"content":"ef/system-prompt-improvements\n","type":"stdout"}]}</result>
@@ -157,7 +157,7 @@ function serializeMessages(messages: Message[]): string {
                             return [
                                 `<message role="tool_use" id="${id}">`,
                                 `<name>${name}</name>`,
-                                `<parameters>${JSON.stringify(parameters)}</parameters>`,
+                                `<parameters>${parameters}</parameters>`,
                                 '</message>',
                             ].join('\n')
                         })
