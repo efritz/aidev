@@ -1,4 +1,4 @@
-import ollama, { Ollama, ChatResponse, Message, Tool } from 'ollama'
+import { ChatResponse, Message, Ollama, Tool } from 'ollama'
 import { tools as toolDefinitions } from '../../tools/tools'
 import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
@@ -9,7 +9,7 @@ import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
 // Create an Ollama client with a configurable host
-const ollamaClient = new Ollama({ host: process.env.OLLAMA_HOST  ||'http://localhost:11434' })
+const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
 
 export async function createOllamaProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
     const providerName = 'Ollama'
