@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises'
 import chalk from 'chalk'
 import { AssistantMessage, MetaMessage, UserMessage } from '../messages/messages'
+import { findMatchingRule } from '../rules/matcher'
 import { tools } from '../tools/tools'
 import { replayWriteFile } from '../util/fs/write'
 import { reviver, SaveFilePayload } from './commands/conversation/save'
@@ -42,7 +43,7 @@ export function replayMessages(context: ChatContext): void {
     for (const message of context.provider.conversationManager.visibleMessages()) {
         switch (message.role) {
             case 'meta':
-                replayMetaMessage(message)
+                replayMetaMessage(context, message)
                 break
 
             case 'user':
@@ -56,7 +57,7 @@ export function replayMessages(context: ChatContext): void {
     }
 }
 
-function replayMetaMessage(message: MetaMessage): void {
+function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
     switch (message.type) {
         case 'branch':
             console.log(`${chalk.dim('𐌖')} Created branch "${message.name}"`)
@@ -89,6 +90,18 @@ function replayMetaMessage(message: MetaMessage): void {
 
         case 'unstash':
             console.log(`${chalk.dim('ℹ')} Unstashed file "${chalk.red(message.path)}"`)
+            console.log()
+            break
+
+        case 'rule':
+            for (const rule of message.rules) {
+                if (findMatchingRule(context.rules, rule)) {
+                    console.log(`${chalk.dim('ℹ')} Activated rule "${chalk.red(rule.description)}"`)
+                } else {
+                    console.log(chalk.yellow(`ℹ Activated rule "${chalk.red(rule.description)}" cannot be found`))
+                }
+            }
+
             console.log()
             break
     }

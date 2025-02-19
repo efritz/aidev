@@ -2,14 +2,17 @@ import EventEmitter from 'events'
 import { Dirent } from 'fs'
 import { readdir, readFile } from 'fs/promises'
 import chokidar from 'chokidar'
+import { Rule } from '../rules/types'
 
 export interface ContextState {
+    rules: Rule[]
     files: Map<string, ContextFile>
     directories: Map<string, ContextDirectory>
 }
 
 export function createEmptyContextState(): ContextState {
     return {
+        rules: [],
         files: new Map<string, ContextFile>(),
         directories: new Map<string, ContextDirectory>(),
     }
@@ -18,6 +21,7 @@ export function createEmptyContextState(): ContextState {
 export interface ContextStateManager extends ContextState {
     events: EventEmitter
     dispose: () => void
+    addRule: (rule: Rule) => Promise<void>
     addFile: (path: string, reason: InclusionReason) => Promise<void>
     addDirectory: (path: string, reason: InclusionReason) => Promise<void>
     removeFile: (path: string) => boolean
@@ -85,6 +89,7 @@ export function createContextState(): ContextStateManager {
     watcher.on('all', async (eventName: string, path: string) => updateFile(path))
     watcher.on('all', async (eventName: string, path: string) => updateDirectory(path))
 
+    const rules: Rule[] = []
     const files = new Map<string, ContextFile>()
     const directories = new Map<string, ContextDirectory>()
 
@@ -122,6 +127,10 @@ export function createContextState(): ContextStateManager {
         watcher.add(path)
         await updateDirectory(path)
         return newDirectory
+    }
+
+    const addRule = async (rule: Rule): Promise<void> => {
+        rules.push(rule)
     }
 
     const addFile = async (path: string, reason: InclusionReason): Promise<void> => {
@@ -189,8 +198,10 @@ export function createContextState(): ContextStateManager {
     return {
         events,
         dispose,
+        rules,
         files,
         directories,
+        addRule,
         addFile,
         addDirectory,
         removeFile,

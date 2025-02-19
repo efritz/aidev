@@ -8,6 +8,7 @@ import {
     shouldIncludeFile,
 } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
+import { Rule, SerializableRule } from '../rules/types'
 import { extract } from '../util/lists/lists'
 
 export type Conversation<T> = ConversationManager & {
@@ -47,6 +48,8 @@ export type ConversationManager = {
     switchBranch(name: string): boolean
     renameBranch(oldName: string, newName: string): boolean
     removeBranch(name: string): { success: boolean; prunedBranches: string[] }
+
+    addRules(rules: Rule[]): void
 }
 
 type ConversationOptions<T> = {
@@ -128,6 +131,13 @@ export function createConversation<T>({
                     providerMessages.push(assistantMessagesToParam([message]))
                     postPush?.(providerMessages)
                     break
+
+                case 'meta':
+                    switch (message.type) {
+                        case 'rule':
+                            providerMessages.push(userMessageToParam(createRuleMessage(message.rules)))
+                            break
+                    }
             }
         }
 
@@ -404,6 +414,16 @@ export function createConversation<T>({
         }
     }
 
+    const addRules = (rules: Rule[]): void => {
+        pushMeta({
+            type: 'rule',
+            rules: rules.map(({ matcher, ...rest }) => ({
+                ...rest,
+                condition: matcher.condition(),
+            })),
+        })
+    }
+
     return {
         providerMessages,
         messages: () => chatMessages,
@@ -427,6 +447,7 @@ export function createConversation<T>({
         switchBranch,
         renameBranch,
         removeBranch,
+        addRules,
     }
 }
 
@@ -537,4 +558,17 @@ function sortPayloadsByPath<T>(payloads: { path: string; payload: T }[]): [strin
     }
 
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+}
+
+function createRuleMessage(rules: SerializableRule[]): UserMessage {
+    const payloads: string[] = []
+    for (const rule of rules) {
+        const activation = `Activated ${rule.timing === 'pre' ? 'before' : 'after'} the use of ${rule.tool} when ${rule.condition}`
+        payloads.push(`## ${rule.description}\n\n${activation}\n\n${rule.body}`)
+    }
+
+    return {
+        type: 'text',
+        content: 'Active rules have been updated.\n\n' + payloads.join('\n'),
+    }
 }
