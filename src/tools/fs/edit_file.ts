@@ -4,6 +4,7 @@ import { safeReadFile } from '../../util/fs/safe'
 import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { writeFileOperationMatcher } from './matcher'
 
 type Edit = { search: string; replacement: string }
 type EditResult = { stashed: boolean; originalContents: string; userEdits?: Edit[] }
@@ -85,6 +86,7 @@ export const editFile: Tool<EditResult> = {
             stashed: result?.stashed ?? false,
             userEdits: result?.userEdits,
         }),
+    ruleMatcherFactory: writeFileOperationMatcher,
 }
 
 function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<EditResult> {

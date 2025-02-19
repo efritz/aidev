@@ -1,3 +1,4 @@
+import { RuleMatcherFactory } from '../rules/types'
 import { ExecutionContext } from './context'
 
 export type Tool<T> = {
@@ -7,6 +8,7 @@ export type Tool<T> = {
     execute: Executor<T>
     replay: Replayer<T>
     serialize: Serializer<T>
+    ruleMatcherFactory?: RuleMatcherFactory
 }
 
 export type Executor<T> = (context: ExecutionContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult<T>>

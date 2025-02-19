@@ -1,4 +1,6 @@
 import chalk from 'chalk'
+import { ToolUse } from '../../messages/messages'
+import { RuleMatcher } from '../../rules/types'
 import { CancelError } from '../../util/interrupts/interrupts'
 import {
     ShellResult as BaseShellResult,
@@ -70,6 +72,31 @@ export const shellExecute: Tool<ShellResult> = {
             userEditedCommand: result?.userEditedCommand ?? false,
             output: serializeOutput(result?.output),
         }),
+    ruleMatcherFactory: {
+        parseMatchConfig: (config: Record<string, any>): RuleMatcher => {
+            if (typeof config['command'] !== 'string') {
+                throw new Error('shell_execute matcher requires regex string')
+            }
+
+            try {
+                const pattern = new RegExp(config['command'])
+
+                return {
+                    condition: () => `command matches ${pattern}`,
+                    matches: (tool: ToolUse): boolean => {
+                        if (tool.name !== 'shell_execute') {
+                            return false
+                        }
+
+                        const { command } = JSON.parse(tool.parameters) as { command: string }
+                        return pattern.test(command)
+                    },
+                }
+            } catch (error: any) {
+                throw new Error(`Invalid regex pattern: ${error.message}`)
+            }
+        },
+    },
 }
 
 async function confirmCommand(context: ExecutionContext, command: string): Promise<string | undefined> {
