@@ -139,6 +139,24 @@ The root of your project (where you launch the CLI) can contain special files to
 
 - `.aidev/system`: Will be injected verbatim into the system prompt.
 - `.aidev/ignore`: Can contain gitignore-like patterns that will filter out files or directories from being read into the context.
+- `.aidev/rules/<rule>.md`: Instructions to supply to the assistant to guide a particular action. Rule content contains free-form instructions, but must have valid YAML front matter indicating when the rule applies:
+
+```yaml
+---
+description: lint
+tool: write_file
+timing: post
+paths: '*.ts'
+---
+
+After writing TypeScript files, check for lint errors via `bun eslint`.
+```
+
+The `tool` field can be a subset of the tools supplied to the model. The tool type indicates which additional fields should be supplied.
+- When the tool is `write_file`, also supply a `paths` field with a glob of file paths relevant for the rule.
+- When the tool is `shell_execute`, also supply a `command` field with a regular expression matching relevant shell commands for the rule.
+
+The `timing` field may be either `pre` or `post`. A `pre`-tool invocation rule may cause a tool use to be revised before being presented to the user. A `post`-tool invocation rule may cause the assistant to perform additional actions after a tool is invoked.
 
 ### VSCode Extension Features
 

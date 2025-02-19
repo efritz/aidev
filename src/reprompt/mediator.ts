@@ -43,6 +43,12 @@ The current user request may not be the most recent message user in the conversa
 There may be more recent user messages acknowledging or clarifying the AI assistant's response.
 There may be more recent user messages with specific sub-requests attempting to refine the AI assistant's response.
 
+# Rules
+
+The conversation may include rules which are meant to guide the behavior of the assistant after a tool use.
+A rule that matches recent tool uses that indicates further required action from the assistant should be considered a user sub-request.
+All rules within the conversation should be considered, not just the ones immediately adjacent to the latest tool use.
+
 ## Example 1
 
 <conversation>
@@ -120,6 +126,37 @@ The previous user request, "List current environment variables", is no longer re
 The AI assistant has successfully determined the current git branch.
 You should instruct the AI assistant to end its response.
 
+## Example 4
+
+<conversation>
+    <message role="user">Write two sorting algorithms: bubble.ts and quick.ts.</message>
+    <message role="assistant">
+        I'll help you create two TypeScript files implementing bubble sort and quicksort algorithms. I'll write them with clear type definitions and comments.
+        Let's create these files one at a time.
+        First, let's create bubble.ts:
+    </message>
+    <message role="tool_use" id="toolu_017U6Cnxzd5bJQVXXXnb82QG">
+        <name>write_file</name>
+        <parameters>{"path": "bubble.ts", "contents": "<bubble sort implementation omitted>"}</parameters>
+    </message>
+    <message role="tool_result" id="toolu_017U6Cnxzd5bJQVXXXnb82QG" status="success" />
+    <message role="rule" description="baz" timing="after" tool="write_file" where="paths = *.ts">
+        After changing the code base, check for lint errors with "bun eslint".
+    </message>
+    <message role="assistant">I'll create quick.ts and then check for lint errors on both files.</message>
+    <message role="tool_use" id="toolu_012ts2S5HoFb7SoK6P5RsHtT">
+        <name>write_file</name>
+        <parameters>{"path": "quick.ts", "contents": "<quicksort implementation omitted>"}</parameters>
+    </message>
+    <message role="tool_result" id="toolu_012ts2S5HoFb7SoK6P5RsHtT" status="success" />
+</conversation>
+
+The current user request is "Write two sorting algorithms".
+The AI assistant has successfully written the files "bubble.ts" and "quick.ts".
+However, there is a rule indicating that "bun eslint" should be invoked after applying changes to files with the ".ts" extension.
+The AI assistant has not yet invoked "bun eslint" after the most recent file write.
+You should instruct the AI assistant to continue its response.
+
 # Response
 
 You should respond with two XML tags:
@@ -174,6 +211,14 @@ function serializeMessages(messages: Message[]): string {
                     } else {
                         return `<message role="tool_result" id="${message.toolUse.id}" status="${message.canceled ? 'canceled' : message.error ? 'error' : 'success'}" />`
                     }
+
+                case 'rule':
+                    return message.rules
+                        .map(
+                            rule =>
+                                `<message role="rule" description="${rule.description}" timing="${rule.timing === 'pre' ? 'before' : 'after'}" tool="${rule.tool}" condition="${rule.condition}">${rule.body}</message>`,
+                        )
+                        .join('\n')
             }
         })
         .join('\n')

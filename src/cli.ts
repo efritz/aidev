@@ -12,6 +12,8 @@ import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { getPreferences, Preferences } from './providers/preferences'
 import { initProviders, Providers } from './providers/providers'
+import { getRules } from './rules/loader'
+import { Rule } from './rules/types'
 import { safeReadFile } from './util/fs/safe'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
@@ -21,8 +23,10 @@ async function main() {
     // Make EventSource available globally for the MCP SSE transport
     ;(global as any).EventSource = EventSource
 
-    const limiter = createLimiter()
     const preferences = await getPreferences()
+    const rules = await getRules()
+
+    const limiter = createLimiter()
     const providers = await initProviders(preferences, limiter)
     const embeddingsClients = await initClients(preferences, limiter)
 
@@ -50,7 +54,7 @@ async function main() {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, providers, embeddingsClients, options.history, options.port)
+            chat(preferences, rules, providers, embeddingsClients, options.history, options.port)
         })
 
     program.parse(process.argv)
@@ -69,6 +73,14 @@ The contents of files and directories will be included in the conversation only 
 The contents of files and directories will be supplied by the user in a message starting with "Project context has been updated.".
 The contents of files and directories will always reflect the current state on-disk (including changes made outside of the conversation).
 Always base your understanding and responses on the most recent project context update for any given file.
+
+# Rules
+
+The conversation may include rules that guide the behavior of the assistant, particularly around the use of tools.
+Rules consist of a description, a condition under which it applies, and a set of instructions for the assistant to follow.
+Rules are dynamically added to the conversation when a relevant tool use is detected or likely to be used in the future.
+Once a rule is activated, the assistant must follow the instructions whenever the rule's activation condition is met.
+Relevant rules will be supplied by the user in a message starting with "Active rules have been updated.".
 
 # Working together
 
@@ -114,6 +126,7 @@ async function buildProjectInstructions(): Promise<string> {
 
 async function chat(
     preferences: Preferences,
+    rules: Rule[],
     providers: Providers,
     embeddingsClients: EmbeddingsClients,
     historyFilename?: string,
@@ -155,6 +168,7 @@ async function chat(
 
         context = {
             preferences,
+            rules,
             providers,
             embeddingsClients,
             interruptHandler,

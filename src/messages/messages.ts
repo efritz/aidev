@@ -1,3 +1,5 @@
+import { SerializableRule } from '../rules/types'
+
 export type Response = {
     messages: AssistantMessage[]
 }
@@ -47,6 +49,7 @@ export type MetaMessage =
     | StashMessage
     | UnstashMessage
     | ApplyStashMessage
+    | RuleMessage
 
 export type UndoMessage = { type: 'undo' }
 export type RedoMessage = { type: 'redo' }
@@ -57,3 +60,4 @@ export type SwitchMessage = { type: 'switch'; name: string }
 export type StashMessage = { type: 'stash'; path: string; content: string; originalContent: string; fromStash: boolean }
 export type UnstashMessage = { type: 'unstash'; path: string }
 export type ApplyStashMessage = { type: 'applyStash'; path: string; content: string; originalContent: string }
+export type RuleMessage = { type: 'rule'; rules: SerializableRule[] }

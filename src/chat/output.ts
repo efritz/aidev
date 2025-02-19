@@ -1,6 +1,32 @@
 import chalk from 'chalk'
-import { AssistantMessage } from '../messages/messages'
+import { AssistantMessage, Response } from '../messages/messages'
+import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
 import { createXmlPartialClosingTagPattern, createXmlPartialOpeningTagPattern, createXmlPattern } from '../util/xml/xml'
+import { ChatContext } from './context'
+
+export type Prefixes = {
+    progressPrefix: string
+    successPrefix: string
+    failurePrefix: string
+}
+
+export function promptWithPrefixes(
+    context: ChatContext,
+    { progressPrefix, successPrefix, failurePrefix }: Prefixes,
+    signal?: AbortSignal,
+): Promise<ProgressResult<Response>> {
+    const formatResponse = (r?: Response): string =>
+        (r?.messages || [])
+            .map(formatMessage)
+            .filter(message => message !== '')
+            .join('\n\n')
+
+    return withProgress<Response>(progress => context.provider.prompt(progress, signal), {
+        progress: prefixFormatter(progressPrefix, formatResponse),
+        success: prefixFormatter(successPrefix, formatResponse),
+        failure: prefixFormatter(failurePrefix, formatResponse),
+    })
+}
 
 const partialTagPatterns = ['thought'].flatMap(name => [
     createXmlPartialOpeningTagPattern(name),

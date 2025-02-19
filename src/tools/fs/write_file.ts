@@ -3,6 +3,7 @@ import { safeReadFile } from '../../util/fs/safe'
 import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { writeFileOperationMatcher } from './matcher'
 
 type WriteResult = {
     stashed: boolean
@@ -60,6 +61,7 @@ export const writeFile: Tool<WriteResult> = {
             stashed: result?.stashed ?? false,
             userEditedContents: result?.userEditedContents,
         }),
+    ruleMatcherFactory: writeFileOperationMatcher,
 }
 
 function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<WriteResult> {

@@ -5,11 +5,13 @@ import { EmbeddingsStore } from '../embeddings/store/store'
 import { Preferences } from '../providers/preferences'
 import { Provider } from '../providers/provider'
 import { Providers } from '../providers/providers'
+import { Rule } from '../rules/types'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
 
 export type ChatContext = {
     preferences: Preferences
+    rules: Rule[]
     providers: Providers
     embeddingsClients: EmbeddingsClients
     interruptHandler: InterruptHandler
