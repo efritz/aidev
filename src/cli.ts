@@ -12,6 +12,8 @@ import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { getPreferences, Preferences } from './providers/preferences'
 import { initProviders, Providers } from './providers/providers'
+import { getRules } from './rules/loader'
+import { Rule } from './rules/types'
 import { safeReadFile } from './util/fs/safe'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
@@ -21,8 +23,10 @@ async function main() {
     // Make EventSource available globally for the MCP SSE transport
     ;(global as any).EventSource = EventSource
 
-    const limiter = createLimiter()
     const preferences = await getPreferences()
+    const rules = await getRules()
+
+    const limiter = createLimiter()
     const providers = await initProviders(preferences, limiter)
     const embeddingsClients = await initClients(preferences, limiter)
 
@@ -50,7 +54,7 @@ async function main() {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, providers, embeddingsClients, options.history, options.port)
+            chat(preferences, rules, providers, embeddingsClients, options.history, options.port)
         })
 
     program.parse(process.argv)
@@ -114,6 +118,7 @@ async function buildProjectInstructions(): Promise<string> {
 
 async function chat(
     preferences: Preferences,
+    rules: Rule[],
     providers: Providers,
     embeddingsClients: EmbeddingsClients,
     historyFilename?: string,
@@ -155,6 +160,7 @@ async function chat(
 
         context = {
             preferences,
+            rules,
             providers,
             embeddingsClients,
             interruptHandler,
