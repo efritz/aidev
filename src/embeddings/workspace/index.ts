@@ -12,6 +12,10 @@ import { summarizeCodeBlocks, Summary } from './summarizer'
 
 export type IndexingProgress = {
     stateByFile: Map<string, string>
+    numChunks: number
+    numChunksSummarized: number
+    numEmbeddableChunks: number
+    numChunksEmbedded: number
 }
 
 export async function isIndexUpToDate(context: ChatContext): Promise<boolean> {
@@ -26,7 +30,13 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
         const { newMetaContent, outdatedHashes } = await analyzeWorkspaceFiles(store)
         await store.delete(outdatedHashes)
 
-        const progress: IndexingProgress = { stateByFile: new Map() }
+        const progress: IndexingProgress = {
+            stateByFile: new Map(),
+            numChunks: 0,
+            numChunksSummarized: 0,
+            numEmbeddableChunks: 0,
+            numChunksEmbedded: 0,
+        }
         for (const mc of newMetaContent) {
             progress.stateByFile.set(mc.filename, 'Pending...')
         }
@@ -71,7 +81,14 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
                 .slice(0, progressWindowSize)
                 .join('\n') + (extraCount > 0 ? `\n... and ${extraCount} more...` : '')
 
-        return `Indexing workspace... ${saved.length}/${entries.length} files indexed\n\n${snapshot}`
+        return [
+            `Indexing workspace...`,
+            `  - ${saved.length}/${entries.length} files indexed`,
+            `  - ${progress.numChunksSummarized}/${progress.numChunks} code chunks summarized`,
+            `  - ${progress.numChunksEmbedded}/${progress.numEmbeddableChunks} chunks embedded`,
+            ``,
+            `${snapshot}`,
+        ].join('\n')
     }
 
     try {
@@ -124,40 +141,47 @@ async function handleFile(
     progress: IndexingProgress,
     update: () => void,
 ): Promise<void> {
-    const updateState = (state: string) => {
-        progress.stateByFile.set(file.filename, state)
-        update()
-    }
+    const batch = await chunkFileAndHydrate(context, file, signal, progress, update)
+    progress.numEmbeddableChunks += batch.length
+    progress.stateByFile.set(file.filename, `Embedding ${batch.length} chunks...`)
+    update()
 
-    const batch = await chunkFileAndHydrate(context, file, signal, updateState)
-    updateState(`Embedding ${batch.length} chunks...`)
     await store.save(batch, signal)
-    updateState('Saved.')
+    progress.numChunksEmbedded += batch.length
+    progress.stateByFile.set(file.filename, 'Saved.')
+    update()
 }
 
 async function chunkFileAndHydrate(
     context: ChatContext,
     file: RawEmbeddableContent,
     signal: AbortSignal,
-    update: (state: string) => void,
+    progress: IndexingProgress,
+    update: () => void,
 ): Promise<EmbeddableContent[]> {
     for (const [languageName, { extensions }] of Object.entries(treesitterLanguages)) {
         if (!extensions.some(extension => file.filename.endsWith(extension))) {
             continue
         }
 
-        update('Splitting code...')
-        const blocks = await splitSourceCode(file.content, languageName as SupportedLanguage)
+        progress.stateByFile.set(file.filename, 'Splitting code...')
+        update()
 
+        const blocks = await splitSourceCode(file.content, languageName as SupportedLanguage)
         if (blocks.length === 0) {
             continue
         }
 
         let done = 0
-        update(`Summarizing ${done}/${blocks.length} code chunks...`)
+        progress.numChunks += blocks.length
+        progress.stateByFile.set(file.filename, `Summarizing ${done}/${blocks.length} code chunks...`)
+        update()
+
         const summariesByBlock = await summarizeCodeBlocks(context, file, blocks, signal, () => {
             done++
-            update(`Summarizing ${done}/${blocks.length} code chunks...`)
+            progress.numChunksSummarized++
+            progress.stateByFile.set(file.filename, `Summarizing ${done}/${blocks.length} code chunks...`)
+            update()
         })
 
         return blocks.map(block => blockToChunk(file, summariesByBlock, block))
