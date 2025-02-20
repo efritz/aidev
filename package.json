@@ -68,7 +68,7 @@
         "p-defer": "^4.0.1",
         "sqlite-vec": "^0.1.7-alpha.2",
         "tree-kill": "^1.2.2",
-        "tree-sitter": "^0.22.4",
+        "tree-sitter": "^0.21.1",
         "tree-sitter-go": "^0.23.4",
         "tree-sitter-typescript": "^0.23.2",
         "uuid": "^10.0.0",
