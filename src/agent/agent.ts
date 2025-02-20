@@ -39,7 +39,7 @@ export async function runAgent<T, R>(
             throw new Error(`Unexpected message type ${message.type} from agent.`)
         }
 
-        return agent.processMessage(context, message.content, args)
+        return await agent.processMessage(context, message.content, args)
     } catch (error: any) {
         if (signal?.aborted) {
             throw new CancelError('Agent aborted.')
