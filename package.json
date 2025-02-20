@@ -38,8 +38,9 @@
         "dev": "bun ./src/cli.ts --cwd ${PWD}",
         "clean": "rm -rf ./dist ai-0.0.0.vsix",
         "build": "bun run ./scripts/build-extension.ts",
+        "install-native": "yarn add tree-sitter tree-sitter-go tree-sitter-typescript --legacy-peer-deps",
         "vsce-package": "bun run vsce package",
-        "package": "bun run build && bun run vsce-package",
+        "package": "bun run install-native && bun run build && bun run vsce-package",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest"
