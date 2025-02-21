@@ -1,6 +1,6 @@
 import { Anthropic } from '@anthropic-ai/sdk'
 import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resources/messages'
-import { tools as toolDefinitions } from '../../tools/tools'
+import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
@@ -74,7 +74,7 @@ function createStreamFactory({
 }): StreamFactory<MessageStreamEvent, MessageParam> {
     const tools = disableTools
         ? []
-        : toolDefinitions.map(
+        : enabledTools.map(
               ({ name, description, parameters }): Tool => ({
                   name,
                   description,

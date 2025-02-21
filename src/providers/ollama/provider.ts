@@ -1,5 +1,5 @@
 import { ChatResponse, Message, Ollama, Tool } from 'ollama'
-import { tools as toolDefinitions } from '../../tools/tools'
+import { enabledTools } from '../../tools/tools'
 import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
@@ -67,7 +67,7 @@ function createStreamFactory({
 }): StreamFactory<ChatResponse, Message> {
     const tools = disableTools
         ? []
-        : toolDefinitions.map(
+        : enabledTools.map(
               ({ name, description, parameters }): Tool => ({
                   type: '',
                   function: {

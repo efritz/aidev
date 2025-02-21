@@ -1,6 +1,6 @@
 import path from 'path'
 import { parse } from 'yaml'
-import { tools } from '../tools/tools'
+import { enabledTools } from '../tools/tools'
 import { expandFilePatterns } from '../util/fs/glob'
 import { safeReadFile } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
@@ -41,7 +41,7 @@ async function parseRuleFile(path: string): Promise<Rule> {
         throw new Error('Malformed rule "${path}": rule timing must be either "pre" or "post"')
     }
 
-    const tool = tools.find(t => t.name === metadata.tool)
+    const tool = enabledTools.find(t => t.name === metadata.tool)
     if (!tool) {
         throw new Error(`Malformed rule "${path}": tool "${metadata.tool}" not found`)
     }

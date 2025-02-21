@@ -30,9 +30,11 @@ export const searchWorkspace: Tool<SearchResult> = {
         },
         required: ['query'],
     },
+    enabled: true,
     replay: (args: Arguments, { result }: ToolResult<SearchResult>) => {
         const { query } = args as { query: string }
         console.log(`${chalk.dim('ℹ')} Queried workspace index for "${query}".`)
+        console.log()
         displayMatches(result?.matches ?? [])
     },
     execute: async (
@@ -46,6 +48,7 @@ export const searchWorkspace: Tool<SearchResult> = {
 
         const { query } = args as { query: string }
         console.log(`${chalk.dim('ℹ')} Querying workspace index for "${query}"...`)
+        console.log()
 
         if (!(await isIndexUpToDate(context))) {
             console.log(chalk.red.bold('Workspace index is stale.'))
@@ -58,6 +61,8 @@ export const searchWorkspace: Tool<SearchResult> = {
             if (choice === 'y') {
                 await indexWorkspace(context)
             }
+
+            console.log()
         }
 
         const protoMatches: {
@@ -81,6 +86,8 @@ export const searchWorkspace: Tool<SearchResult> = {
         }))
 
         displayMatches(matches)
+        console.log()
+
         return { result: { matches }, reprompt: true }
     },
     serialize: ({ result }: ToolResult<SearchResult>) => JSON.stringify({ paths: result ?? [] }),
@@ -90,15 +97,15 @@ function displayMatches(matches: Match[]) {
     if (matches.length === 0) {
         console.log(`${chalk.dim('ℹ')} No files found in the workspace embeddings index matching the query.`)
     } else {
-        for (const { filename, names } of matches) {
+        for (const [i, { filename, names }] of matches.entries()) {
             if (names) {
-                console.log(`${chalk.dim('ℹ')} Found matching file "${chalk.red(filename)}":`)
+                console.log(`#${(i + 1).toString().padStart(2, '0')}: Found matching file "${chalk.red(filename)}":`)
 
                 for (const name of names) {
-                    console.log(`\t- "${chalk.red(name)}"`)
+                    console.log(`     - "${chalk.red(name)}"`)
                 }
             } else {
-                console.log(`${chalk.dim('ℹ')} Found matching file "${chalk.red(filename)}".`)
+                console.log(`#${(i + 1).toString().padStart(2, '0')}: Found matching file "${chalk.red(filename)}".`)
             }
         }
     }

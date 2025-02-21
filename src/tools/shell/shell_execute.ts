@@ -30,6 +30,7 @@ export const shellExecute: Tool<ShellResult> = {
         },
         required: ['command'],
     },
+    enabled: true,
     replay: (args: Arguments, { result, error, canceled }: ToolResult<ShellResult>) => {
         const { command: originalCommand } = args as { command: string }
 
