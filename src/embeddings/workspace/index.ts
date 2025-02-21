@@ -83,9 +83,11 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
 
         return [
             `Indexing workspace...`,
-            `  - ${saved.length}/${entries.length} files indexed`,
-            `  - ${progress.numChunksSummarized}/${progress.numChunks} code chunks summarized`,
+            ...(context.preferences.summarizerModel
+                ? [`  - ${progress.numChunksSummarized}/${progress.numChunks} code chunks summarized`]
+                : []),
             `  - ${progress.numChunksEmbedded}/${progress.numEmbeddableChunks} chunks embedded`,
+            `  - ${saved.length}/${entries.length} files indexed`,
             ``,
             `${snapshot}`,
         ].join('\n')
@@ -170,6 +172,15 @@ async function chunkFileAndHydrate(
         const blocks = await splitSourceCode(file.content, languageName as SupportedLanguage)
         if (blocks.length === 0) {
             continue
+        }
+
+        if (!context.preferences.summarizerModel) {
+            return blocks.map(block => ({
+                filename: file.filename,
+                filehash: file.filehash,
+                content: block.content,
+                name: block.name,
+            }))
         }
 
         let done = 0
