@@ -29,6 +29,7 @@ export const readFiles: Tool<string[]> = {
         },
         required: ['paths'],
     },
+    enabled: true,
     replay: (args: Arguments, { result }: ToolResult<string[]>) => {
         console.log(
             (result ?? []).map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),

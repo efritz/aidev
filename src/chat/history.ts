@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises'
 import chalk from 'chalk'
 import { AssistantMessage, MetaMessage, UserMessage } from '../messages/messages'
 import { findMatchingRule } from '../rules/matcher'
-import { tools } from '../tools/tools'
+import { enabledTools } from '../tools/tools'
 import { replayWriteFile } from '../util/fs/write'
 import { reviver, SaveFilePayload } from './commands/conversation/save'
 import { ChatContext, swapProvider } from './context'
@@ -116,7 +116,7 @@ function replayUserMessage(message: UserMessage): void {
         }
 
         case 'tool_result': {
-            const tool = tools.find(({ name }) => name === message.toolUse.name)
+            const tool = enabledTools.find(({ name }) => name === message.toolUse.name)
             if (!tool) {
                 throw new Error(`Tool not found: ${message.toolUse.name}`)
             }

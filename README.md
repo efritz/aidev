@@ -104,6 +104,7 @@ Tools available to the LLMs:
 - `write_file`: Writes contents to a file.
 - `edit_file`: Modifies the contents of an existing file.
 - `search_workspace`: Searches a local embeddings index for files closely related to an arbitrary query.
+- `search_web`: Uses the Brave Search API to search the web. Add a `brave.key` alongside provider keys to enable.
 
 ### Meta Commands
 

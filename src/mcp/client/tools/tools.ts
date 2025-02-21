@@ -1,5 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { tools } from '../../../tools/tools'
+import { enabledTools } from '../../../tools/tools'
 import { createToolFactory } from './tool'
 
 export async function registerTools(client?: Client) {
@@ -9,5 +9,5 @@ export async function registerTools(client?: Client) {
 
     const factory = createToolFactory(client)
     const { tools: mcpTools } = await client.listTools()
-    tools.push(...mcpTools.map(mcpTool => factory.create(mcpTool)))
+    enabledTools.push(...mcpTools.map(mcpTool => factory.create(mcpTool)))
 }

@@ -4,7 +4,7 @@ import {
     FunctionDeclaration,
     GoogleGenerativeAI,
 } from '@google/generative-ai'
-import { tools as toolDefinitions } from '../../tools/tools'
+import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
@@ -79,7 +79,7 @@ function createStreamFactory({
         ? []
         : [
               {
-                  functionDeclarations: toolDefinitions.map(
+                  functionDeclarations: enabledTools.map(
                       ({ name, description, parameters }): FunctionDeclaration => ({
                           name,
                           description,

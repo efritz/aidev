@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk'
 import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 import { ChatCompletionTool } from 'openai/resources'
-import { tools as toolDefinitions } from '../../tools/tools'
+import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
@@ -71,7 +71,7 @@ function createStreamFactory({
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
     const tools = disableTools
         ? []
-        : toolDefinitions.map(
+        : enabledTools.map(
               ({ name, description, parameters }): ChatCompletionTool => ({
                   type: 'function',
                   function: {

@@ -32,6 +32,7 @@ export const writeFile: Tool<WriteResult> = {
         },
         required: ['path', 'contents'],
     },
+    enabled: true,
     replay: (args: Arguments, { result, error, canceled }: ToolResult<WriteResult>) => {
         if (!result) {
             console.log()

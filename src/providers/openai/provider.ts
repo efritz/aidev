@@ -1,6 +1,6 @@
 import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
-import { tools as toolDefinitions } from '../../tools/tools'
+import { enabledTools } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { createProvider, StreamFactory } from '../factory'
@@ -83,7 +83,7 @@ function createStreamFactory({
     supportsStreaming: boolean
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
     const tools = supportsTools
-        ? toolDefinitions.map(
+        ? enabledTools.map(
               ({ name, description, parameters }): ChatCompletionTool => ({
                   type: 'function',
                   function: {

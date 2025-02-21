@@ -55,6 +55,7 @@ export const editFile: Tool<EditResult> = {
         },
         required: ['path', 'edits'],
     },
+    enabled: true,
     replay: (args: Arguments, { result, error, canceled }: ToolResult<EditResult>) => {
         if (!result) {
             console.log()

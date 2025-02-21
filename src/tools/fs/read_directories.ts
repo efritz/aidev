@@ -29,6 +29,7 @@ export const readDirectories: Tool<string[]> = {
         },
         required: ['paths'],
     },
+    enabled: true,
     replay: (args: Arguments, { result }: ToolResult<string[]>) => {
         console.log(
             (result ?? [])

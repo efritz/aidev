@@ -5,6 +5,7 @@ export type Tool<T> = {
     name: string
     description: string
     parameters: ParametersSchema
+    enabled: boolean
     execute: Executor<T>
     replay: Replayer<T>
     serialize: Serializer<T>
