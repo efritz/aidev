@@ -2,6 +2,7 @@ defaultModel: sonnet
 reprompterModel: haiku
 embeddingsModel: mxbai-embed-large
 summarizerModel: gpt-4o-mini
+webTranslatorModel: gpt-4o-mini
 providers:
     Anthropic:
         - name: haiku
