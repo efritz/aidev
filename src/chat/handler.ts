@@ -61,14 +61,17 @@ async function handle(context: ChatContext, message: string): Promise<void> {
 async function prompt(context: ChatContext): Promise<void> {
     while (true) {
         try {
-            if (!(await promptOnce(context))) {
-                break
+            const reprompt = await promptOnce(context)
+            if (reprompt) {
+                continue
             }
         } catch (error: any) {
             if (!(error instanceof CancelError)) {
                 throw error
             }
         }
+
+        break
     }
 }
 
