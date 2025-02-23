@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import { Agent, runAgent } from '../../agent/agent'
+import { withProgress } from '../../util/progress/progress'
 import { createXmlPattern } from '../../util/xml/xml'
 import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
@@ -44,32 +45,47 @@ export const readWeb: Tool<WebContent[]> = {
 
         const { urls } = args as { urls: string[] }
 
-        // TODO - progress here
+        const signal: AbortSignal | undefined = undefined // TODO
 
-        const summaries = await Promise.all(
-            (await Promise.all(urls.map(readUrl))).map(({ url, response, content }) => {
-                if (!response.ok) {
-                    throw new Error(`fetch error: ${response.status} ${response.statusText}\n${content}`) // TODO - return error instead
-                } else {
-                    return translate(context, url, content)
-                }
-            }),
+        const summaries = await withProgress<WebContent[]>(
+            async () =>
+                Promise.all(
+                    (await Promise.all(urls.map(url => readUrl(url, signal)))).map(({ url, response, content }) => {
+                        if (!response.ok) {
+                            throw new Error(`fetch error: ${response.status} ${response.statusText}\n${content}`) // TODO - return error instead
+                        } else {
+                            return translate(context, url, content)
+                        }
+                    }),
+                ),
+            {
+                // TODO - better
+                progress: () => `Reading "${urls.length} pages..."`,
+                success: () => `Read "${urls.length} pages".`,
+                failure: () => `Failed to read "${urls.length} pages".`,
+            },
         )
+        if (!summaries.ok) {
+            throw summaries.error
+        }
 
-        console.log(summaries.map(({ url }) => `${chalk.dim('ℹ')} Read "${chalk.red(url)}".`).join('\n'))
+        console.log(summaries.response.map(({ url }) => `${chalk.dim('ℹ')} Read "${chalk.red(url)}".`).join('\n'))
         console.log()
 
-        return { result: summaries, reprompt: true }
+        return { result: summaries.response, reprompt: true }
     },
     serialize: ({ result }: ToolResult<WebContent[]>) => JSON.stringify(result),
 }
 
-async function readUrl(url: string): Promise<{
+async function readUrl(
+    url: string,
+    signal?: AbortSignal,
+): Promise<{
     url: string
     response: Response
     content: string
 }> {
-    const response = await fetch(url, { headers })
+    const response = await fetch(url, { headers, redirect: 'follow', signal })
     const content = await response.text()
     return { url, response, content }
 }
@@ -89,7 +105,8 @@ const translatorAgent: Agent<{ url: string; content: string }, WebContent> = {
     buildUserMessage: async (_, { url, content }) => {
         return userMessageTemplate.replace('{{url}}', url).replace('{{content}}', content)
     },
-    processMessage: async (_, content, { url }) => {
+    processMessage: async (_, content, { url, content: content2 }) => {
+        console.log({ content, content2 })
         const contentMatch = createXmlPattern('content').exec(content)
         if (!contentMatch) {
             throw new Error(`Translator did not provide content:\n\n${content}`)
@@ -100,50 +117,49 @@ const translatorAgent: Agent<{ url: string; content: string }, WebContent> = {
             throw new Error(`Translator did not provide links:\n\n${content}`)
         }
 
-        console.log({
-            text: linksMatch[2].trim(),
-            linkMatches: matchAll(linksMatch[2].trim(), createXmlPattern('link')),
-        })
+        const links: string[] = []
+        const linksBlob = linksMatch[2].trim()
+        const linkPattern = createXmlPattern('link')
+
+        while (true) {
+            const match = linkPattern.exec(linksBlob)
+            if (match === null) {
+                break
+            }
+
+            links.push(match[2])
+        }
+
+        console.log({ url, content: contentMatch[2].trim(), links })
 
         return {
             url,
             content: contentMatch[2].trim(),
-            links: matchAll(linksMatch[2].trim(), createXmlPattern('link')),
+            links,
         }
     },
-}
-
-function matchAll(text: string, pattern: RegExp): string[] {
-    const matches: string[] = []
-
-    while (true) {
-        const match = pattern.exec(text)
-        if (match === null) {
-            break
-        }
-
-        matches.push(match[2])
-    }
-
-    return matches
 }
 
 const systemPromptTemplate = `
 You are a webpage translator.
 You are responsible for reading the content of a webpage and translating it into markdown.
-You will be given the URL from which the webpage was read and the content of the webpage.
+You will be given the URL from which the webpage was read and the raw content of the webpage.
 
 # Response
 
 You should respond with two XML tags:
 
-1. A <content> tag including the markdown translation of the webpage.
+1. A <links> tag listing the set of all href targets found in the raw content of the webpage.
+Each target should be an absolute URL.
+There may be targets that are relative to the current page (foo.html, ./foo.html, or ../foo.html) or to the current domain (/foo.html).
+Resolve these relative targets in relation to the URL of the current webpage given as input.
+Be sure to include all targets from the raw content, including targets found in headers, footers, navigation, and sidebars.
+Each target should be supplied within a child <link> tag.
+
+2. A <content> tag including the markdown translation of the webpage.
 The markdown translation should maintain the original content hierarchy and formatting of the webpage.
 The markdown translation should include only the main content of the webpage, excluding any headers, footers, or sidebars.
-
-2. A <links> tag enumerating the set of unique URLs found in the original content.
-Each URL should be supplied within a child <link> tag.
-Each URL should be absolute - if the original URL is relative, you should resolve it relative to the webpage URL.
+If there is no meaningful content, the <content> tag should be empty.
 
 Your response should contain nothing else but these two tags.
 `

@@ -2,7 +2,7 @@ defaultModel: sonnet
 reprompterModel: haiku
 embeddingsModel: mxbai-embed-large
 summarizerModel: gpt-4o-mini
-webTranslatorModel: gpt-4o-mini
+webTranslatorModel: gpt-4o-mini # sonnet # wtf
 providers:
     Anthropic:
         - name: haiku
