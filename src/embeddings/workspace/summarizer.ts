@@ -135,10 +135,6 @@ const summarizerAgent: Agent<
             .replace('{{children}}', resolvedChildSummaries.sort().join('\n') ?? 'No children defined')
     },
     processMessage: async (_, content) => {
-        if (content === '') {
-            throw new Error('EMPTY CONTENT')
-        }
-
         const signatureMatch = createXmlPattern('signature').exec(content)
         if (!signatureMatch) {
             throw new Error(`Summarizer did not provide a signature:\n\n${content}`)

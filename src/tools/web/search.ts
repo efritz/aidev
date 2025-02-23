@@ -60,11 +60,11 @@ export const searchWeb: Tool<SearchResult> = {
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<SearchResult>> => {
-        if (!braveApiKey) {
-            throw new Error('Brave API key is not defined.')
-        }
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
+        }
+        if (!braveApiKey) {
+            throw new Error('Brave API key is not defined.')
         }
 
         const { query } = args as { query: string }
@@ -108,7 +108,7 @@ export const searchWeb: Tool<SearchResult> = {
 
         return { result: { matches }, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<SearchResult>) => JSON.stringify({ result }),
+    serialize: ({ result }: ToolResult<SearchResult>) => JSON.stringify(result),
 }
 
 function displayMatches(matches: Match[]) {

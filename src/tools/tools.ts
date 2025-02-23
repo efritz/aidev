@@ -4,6 +4,7 @@ import { readFiles } from './fs/read_files'
 import { writeFile } from './fs/write_file'
 import { shellExecute } from './shell/shell_execute'
 import { Tool, ToolResult } from './tool'
+import { readWeb } from './web/read'
 import { searchWeb } from './web/search'
 import { searchWorkspace } from './workspace/search'
 
@@ -15,6 +16,7 @@ const allTools: Tool<any>[] = [
     editFile,
     searchWorkspace,
     searchWeb,
+    readWeb,
 ]
 
 export const enabledTools = allTools.filter(tool => tool.enabled)
