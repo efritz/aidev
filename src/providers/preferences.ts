@@ -12,6 +12,7 @@ export type Preferences = {
     reprompterModel: string
     embeddingsModel: string
     summarizerModel: string
+    webTranslatorModel: string
     providers: {
         [key: string]: Model[]
     }
