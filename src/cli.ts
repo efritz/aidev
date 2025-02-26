@@ -1,7 +1,7 @@
 import path from 'path'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
-import EventSource from 'eventsource'
+import { EventSource } from 'eventsource'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
 import { handler } from './chat/handler'
