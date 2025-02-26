@@ -3,6 +3,7 @@ import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } f
 import { enabledTools } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -10,7 +11,11 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer, toChunk } from './reducer'
 
-export async function createOpenAIProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
+export async function createOpenAIProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): Promise<ProviderSpec> {
     const providerName = 'OpenAI'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
@@ -20,18 +25,24 @@ export async function createOpenAIProviderSpec(preferences: Preferences, limiter
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createOpenAIProvider(providerName, apiKey ?? '', limiter),
+        factory: createOpenAIProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createOpenAIProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
-    return createOpenAICompatibleProvider(providerName, apiKey, limiter)
+function createOpenAIProvider(
+    providerName: string,
+    apiKey: string,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): ProviderFactory {
+    return createOpenAICompatibleProvider(providerName, apiKey, limiter, tracker)
 }
 
 export function createOpenAICompatibleProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,
+    tracker: UsageTracker,
     baseURL?: string,
 ): ProviderFactory {
     return async ({
@@ -43,6 +54,8 @@ export function createOpenAICompatibleProvider(
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new OpenAI({ apiKey, baseURL })
+        const modelTracker = tracker.trackerFor(modelName)
+
         const createStream = createStreamFactory({
             client,
             limiter,
@@ -58,7 +71,7 @@ export function createOpenAICompatibleProvider(
             modelName,
             system,
             createStream,
-            createStreamReducer,
+            createStreamReducer: () => createStreamReducer(modelTracker),
             createConversation: () =>
                 createConversation(contextState, system, options?.systemMessageRole ?? 'developer'),
         })
@@ -95,6 +108,7 @@ function createStreamFactory({
           )
         : undefined
 
+    // TODO - signal should return a cancellation error
     return wrapAsyncIterable(limiter, model, async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) => {
         const options = {
             model,
@@ -106,10 +120,13 @@ function createStreamFactory({
         }
 
         return supportsStreaming
-            ? client.chat.completions.create({ ...options, stream: true }, { signal })
+            ? client.chat.completions.create(
+                  { ...options, stream_options: { include_usage: true }, stream: true },
+                  { signal },
+              )
             : client.chat.completions
                   .create({ ...options, stream: false }, { signal })
                   .then(toChunk)
-                  .then(toIterable)
+                  .then(chunk => toIterable(async () => chunk))
     })
 }

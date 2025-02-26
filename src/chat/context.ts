@@ -8,12 +8,14 @@ import { Providers } from '../providers/providers'
 import { Rule } from '../rules/types'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
+import { UsageTracker } from '../util/usage/tracker'
 
 export type ChatContext = {
     preferences: Preferences
     rules: Rule[]
     providers: Providers
     embeddingsClients: EmbeddingsClients
+    tracker: UsageTracker
     interruptHandler: InterruptHandler
     prompter: Prompter
     provider: Provider

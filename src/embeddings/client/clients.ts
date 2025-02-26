@@ -1,5 +1,6 @@
 import { Preferences } from '../../providers/preferences'
 import { Limiter } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
 import { Client, ClientSpec } from './client'
 import { createOllamaClientSpec } from './ollama'
 import { createOpenAIClientSpec } from './openai'
@@ -10,14 +11,22 @@ export type EmbeddingsClients = {
     createClient(modelName: string): Promise<Client>
 }
 
-export type ClientSpecFactory = (preferences: Preferences, limiter: Limiter) => Promise<ClientSpec>
+export type ClientSpecFactory = (
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+) => Promise<ClientSpec>
 
 const clientSpecFactories: ClientSpecFactory[] = [createOpenAIClientSpec, createOllamaClientSpec]
 
-export const initClients = async (preferences: Preferences, limiter: Limiter): Promise<EmbeddingsClients> => {
+export const initClients = async (
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): Promise<EmbeddingsClients> => {
     const clientSpecs: ClientSpec[] = []
     for (const factory of clientSpecFactories) {
-        clientSpecs.push(await factory(preferences, limiter))
+        clientSpecs.push(await factory(preferences, limiter, tracker))
     }
 
     const allModelNames = clientSpecs.flatMap(({ models }) => models.map(({ name }) => name)).sort()

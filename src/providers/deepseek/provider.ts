@@ -1,10 +1,15 @@
 import { Limiter } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
 import { getKey } from '../keys'
 import { createOpenAICompatibleProvider } from '../openai/provider'
 import { Preferences } from '../preferences'
 import { ProviderFactory, ProviderSpec } from '../provider'
 
-export async function createDeepSeekProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
+export async function createDeepSeekProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): Promise<ProviderSpec> {
     const providerName = 'DeepSeek'
     const apiKey = await getKey(providerName)
 
@@ -12,12 +17,17 @@ export async function createDeepSeekProviderSpec(preferences: Preferences, limit
         providerName,
         models: preferences.providers[providerName] ?? [],
         needsAPIKey: !apiKey,
-        factory: createDeepSeekProvider(providerName, apiKey ?? '', limiter),
+        factory: createDeepSeekProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
 const baseURL = 'https://api.deepseek.com/v1'
 
-function createDeepSeekProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
-    return createOpenAICompatibleProvider(providerName, apiKey, limiter, baseURL)
+function createDeepSeekProvider(
+    providerName: string,
+    apiKey: string,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): ProviderFactory {
+    return createOpenAICompatibleProvider(providerName, apiKey, limiter, tracker, baseURL)
 }

@@ -1,12 +1,21 @@
 import { EnhancedGenerateContentResponse, FunctionCall } from '@google/generative-ai'
 import { AssistantMessage } from '../../messages/messages'
+import { ModelTracker } from '../../util/usage/tracker'
 import { Reducer } from '../reducer'
 
-export function createStreamReducer(): Reducer<EnhancedGenerateContentResponse> {
+export function createStreamReducer(tracker: ModelTracker): Reducer<EnhancedGenerateContentResponse> {
     const messages: AssistantMessage[] = []
     const functionCalls: FunctionCall[] = []
 
     const handleEvent = (part: EnhancedGenerateContentResponse) => {
+        const usage = part.usageMetadata
+        if (usage) {
+            tracker.add({
+                inputTokens: usage.promptTokenCount,
+                outputTokens: part.usageMetadata?.candidatesTokenCount,
+            })
+        }
+
         const text = part.text()
         if (text) {
             const last = messages[messages.length - 1]

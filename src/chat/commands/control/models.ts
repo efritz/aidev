@@ -11,5 +11,4 @@ async function handleModels(context: ChatContext, _args: string) {
     console.log()
     console.log(context.providers.formattedModels)
     console.log()
-    return
 }

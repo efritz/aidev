@@ -1,8 +1,9 @@
 import { ChatCompletion, ChatCompletionChunk } from 'openai/resources'
 import { AssistantMessage, ToolUse } from '../../messages/messages'
+import { ModelTracker } from '../../util/usage/tracker'
 import { Reducer } from '../reducer'
 
-export function createStreamReducer(): Reducer<ChatCompletionChunk> {
+export function createStreamReducer(tracker: ModelTracker): Reducer<ChatCompletionChunk> {
     const messages: AssistantMessage[] = []
 
     const handleTextChunk = (content: string) => {
@@ -41,12 +42,21 @@ export function createStreamReducer(): Reducer<ChatCompletionChunk> {
     }
 
     const handleEvent = (message: ChatCompletionChunk) => {
-        const { content, tool_calls: toolCalls } = message.choices[0].delta
-        if (content) {
-            handleTextChunk(content)
+        const usage = message.usage
+        if (usage) {
+            tracker.add({ inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens })
         }
-        if (toolCalls) {
-            handleToolCallChunk(toolCalls)
+
+        if (message.choices.length > 0) {
+            const { content, tool_calls: toolCalls } = message.choices[0].delta
+
+            if (content) {
+                handleTextChunk(content)
+            }
+
+            if (toolCalls) {
+                handleToolCallChunk(toolCalls)
+            }
         }
     }
 
