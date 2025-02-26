@@ -18,6 +18,7 @@ import { safeReadFile } from './util/fs/safe'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
+import { createUsageTracker, UsageTracker } from './util/usage/tracker'
 
 async function main() {
     // Make EventSource available globally for the MCP SSE transport
@@ -27,8 +28,9 @@ async function main() {
     const rules = await getRules()
 
     const limiter = createLimiter()
-    const providers = await initProviders(preferences, limiter)
-    const embeddingsClients = await initClients(preferences, limiter)
+    const tracker = createUsageTracker()
+    const providers = await initProviders(preferences, limiter, tracker)
+    const embeddingsClients = await initClients(preferences, limiter, tracker)
 
     program
         .name('ai')
@@ -54,7 +56,7 @@ async function main() {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, rules, providers, embeddingsClients, options.history, options.port)
+            chat(preferences, rules, providers, embeddingsClients, tracker, options.history, options.port)
         })
 
     program.parse(process.argv)
@@ -129,6 +131,7 @@ async function chat(
     rules: Rule[],
     providers: Providers,
     embeddingsClients: EmbeddingsClients,
+    tracker: UsageTracker,
     historyFilename?: string,
     port?: number,
 ) {
@@ -171,6 +174,7 @@ async function chat(
             rules,
             providers,
             embeddingsClients,
+            tracker,
             interruptHandler,
             prompter,
             provider,

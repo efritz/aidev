@@ -4,9 +4,10 @@ import {
     RawMessageStreamEvent,
 } from '@anthropic-ai/sdk/resources'
 import { AssistantMessage, TextMessage, ToolUseMessage } from '../../messages/messages'
+import { ModelTracker } from '../../util/usage/tracker'
 import { Reducer } from '../reducer'
 
-export function createStreamReducer(): Reducer<RawMessageStreamEvent> {
+export function createStreamReducer(tracker: ModelTracker): Reducer<RawMessageStreamEvent> {
     const messages: AssistantMessage[] = []
     const last = <T>() => messages[messages.length - 1] as T
 
@@ -41,6 +42,18 @@ export function createStreamReducer(): Reducer<RawMessageStreamEvent> {
 
     const handleEvent = (event: RawMessageStreamEvent) => {
         switch (event.type) {
+            case 'message_start': {
+                const usage = event.message.usage
+                tracker.add({ inputTokens: usage.input_tokens, outputTokens: usage.output_tokens })
+                break
+            }
+
+            case 'message_delta': {
+                const usage = event.usage
+                tracker.add({ outputTokens: usage.output_tokens })
+                break
+            }
+
             case 'content_block_start':
                 handleStart(event)
                 break

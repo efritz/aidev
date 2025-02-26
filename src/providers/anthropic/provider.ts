@@ -2,6 +2,7 @@ import { Anthropic } from '@anthropic-ai/sdk'
 import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resources/messages'
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -9,7 +10,11 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createAnthropicProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
+export async function createAnthropicProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): Promise<ProviderSpec> {
     const providerName = 'Anthropic'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
@@ -19,11 +24,16 @@ export async function createAnthropicProviderSpec(preferences: Preferences, limi
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createAnthropicProvider(providerName, apiKey ?? '', limiter),
+        factory: createAnthropicProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createAnthropicProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
+function createAnthropicProvider(
+    providerName: string,
+    apiKey: string,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): ProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model, options },
@@ -34,6 +44,8 @@ function createAnthropicProvider(providerName: string, apiKey: string, limiter: 
     }: ProviderOptions): Promise<Provider> => {
         const defaultHeaders = options?.headers
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
+        const modelTracker = tracker.trackerFor(modelName)
+
         const createStream = createStreamFactory({
             client,
             limiter,
@@ -49,7 +61,7 @@ function createAnthropicProvider(providerName: string, apiKey: string, limiter: 
             modelName,
             system,
             createStream,
-            createStreamReducer,
+            createStreamReducer: () => createStreamReducer(modelTracker),
             createConversation: () => createConversation(contextState),
         })
     }

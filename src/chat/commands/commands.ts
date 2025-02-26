@@ -7,6 +7,7 @@ import { loaddirCommand } from './context/loaddir'
 import { unloadCommand } from './context/unload'
 import { unstashCommand } from './context/unstash'
 import { writeCommand } from './context/write'
+import { costCommand } from './control/cost'
 import { exitCommand } from './control/exit'
 import { helpCommand } from './control/help'
 import { modelCommand } from './control/model'
@@ -32,6 +33,7 @@ export const commands: CommandDescription[] = [
     branchCommand,
     clearCommand,
     continueCommand,
+    costCommand,
     dumpCommand,
     exitCommand,
     helpCommand,

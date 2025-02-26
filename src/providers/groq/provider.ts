@@ -3,6 +3,7 @@ import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resour
 import { ChatCompletionTool } from 'openai/resources'
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -10,7 +11,11 @@ import { Provider, ProviderOptions, ProviderSpec, registerModelLimits } from '..
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createGroqProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
+export async function createGroqProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): Promise<ProviderSpec> {
     const providerName = 'Groq'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
@@ -20,11 +25,11 @@ export async function createGroqProviderSpec(preferences: Preferences, limiter: 
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createGroqProvider(providerName, apiKey ?? '', limiter),
+        factory: createGroqProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createGroqProvider(providerName: string, apiKey: string, limiter: Limiter) {
+function createGroqProvider(providerName: string, apiKey: string, limiter: Limiter, tracker: UsageTracker) {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -34,6 +39,8 @@ function createGroqProvider(providerName: string, apiKey: string, limiter: Limit
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new Groq({ apiKey })
+        const modelTracker = tracker.trackerFor(modelName)
+
         const createStream = createStreamFactory({
             client,
             limiter,
@@ -48,7 +55,7 @@ function createGroqProvider(providerName: string, apiKey: string, limiter: Limit
             modelName,
             system,
             createStream,
-            createStreamReducer,
+            createStreamReducer: () => createStreamReducer(modelTracker),
             createConversation: () => createConversation(contextState, system),
         })
     }

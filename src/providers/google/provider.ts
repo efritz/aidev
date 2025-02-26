@@ -6,6 +6,7 @@ import {
 } from '@google/generative-ai'
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
 import { createProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
@@ -13,7 +14,11 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-export async function createGoogleProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
+export async function createGoogleProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): Promise<ProviderSpec> {
     const providerName = 'Google'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
@@ -23,11 +28,16 @@ export async function createGoogleProviderSpec(preferences: Preferences, limiter
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createGoogleProvider(providerName, apiKey ?? '', limiter),
+        factory: createGoogleProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createGoogleProvider(providerName: string, apiKey: string, limiter: Limiter): ProviderFactory {
+function createGoogleProvider(
+    providerName: string,
+    apiKey: string,
+    limiter: Limiter,
+    tracker: UsageTracker,
+): ProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -37,6 +47,8 @@ function createGoogleProvider(providerName: string, apiKey: string, limiter: Lim
         disableTools,
     }: ProviderOptions): Promise<Provider> => {
         const client = new GoogleGenerativeAI(apiKey)
+        const modelTracker = tracker.trackerFor(modelName)
+
         const createStream = createStreamFactory({
             client,
             limiter,
@@ -52,7 +64,7 @@ function createGoogleProvider(providerName: string, apiKey: string, limiter: Lim
             modelName,
             system,
             createStream,
-            createStreamReducer,
+            createStreamReducer: () => createStreamReducer(modelTracker),
             createConversation: () => createConversation(contextState),
         })
     }
