@@ -1,0 +1,4 @@
+- name: mxbai-embed-large
+  model: mxbai-embed-large
+  dimensions: 1024
+  maxInput: 4096

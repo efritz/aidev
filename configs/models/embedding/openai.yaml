@@ -1,0 +1,4 @@
+- name: text-embedding-3-small
+  model: text-embedding-3-small
+  dimensions: 1536
+  maxInput: 8191

@@ -1,10 +1,9 @@
-import { readFile } from 'fs/promises'
 import path from 'path'
 import chalk from 'chalk'
-import { parse } from 'yaml'
 import { Model as EmbeddingModel } from '../embeddings/client/client'
 import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
+import { loadYamlFromFile } from '../util/yaml/load'
 import { Model } from './provider'
 
 export type Preferences = {
@@ -25,7 +24,7 @@ const repoRoot = path.join(__dirname, '..', '..')
 const defaultPreferencesPath = path.join(repoRoot, 'configs', 'preferences.default.yaml')
 
 export async function getPreferences(): Promise<Preferences> {
-    return parse(await readFile(await preferencesPath(), 'utf-8'))
+    return loadYamlFromFile(await preferencesPath())
 }
 
 async function preferencesPath(): Promise<string> {
