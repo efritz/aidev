@@ -57,6 +57,7 @@
         "chokidar": "^4.0.3",
         "commander": "^13.1.0",
         "copy-paste": "^1.5.3",
+        "deepmerge": "^4.3.1",
         "diff": "^7.0.0",
         "eventsource": "^3.0.5",
         "glob": "^11.0.1",

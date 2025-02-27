@@ -1,0 +1,2 @@
+- name: llama3-70b
+  model: llama3-70b-8192

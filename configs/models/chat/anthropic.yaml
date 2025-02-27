@@ -1,0 +1,8 @@
+- name: haiku
+  model: claude-3-haiku-20240307
+
+- name: sonnet
+  model: claude-3-7-sonnet-20250219
+
+- name: opus
+  model: claude-3-opus-20240229

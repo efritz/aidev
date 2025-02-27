@@ -1,0 +1,10 @@
+- name: deepseek-chat
+  model: deepseek-chat
+  options:
+      systemMessageRole: system
+
+- name: deepseek-reasoner
+  model: deepseek-reasoner
+  options:
+      systemMessageRole: system
+      supportsTools: false
