@@ -1,30 +1,53 @@
 import path from 'path'
 import chalk from 'chalk'
-import { Model as EmbeddingModel } from '../embeddings/client/client'
+import { z } from 'zod'
 import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
 import { loadYamlFromFile } from '../util/yaml/load'
-import { Model } from './provider'
 
-export type Preferences = {
-    defaultModel: string
-    reprompterModel: string
-    embeddingsModel: string
-    summarizerModel: string
-    webTranslatorModel: string
-    providers: {
-        [key: string]: Model[]
-    }
-    embeddings: {
-        [key: string]: EmbeddingModel[]
-    }
-}
+const ChatModelSchema = z.object({
+    name: z.string(),
+    model: z.string(),
+    options: z
+        .object({
+            systemMessageRole: z.string().optional(),
+            supportsStreaming: z.boolean().optional(),
+            supportsTools: z.boolean().optional(),
+            minimumTempature: z.number().optional(),
+        })
+        .optional(),
+    maxPerSecond: z.number().optional(),
+    maxConcurrent: z.number().optional(),
+})
+
+const EmbeddingModelSchema = z.object({
+    name: z.string(),
+    model: z.string(),
+    dimensions: z.number(),
+    maxInput: z.number(),
+    maxPerSecond: z.number().optional(),
+    maxConcurrent: z.number().optional(),
+})
+
+const PreferencesSchema = z.object({
+    defaultModel: z.string(),
+    reprompterModel: z.string(),
+    embeddingsModel: z.string(),
+    summarizerModel: z.string(),
+    webTranslatorModel: z.string(),
+    providers: z.record(z.string(), z.array(ChatModelSchema)),
+    embeddings: z.record(z.string(), z.array(EmbeddingModelSchema)),
+})
+
+export type ChatModel = z.infer<typeof ChatModelSchema>
+export type EmbeddingsModel = z.infer<typeof EmbeddingModelSchema>
+export type Preferences = z.infer<typeof PreferencesSchema>
 
 const repoRoot = path.join(__dirname, '..', '..')
 const defaultPreferencesPath = path.join(repoRoot, 'configs', 'preferences.default.yaml')
 
 export async function getPreferences(): Promise<Preferences> {
-    return loadYamlFromFile(await preferencesPath())
+    return PreferencesSchema.parse(await loadYamlFromFile(await preferencesPath()))
 }
 
 async function preferencesPath(): Promise<string> {

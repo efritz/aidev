@@ -1,13 +1,7 @@
+import { EmbeddingsModel } from '../../providers/preferences'
 import { Limiter } from '../../util/ratelimits/limiter'
 
-export type Model = {
-    name: string
-    model: string
-    dimensions: number
-    maxInput: number
-    maxPerSecond?: number
-    maxConcurrent?: number
-}
+export type Model = EmbeddingsModel
 
 export function registerModelLimits(limiter: Limiter, model: Model) {
     limiter.setConfig({
