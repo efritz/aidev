@@ -33,9 +33,7 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
         return
     }
 
-    for (const path of paths) {
-        await context.contextStateManager.addDirectory(path, { type: 'explicit' })
-    }
+    await context.contextStateManager.addDirectories(paths, { type: 'explicit' })
 
     paths.sort()
     const message = paths.map(path => `${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`).join('\n')

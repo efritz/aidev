@@ -77,7 +77,7 @@ export const editFile: Tool<EditResult> = {
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits, path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
-        await context.contextStateManager.addFile(path, { type: 'tool_use', toolUseClass: 'write', toolUseId })
+        await context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseClass: 'write', toolUseId })
         return editExecutionResultFromWriteResult(result)
     },
     serialize: ({ result, error, canceled }: ToolResult<EditResult>) =>

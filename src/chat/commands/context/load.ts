@@ -33,9 +33,7 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
         return
     }
 
-    for (const path of paths) {
-        await context.contextStateManager.addFile(path, { type: 'explicit' })
-    }
+    await context.contextStateManager.addFiles(paths, { type: 'explicit' })
 
     paths.sort()
     const message = paths.map(path => `${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`).join('\n')

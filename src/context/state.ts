@@ -3,6 +3,7 @@ import { Dirent } from 'fs'
 import { readdir, readFile } from 'fs/promises'
 import chokidar from 'chokidar'
 import { Rule } from '../rules/types'
+import { createIgnoredPathFilterer } from '../util/fs/ignore'
 
 export interface ContextState {
     rules: Rule[]
@@ -22,8 +23,8 @@ export interface ContextStateManager extends ContextState {
     events: EventEmitter
     dispose: () => void
     addRule: (rule: Rule) => Promise<void>
-    addFile: (path: string, reason: InclusionReason) => Promise<void>
-    addDirectory: (path: string, reason: InclusionReason) => Promise<void>
+    addFiles: (paths: string | string[], reason: InclusionReason) => Promise<void>
+    addDirectories: (paths: string | string[], reason: InclusionReason) => Promise<void>
     removeFile: (path: string) => boolean
     removeDirectory: (path: string) => boolean
 }
@@ -51,52 +52,61 @@ export type InclusionReason =
     | { type: 'tool_use'; toolUseClass: 'read' | 'write'; toolUseId: string }
     | { type: 'editor'; currentlyOpen: boolean }
 
-export function createContextState(): ContextStateManager {
+export async function createContextState(): Promise<ContextStateManager> {
+    const pathFilterer = await createIgnoredPathFilterer()
+
     const events = new EventEmitter()
-    const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false })
+    const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false, ignored: path => !pathFilterer(path) })
     const dispose = () => watcher.close()
-
-    const updateFile = async (path: string) => {
-        const file = files.get(path)
-        if (file) {
-            try {
-                file.content = (await readFile(path, 'utf-8')).toString()
-            } catch (error: any) {
-                file.content = { error: `Error reading file: ${error.message}` }
-            }
-
-            events.emit('change', path)
-        }
-    }
-
-    const updateDirectory = async (path: string) => {
-        const directory = directories.get(path)
-        if (directory) {
-            try {
-                directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
-                    name: entry.name,
-                    isFile: entry.isFile(),
-                    isDirectory: entry.isDirectory(),
-                }))
-            } catch (error: any) {
-                directory.entries = { error: `Error reading directory: ${error.message}` }
-            }
-
-            events.emit('change', path)
-        }
-    }
-
-    watcher.on('all', async (eventName: string, path: string) => updateFile(path))
-    watcher.on('all', async (eventName: string, path: string) => updateDirectory(path))
 
     const rules: Rule[] = []
     const files = new Map<string, ContextFile>()
     const directories = new Map<string, ContextDirectory>()
 
-    const getOrCreateFile = async (path: string): Promise<ContextFile> => {
+    const updateFileOrDirectory = (path: string) => Promise.all([updateFile(path), updateDirectory(path)])
+
+    const updateFile = async (path: string) => {
+        const file = files.get(path)
+        if (!file) {
+            return
+        }
+
+        try {
+            file.content = (await readFile(path, 'utf-8')).toString()
+        } catch (error: any) {
+            file.content = { error: `Error reading file: ${error.message}` }
+        }
+
+        events.emit('change', path)
+    }
+
+    const updateDirectory = async (path: string) => {
+        const directory = directories.get(path)
+        if (!directory) {
+            return
+        }
+
+        try {
+            directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
+                name: entry.name,
+                isFile: entry.isFile(),
+                isDirectory: entry.isDirectory(),
+            }))
+        } catch (error: any) {
+            directory.entries = { error: `Error reading directory: ${error.message}` }
+        }
+
+        events.emit('change', path)
+    }
+
+    watcher.on('all', async (eventName: string, path: string) => updateFileOrDirectory(path))
+
+    const getOrCreateFiles = async (paths: string | string[]): Promise<ContextFile[]> => {
+        const path = (Array.isArray(paths) ? paths : [paths])[0] // TODO
+
         const file = files.get(path)
         if (file) {
-            return file
+            return [file]
         }
 
         const newFile: ContextFile = {
@@ -108,13 +118,15 @@ export function createContextState(): ContextStateManager {
         files.set(path, newFile)
         watcher.add(path)
         await updateFile(path)
-        return newFile
+        return [newFile]
     }
 
-    const getOrCreateDirectory = async (path: string): Promise<ContextDirectory> => {
+    const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
+        const path = (Array.isArray(paths) ? paths : [paths])[0] // TODO
+
         const directory = directories.get(path)
         if (directory) {
-            return directory
+            return [directory]
         }
 
         const newDirectory: ContextDirectory = {
@@ -126,21 +138,25 @@ export function createContextState(): ContextStateManager {
         directories.set(path, newDirectory)
         watcher.add(path)
         await updateDirectory(path)
-        return newDirectory
+        return [newDirectory]
     }
 
     const addRule = async (rule: Rule): Promise<void> => {
         rules.push(rule)
     }
 
-    const addFile = async (path: string, reason: InclusionReason): Promise<void> => {
-        const { inclusionReasons } = await getOrCreateFile(path)
-        updateInclusionReasons(inclusionReasons, reason)
+    const addFiles = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
+        for (const file of await getOrCreateFiles(paths)) {
+            const { inclusionReasons } = file
+            updateInclusionReasons(inclusionReasons, reason)
+        }
     }
 
-    const addDirectory = async (path: string, reason: InclusionReason): Promise<void> => {
-        const { inclusionReasons } = await getOrCreateDirectory(path)
-        updateInclusionReasons(inclusionReasons, reason)
+    const addDirectories = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
+        for (const directory of await getOrCreateDirectory(paths)) {
+            const { inclusionReasons } = directory
+            updateInclusionReasons(inclusionReasons, reason)
+        }
     }
 
     const removeFile = (path: string): boolean => {
@@ -202,8 +218,8 @@ export function createContextState(): ContextStateManager {
         files,
         directories,
         addRule,
-        addFile,
-        addDirectory,
+        addFiles,
+        addDirectories,
         removeFile,
         removeDirectory,
     }

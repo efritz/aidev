@@ -139,7 +139,7 @@ async function chat(
         throw new Error('chat command is not supported in this environment.')
     }
 
-    const contextStateManager = createContextState()
+    const contextStateManager = await createContextState()
     const system = await buildSystemPrompt()
 
     let context: ChatContext
