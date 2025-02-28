@@ -11,12 +11,18 @@ import { Provider, ProviderOptions, ProviderSpec, registerModelLimits } from '..
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'Groq'
+
+export const GroqProviderFactory = {
+    name: providerName,
+    create: createGroqProviderSpec,
+}
+
 export async function createGroqProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
 ): Promise<ProviderSpec> {
-    const providerName = 'Groq'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))

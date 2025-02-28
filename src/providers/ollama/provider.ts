@@ -8,11 +8,17 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'Ollama'
+
+export const OllamaProviderFactory = {
+    name: providerName,
+    create: createOllamaProviderSpec,
+}
+
 // Create an Ollama client with a configurable host
 const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
 
 export async function createOllamaProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
-    const providerName = 'Ollama'
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
 

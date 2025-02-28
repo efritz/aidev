@@ -5,12 +5,18 @@ import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
 import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
 
+const providerName = 'OpenAI'
+
+export const OpenAIClientFactory = {
+    name: providerName,
+    create: createOpenAIClientSpec,
+}
+
 export async function createOpenAIClientSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
 ): Promise<ClientSpec> {
-    const providerName = 'OpenAI'
     const apiKey = await getKey(providerName)
     const models = preferences.embeddings[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))

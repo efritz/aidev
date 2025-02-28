@@ -10,12 +10,18 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'Anthropic'
+
+export const AnthropicProviderFactory = {
+    name: providerName,
+    create: createAnthropicProviderSpec,
+}
+
 export async function createAnthropicProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
 ): Promise<ProviderSpec> {
-    const providerName = 'Anthropic'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))

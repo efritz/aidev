@@ -1,9 +1,11 @@
 import path from 'path'
 import chalk from 'chalk'
 import { z } from 'zod'
+import { clientSpecFactories } from '../embeddings/client/clients'
 import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
 import { loadYamlFromFile } from '../util/yaml/load'
+import { providerSpecFactories } from './providers'
 
 const ChatModelSchema = z.object({
     name: z.string(),
@@ -35,8 +37,14 @@ const PreferencesSchema = z.object({
     embeddingsModel: z.string(),
     summarizerModel: z.string(),
     webTranslatorModel: z.string(),
-    providers: z.record(z.string(), z.array(ChatModelSchema)),
-    embeddings: z.record(z.string(), z.array(EmbeddingModelSchema)),
+    providers: z.record(
+        z.enum(providerSpecFactories.map(f => f.name) as [string, ...string[]]),
+        z.array(ChatModelSchema),
+    ),
+    embeddings: z.record(
+        z.enum(clientSpecFactories.map(f => f.name) as [string, ...string[]]),
+        z.array(EmbeddingModelSchema),
+    ),
 })
 
 export type ChatModel = z.infer<typeof ChatModelSchema>

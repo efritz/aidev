@@ -14,12 +14,18 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
+const providerName = 'Google'
+
+export const GoogleProviderFactory = {
+    name: providerName,
+    create: createGoogleProviderSpec,
+}
+
 export async function createGoogleProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
 ): Promise<ProviderSpec> {
-    const providerName = 'Google'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))

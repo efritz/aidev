@@ -55,7 +55,7 @@ const queriesPath = path.join(repoRoot, 'configs', 'languages.yaml')
 const LanguagesConfigSchema = z.object({
     languages: z.array(
         z.object({
-            name: z.string(),
+            name: z.enum(Object.keys(treesitterLanguages) as [string, ...string[]]),
             extensions: z.array(z.string()),
             queries: z.record(z.string()),
         }),

@@ -3,12 +3,17 @@ import { Preferences } from '../../providers/preferences'
 import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
 
+const providerName = 'Ollama'
+
+export const OllamaClientFactory = {
+    name: providerName,
+    create: createOllamaClientSpec,
+}
+
 // Create an Ollama client with a configurable host
 const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
 
 export async function createOllamaClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
-    const providerName = 'Ollama'
-
     const models = preferences.embeddings[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
 

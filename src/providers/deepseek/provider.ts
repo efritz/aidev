@@ -5,12 +5,18 @@ import { createOpenAICompatibleProvider } from '../openai/provider'
 import { Preferences } from '../preferences'
 import { ProviderFactory, ProviderSpec } from '../provider'
 
+const providerName = 'DeepSeek'
+
+export const DeepSeekProviderFactory = {
+    name: providerName,
+    create: createDeepSeekProviderSpec,
+}
+
 export async function createDeepSeekProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
 ): Promise<ProviderSpec> {
-    const providerName = 'DeepSeek'
     const apiKey = await getKey(providerName)
 
     return {

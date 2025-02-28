@@ -11,12 +11,18 @@ import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModel
 import { createConversation } from './conversation'
 import { createStreamReducer, toChunk } from './reducer'
 
+const providerName = 'OpenAI'
+
+export const OpenAIProviderFactory = {
+    name: providerName,
+    create: createOpenAIProviderSpec,
+}
+
 export async function createOpenAIProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
 ): Promise<ProviderSpec> {
-    const providerName = 'OpenAI'
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))

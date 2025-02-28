@@ -1,11 +1,11 @@
 import { Limiter } from '../util/ratelimits/limiter'
 import { UsageTracker } from '../util/usage/tracker'
-import { createAnthropicProviderSpec } from './anthropic/provider'
-import { createDeepSeekProviderSpec } from './deepseek/provider'
-import { createGoogleProviderSpec } from './google/provider'
-import { createGroqProviderSpec } from './groq/provider'
-import { createOllamaProviderSpec } from './ollama/provider'
-import { createOpenAIProviderSpec } from './openai/provider'
+import { AnthropicProviderFactory } from './anthropic/provider'
+import { DeepSeekProviderFactory } from './deepseek/provider'
+import { GoogleProviderFactory } from './google/provider'
+import { GroqProviderFactory } from './groq/provider'
+import { OllamaProviderFactory } from './ollama/provider'
+import { OpenAIProviderFactory } from './openai/provider'
 import { Preferences } from './preferences'
 import { ProviderOptions as BaseProviderOptions, Provider, ProviderSpec } from './provider'
 
@@ -20,19 +20,18 @@ export type ProviderOptions = Omit<BaseProviderOptions, 'model'> & {
     modelName: string
 }
 
-export type ProviderSpecFactory = (
-    preferences: Preferences,
-    limiter: Limiter,
-    tracker: UsageTracker,
-) => Promise<ProviderSpec>
+export type ProviderSpecFactory = {
+    name: string
+    create: (preferences: Preferences, limiter: Limiter, tracker: UsageTracker) => Promise<ProviderSpec>
+}
 
-const providerSpecFactories: ProviderSpecFactory[] = [
-    createAnthropicProviderSpec,
-    createGoogleProviderSpec,
-    createGroqProviderSpec,
-    createOllamaProviderSpec,
-    createOpenAIProviderSpec,
-    createDeepSeekProviderSpec,
+export const providerSpecFactories: ProviderSpecFactory[] = [
+    AnthropicProviderFactory,
+    GoogleProviderFactory,
+    GroqProviderFactory,
+    OllamaProviderFactory,
+    OpenAIProviderFactory,
+    DeepSeekProviderFactory,
 ]
 
 export const initProviders = async (
@@ -42,7 +41,7 @@ export const initProviders = async (
 ): Promise<Providers> => {
     const providerSpecs: ProviderSpec[] = []
     for (const factory of providerSpecFactories) {
-        providerSpecs.push(await factory(preferences, limiter, tracker))
+        providerSpecs.push(await factory.create(preferences, limiter, tracker))
     }
 
     const allModelNames = providerSpecs.flatMap(({ models }) => models.map(({ name }) => name)).sort()
