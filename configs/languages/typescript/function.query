@@ -1,0 +1,19 @@
+[
+  (function_declaration
+    name: (identifier) @name
+  ) @function
+
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier) @name
+      value: [(arrow_function) (function_expression)]
+    ) @function_expr
+  )
+
+  (variable_declaration
+    (variable_declarator
+      name: (identifier) @name
+      value: [(arrow_function) (function_expression)]
+    ) @function_expr
+  )
+]

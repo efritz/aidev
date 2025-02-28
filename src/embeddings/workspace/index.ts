@@ -7,7 +7,7 @@ import { CancelError } from '../../util/interrupts/interrupts'
 import { ProgressResult, Updater, withProgress } from '../../util/progress/progress'
 import { EmbeddableContent, EmbeddingsStore, RawEmbeddableContent } from '../store/store'
 import { CodeBlock, splitSourceCode } from './code'
-import { SupportedLanguage, treesitterLanguages } from './languages'
+import { createParsers } from './languages'
 import { summarizeCodeBlocks, Summary } from './summarizer'
 
 export type IndexingProgress = {
@@ -161,15 +161,15 @@ async function chunkFileAndHydrate(
     progress: IndexingProgress,
     update: () => void,
 ): Promise<EmbeddableContent[]> {
-    for (const [languageName, { extensions }] of Object.entries(treesitterLanguages)) {
-        if (!extensions.some(extension => file.filename.endsWith(extension))) {
+    for (const language of await createParsers()) {
+        if (!language.extensions.some(extension => file.filename.endsWith(extension))) {
             continue
         }
 
         progress.stateByFile.set(file.filename, 'Splitting code...')
         update()
 
-        const blocks = await splitSourceCode(file.content, languageName as SupportedLanguage)
+        const blocks = await splitSourceCode(file.content, language)
         if (blocks.length === 0) {
             continue
         }

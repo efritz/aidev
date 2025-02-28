@@ -1,0 +1,21 @@
+[
+  (type_declaration
+    (type_spec
+      name: (type_identifier) @name
+      type: (struct_type)
+    ) @struct
+  )
+
+  (type_declaration
+    (type_spec
+      name: (type_identifier) @name
+      type: (interface_type)
+    ) @interface
+  )
+
+  (type_declaration
+    (type_spec
+      name: (type_identifier) @name
+    ) @type
+  )
+]

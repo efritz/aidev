@@ -1,59 +1,69 @@
-import { readFile } from 'fs/promises'
 import path from 'path'
-import Parser from 'tree-sitter'
+import Parser, { Query } from 'tree-sitter'
 import Go from 'tree-sitter-go'
 import TypeScript from 'tree-sitter-typescript'
-import { parse } from 'yaml'
+import { z } from 'zod'
+import { loadYamlFromFile } from '../../util/yaml/load'
 
 export type LanguageConfiguration = {
     name: string
-    queries: Map<string, string>
-    language: Parser.Language
+    extensions: string[]
+    parser: Parser
+    queries: Map<string, Parser.Query>
+}
+
+let parsers: Promise<LanguageConfiguration[]> | undefined = undefined
+
+export function createParsers(): Promise<LanguageConfiguration[]> {
+    if (!parsers) {
+        parsers = createParsersUncached()
+    }
+
+    return parsers
+}
+
+const treesitterLanguages = {
+    go: Go as Parser.Language,
+    typescript: TypeScript.typescript as Parser.Language,
+}
+
+async function createParsersUncached(): Promise<LanguageConfiguration[]> {
+    const { languages } = await readLanguageConfigurations()
+
+    return languages.map(({ name, extensions, queries: queryTexts }) => {
+        if (!Object.keys(treesitterLanguages).includes(name)) {
+            throw new Error(`Unsupported language (no treesitter grammar): ${name}`)
+        }
+
+        const language = treesitterLanguages[name as keyof typeof treesitterLanguages]
+
+        const parser = new Parser()
+        parser.setLanguage(language)
+
+        return {
+            name,
+            extensions,
+            parser,
+            queries: new Map(Object.entries(queryTexts).map(([type, query]) => [type, new Query(language, query)])),
+        }
+    })
 }
 
 const repoRoot = path.join(__dirname, '..', '..', '..')
 const queriesPath = path.join(repoRoot, 'configs', 'languages.yaml')
 
-export const treesitterLanguages = {
-    go: { language: Go, extensions: ['.go'] },
-    typescript: { language: TypeScript.typescript, extensions: ['.ts', '.js', '.tsx', '.jsx'] },
-}
+const LanguagesConfigSchema = z.object({
+    languages: z.array(
+        z.object({
+            name: z.string(),
+            extensions: z.array(z.string()),
+            queries: z.record(z.string()),
+        }),
+    ),
+})
 
-export type SupportedLanguage = keyof typeof treesitterLanguages
+type LanguagesConfig = z.infer<typeof LanguagesConfigSchema>
 
-export async function readLanguageConfiguration(laguageName: SupportedLanguage): Promise<LanguageConfiguration> {
-    const languageConfig = (await readLanguageConfigurations()).get(laguageName)
-    if (!languageConfig) {
-        throw new Error(`Unsupported language (no configuration): ${laguageName}`)
-    }
-
-    return languageConfig
-}
-
-type rawLanguageConfig = {
-    name: string
-    queries: {
-        [key: string]: string
-    }
-}
-
-export async function readLanguageConfigurations(): Promise<Map<string, LanguageConfiguration>> {
-    const { languages } = parse(await readFile(queriesPath, 'utf-8')) as {
-        languages: rawLanguageConfig[]
-    }
-
-    const configurations = new Map()
-    for (const language of languages) {
-        if (!Object.keys(treesitterLanguages).includes(language.name)) {
-            throw new Error(`Unsupported language (no treesitter grammar): ${language.name}`)
-        }
-
-        configurations.set(language.name, {
-            name: language.name,
-            queries: new Map(Object.entries(language.queries)),
-            language: treesitterLanguages[language.name as SupportedLanguage].language,
-        })
-    }
-
-    return configurations
+async function readLanguageConfigurations(): Promise<LanguagesConfig> {
+    return LanguagesConfigSchema.parse(await loadYamlFromFile(queriesPath))
 }
