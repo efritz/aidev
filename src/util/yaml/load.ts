@@ -24,9 +24,14 @@ async function processIncludeDirectives<T extends object>(
             throw new Error(`Invalid include path: "${includePath}"`)
         }
 
-        const resolvedPath = path.isAbsolute(includePath) ? includePath : path.resolve(baseDir, includePath)
-        const included = await loadYamlFromFile(resolvedPath, path.dirname(resolvedPath))
-        result = merge(result, included)
+        const resolvedPath = path.resolve(baseDir, includePath)
+
+        result = merge(
+            result,
+            resolvedPath.endsWith('.yaml')
+                ? await loadYamlFromFile(resolvedPath, path.dirname(resolvedPath))
+                : await readFile(resolvedPath, 'utf-8'),
+        )
     }
 
     return processNestedIncludeDirectives(result, baseDir)

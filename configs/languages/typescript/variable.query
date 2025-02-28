@@ -1,0 +1,47 @@
+; Top-level let/const (no export)
+(
+  (program
+    (lexical_declaration
+      (variable_declarator
+        name: (identifier) @name
+      )
+    ) @declaration
+  )
+)
+
+; Top-level let/const (with export)
+(
+  (program
+    (export_statement
+      (lexical_declaration
+        (variable_declarator
+          name: (identifier) @name
+        )
+      )
+    ) @declaration
+  )
+)
+
+; Top-level var (no export)
+(
+  (program
+    (variable_declaration
+      (variable_declarator
+        name: (identifier) @name
+      )
+    ) @declaration
+  )
+)
+
+; Top-level var (with export)
+(
+  (program
+    (export_statement
+      (variable_declaration
+        (variable_declarator
+          name: (identifier) @name
+        )
+      )
+    ) @declaration
+  )
+)

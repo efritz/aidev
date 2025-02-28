@@ -1,5 +1,5 @@
-import Parser, { Query } from 'tree-sitter'
-import { readLanguageConfiguration, SupportedLanguage } from './languages'
+import Parser from 'tree-sitter'
+import { LanguageConfiguration } from './languages'
 
 export interface CodeBlock {
     name: string
@@ -12,12 +12,11 @@ export interface CodeBlock {
     children: CodeBlock[]
 }
 
-export async function splitSourceCode(content: string, languageName: SupportedLanguage): Promise<CodeBlock[]> {
-    const { parser, queries } = await createParser(languageName)
-    const tree = parser.parse(content)
+export async function splitSourceCode(content: string, language: LanguageConfiguration): Promise<CodeBlock[]> {
+    const tree = language.parser.parse(content)
 
     const blocks: CodeBlock[] = []
-    for (const [queryType, query] of queries.entries()) {
+    for (const [queryType, query] of language.queries.entries()) {
         for (const match of query.matches(tree.rootNode)) {
             const block = convertMatchToCodeBlock(content, queryType, match)
             if (block) {
@@ -55,33 +54,6 @@ export async function splitSourceCode(content: string, languageName: SupportedLa
     }
 
     return blocks
-}
-
-type ParserAndQueries = {
-    parser: Parser
-    queries: Map<string, Parser.Query>
-}
-
-const parserMap = new Map<SupportedLanguage, Promise<ParserAndQueries>>()
-
-async function createParser(languageName: SupportedLanguage): Promise<ParserAndQueries> {
-    if (parserMap.has(languageName)) {
-        return parserMap.get(languageName)!
-    }
-
-    const promise = createParserUncached(languageName)
-    parserMap.set(languageName, promise)
-    return promise
-}
-
-async function createParserUncached(languageName: SupportedLanguage): Promise<ParserAndQueries> {
-    const { language, queries: queryTexts } = await readLanguageConfiguration(languageName)
-
-    const parser = new Parser()
-    parser.setLanguage(language)
-    const queries = new Map(queryTexts.entries().map(([type, query]) => [type, new Query(language, query)]))
-
-    return { parser, queries }
 }
 
 function convertMatchToCodeBlock(content: string, queryType: string, match: Parser.QueryMatch): CodeBlock | undefined {

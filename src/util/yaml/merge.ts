@@ -1,22 +1,22 @@
 import deepmerge from 'deepmerge'
 
-export function merge(result: any, extra: any): any {
-    return Array.isArray(extra) ? mergeArrays(result, extra) : mergeObjects(result, extra)
-}
-
-function mergeArrays(result: any, included: any[]): any {
+export function merge(result: any, included: any): any {
     if (Object.keys(result).length === 0) {
         return included
     }
 
-    if (Array.isArray(result)) {
+    if (typeof included === 'string') {
+        throw new Error('Cannot merge string into object')
+    }
+
+    if (Array.isArray(included)) {
+        if (!Array.isArray(result)) {
+            throw new Error('Cannot merge array into object')
+        }
+
         return result.concat(included)
     }
 
-    throw new Error('mixed')
-}
-
-function mergeObjects(result: any, included: any): any {
     return deepmerge(result, included, {
         arrayMerge: (target: any[], source: any[], options: any) => {
             const destination = target.slice()
