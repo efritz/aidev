@@ -114,6 +114,7 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:branch <branch>`: Create a new branch in the conversation.
 - `:clear`: Clear all messages in the conversation.
 - `:continue`: Re-prompt the model without a user message.
+- `:cost`: Show token counts of calls to remote LLM APIs in this conversation.
 - `:exit`: Exit the conversation.
 - `:help`: Display available commands.
 - `:load <patterns, ...>`: Load file contents into the conversation.
