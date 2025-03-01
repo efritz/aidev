@@ -102,43 +102,55 @@ export async function createContextState(): Promise<ContextStateManager> {
     watcher.on('all', async (eventName: string, path: string) => updateFileOrDirectory(path))
 
     const getOrCreateFiles = async (paths: string | string[]): Promise<ContextFile[]> => {
-        const path = (Array.isArray(paths) ? paths : [paths])[0] // TODO
+        const newPaths: string[] = []
+        const ps = await Promise.all(
+            (Array.isArray(paths) ? paths : [paths]).map(async path => {
+                const file = files.get(path)
+                if (file) {
+                    return file
+                }
 
-        const file = files.get(path)
-        if (file) {
-            return [file]
-        }
+                const newFile: ContextFile = {
+                    path,
+                    inclusionReasons: [],
+                    content: { error: 'File not yet read' },
+                }
 
-        const newFile: ContextFile = {
-            path,
-            inclusionReasons: [],
-            content: { error: 'File not yet read' },
-        }
+                files.set(path, newFile)
+                await updateFile(path)
+                newPaths.push(path)
+                return newFile
+            }),
+        )
 
-        files.set(path, newFile)
-        watcher.add(path)
-        await updateFile(path)
-        return [newFile]
+        watcher.add(newPaths)
+        return ps
     }
 
     const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
-        const path = (Array.isArray(paths) ? paths : [paths])[0] // TODO
+        const newPaths: string[] = []
+        const ps = await Promise.all(
+            (Array.isArray(paths) ? paths : [paths]).map(async path => {
+                const directory = directories.get(path)
+                if (directory) {
+                    return directory
+                }
 
-        const directory = directories.get(path)
-        if (directory) {
-            return [directory]
-        }
+                const newDirectory: ContextDirectory = {
+                    path,
+                    inclusionReasons: [],
+                    entries: { error: 'Directory not yet read' },
+                }
 
-        const newDirectory: ContextDirectory = {
-            path,
-            inclusionReasons: [],
-            entries: { error: 'Directory not yet read' },
-        }
+                directories.set(path, newDirectory)
+                await updateDirectory(path)
+                newPaths.push(path)
+                return newDirectory
+            }),
+        )
 
-        directories.set(path, newDirectory)
-        watcher.add(path)
-        await updateDirectory(path)
-        return [newDirectory]
+        watcher.add(newPaths)
+        return ps
     }
 
     const addRule = async (rule: Rule): Promise<void> => {
