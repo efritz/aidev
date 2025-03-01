@@ -1,5 +1,5 @@
+import { ChatContext } from '../chat/context'
 import { RuleMatcherFactory } from '../rules/types'
-import { ExecutionContext } from './context'
 
 export type Tool<T> = {
     name: string
@@ -12,7 +12,7 @@ export type Tool<T> = {
     ruleMatcherFactory?: RuleMatcherFactory
 }
 
-export type Executor<T> = (context: ExecutionContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult<T>>
+export type Executor<T> = (context: ChatContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult<T>>
 export type Arguments = Record<string, unknown>
 export type ToolResult<T> = { result?: T; error?: Error; canceled?: boolean }
 export type ExecutionResult<T> = ToolResult<T> & { reprompt?: boolean }

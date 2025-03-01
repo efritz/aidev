@@ -1,7 +1,7 @@
 import chalk from 'chalk'
+import { ChatContext } from '../../chat/context'
 import { expandDirectoryPatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 export const readDirectories: Tool<string[]> = {
@@ -37,11 +37,7 @@ export const readDirectories: Tool<string[]> = {
                 .join('\n'),
         )
     },
-    execute: async (
-        context: ExecutionContext,
-        toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<string[]>> => {
+    execute: async (context: ChatContext, toolUseId: string, args: Arguments): Promise<ExecutionResult<string[]>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }

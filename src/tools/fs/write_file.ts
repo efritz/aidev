@@ -1,7 +1,7 @@
 import chalk from 'chalk'
+import { ChatContext } from '../../chat/context'
 import { safeReadFile } from '../../util/fs/safe'
 import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 import { writeFileOperationMatcher } from './matcher'
 
@@ -45,7 +45,7 @@ export const writeFile: Tool<WriteResult> = {
         }
     },
     execute: async (
-        context: ExecutionContext,
+        context: ChatContext,
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<WriteResult>> => {

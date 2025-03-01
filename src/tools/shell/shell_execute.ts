@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { ChatContext } from '../../chat/context'
 import { ToolUse } from '../../messages/messages'
 import { RuleMatcher } from '../../rules/types'
 import { CancelError } from '../../util/interrupts/interrupts'
@@ -10,7 +11,6 @@ import {
     serializeOutput,
 } from '../../util/shell/exec'
 import { withContentEditor } from '../../util/vscode/edit'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 type ShellResult = BaseShellResult & {
@@ -44,7 +44,7 @@ export const shellExecute: Tool<ShellResult> = {
         console.log(formatShellResult({ result, error, canceled }))
     },
     execute: async (
-        context: ExecutionContext,
+        context: ChatContext,
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<ShellResult>> => {
@@ -100,7 +100,7 @@ export const shellExecute: Tool<ShellResult> = {
     },
 }
 
-async function confirmCommand(context: ExecutionContext, command: string): Promise<string | undefined> {
+async function confirmCommand(context: ChatContext, command: string): Promise<string | undefined> {
     while (true) {
         const choice = await context.prompter.choice('Execute this command', [
             { name: 'y', description: 'execute the command as-is' },

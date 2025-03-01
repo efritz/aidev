@@ -1,7 +1,7 @@
 import { spawn } from 'child_process'
 import chalk from 'chalk'
 import treeKill from 'tree-kill'
-import { ExecutionContext } from '../../tools/context'
+import { ChatContext } from '../../chat/context'
 import { CancelError } from '../interrupts/interrupts'
 import { prefixFormatter, Updater, withProgress } from '../progress/progress'
 
@@ -16,7 +16,7 @@ export type OutputLine = {
 }
 
 export async function executeCommand(
-    context: ExecutionContext,
+    context: ChatContext,
     command: string,
 ): Promise<{ result?: ShellResult; error?: Error; canceled?: boolean }> {
     const response = await withProgress<OutputLine[]>(update => runCommand(context, command, update), {
@@ -36,11 +36,7 @@ export async function executeCommand(
     }
 }
 
-async function runCommand(
-    context: ExecutionContext,
-    command: string,
-    update: Updater<OutputLine[]>,
-): Promise<OutputLine[]> {
+async function runCommand(context: ChatContext, command: string, update: Updater<OutputLine[]>): Promise<OutputLine[]> {
     return context.interruptHandler.withInterruptHandler(signal => {
         return new Promise((resolve, reject) => {
             const output: OutputLine[] = []

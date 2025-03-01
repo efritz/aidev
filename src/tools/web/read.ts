@@ -1,8 +1,8 @@
 import chalk from 'chalk'
 import { Agent, runAgent } from '../../agent/agent'
+import { ChatContext } from '../../chat/context'
 import { prefixFormatter, withProgress } from '../../util/progress/progress'
 import { createXmlPattern } from '../../util/xml/xml'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 type WebResult = {
@@ -62,7 +62,7 @@ export const readWeb: Tool<WebResult[]> = {
         )
     },
     execute: async (
-        context: ExecutionContext,
+        context: ChatContext,
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<WebResult[]>> => {
@@ -155,7 +155,7 @@ async function readUrl(url: string, signal?: AbortSignal): Promise<Errorable<Res
 }
 
 async function translate(
-    context: ExecutionContext,
+    context: ChatContext,
     url: string,
     content: string,
     signal?: AbortSignal,

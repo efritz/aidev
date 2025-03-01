@@ -3,7 +3,6 @@ import { Response, ToolUse } from '../messages/messages'
 import { shouldReprompt } from '../reprompt/mediator'
 import { matchNewPostInvocationRules, matchNewPreInvocationRules } from '../rules/matcher'
 import { Rule } from '../rules/types'
-import { ExecutionContext } from '../tools/context'
 import { ExecutionResult } from '../tools/tool'
 import { findTool } from '../tools/tools'
 import { ProgressResult, withProgress } from '../util/progress/progress'
@@ -40,7 +39,7 @@ const rulePrefixes = {
 }
 
 async function reviseToolUses(
-    context: ExecutionContext,
+    context: ChatContext,
     toolUses: ToolUse[],
     rules: Rule[],
     signal?: AbortSignal,
@@ -136,25 +135,25 @@ export async function runTools(context: ChatContext, toolUses: ToolUse[], signal
     return result.response
 }
 
-async function runTool(context: ExecutionContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
+async function runTool(context: ChatContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
     const { reprompt, ...rest } = await executeTool(context, toolUse)
     pushToolResult(context, toolUse, { ...rest })
     return { reprompt }
 }
 
-function cancelTool(context: ExecutionContext, toolUse: ToolUse): void {
+function cancelTool(context: ChatContext, toolUse: ToolUse): void {
     pushToolResult(context, toolUse, { canceled: true })
 }
 
 function pushToolResult(
-    context: ExecutionContext,
+    context: ChatContext,
     toolUse: ToolUse,
     result: { result?: any; error?: Error; canceled?: boolean },
 ): void {
     context.provider.conversationManager.pushUser({ type: 'tool_result', toolUse, ...result })
 }
 
-async function executeTool(context: ExecutionContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
+async function executeTool(context: ChatContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
     const tool = findTool(toolUse.name)
     const args = toolUse.parameters ? JSON.parse(toolUse.parameters) : {}
 

@@ -1,7 +1,7 @@
 import chalk from 'chalk'
+import { ChatContext } from '../../chat/context'
 import { indexWorkspace, isIndexUpToDate } from '../../embeddings/workspace'
 import { queryWorkspace } from '../../embeddings/workspace/query'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 type SearchResult = {
@@ -38,7 +38,7 @@ export const searchWorkspace: Tool<SearchResult> = {
         displayMatches(result?.matches ?? [])
     },
     execute: async (
-        context: ExecutionContext,
+        context: ChatContext,
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<SearchResult>> => {

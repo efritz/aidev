@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol'
 import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types'
 import chalk from 'chalk'
-import { ExecutionContext } from '../../../tools/context'
+import { ChatContext } from '../../../chat/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
 import { CancelError } from '../../../util/interrupts/interrupts'
 import { prefixFormatter, withProgress } from '../../../util/progress/progress'
@@ -46,11 +46,7 @@ export function createToolFactory(client: Client): Factory {
         }
     }
 
-    const execute = async (
-        context: ExecutionContext,
-        name: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<Result>> => {
+    const execute = async (context: ChatContext, name: string, args: Arguments): Promise<ExecutionResult<Result>> => {
         const nameAndArgs = `${name}: ${serializeArgs(args)}`
         const progressFormatter = prefixFormatter(`Executing remote tool ${nameAndArgs}`, formatOutput)
         const successFormatter = prefixFormatter(`Executed remote tool ${nameAndArgs}`, formatOutput)

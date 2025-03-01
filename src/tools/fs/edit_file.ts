@@ -1,8 +1,8 @@
 import chalk from 'chalk'
 import { structuredPatch } from 'diff'
+import { ChatContext } from '../../chat/context'
 import { safeReadFile } from '../../util/fs/safe'
 import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 import { writeFileOperationMatcher } from './matcher'
 
@@ -68,11 +68,7 @@ export const editFile: Tool<EditResult> = {
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
     },
-    execute: async (
-        context: ExecutionContext,
-        toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<EditResult>> => {
+    execute: async (context: ChatContext, toolUseId: string, args: Arguments): Promise<ExecutionResult<EditResult>> => {
         const { path, edits } = safeInterpretParameters(args)
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits, path)

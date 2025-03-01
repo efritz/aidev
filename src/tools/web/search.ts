@@ -1,7 +1,7 @@
 import chalk from 'chalk'
+import { ChatContext } from '../../chat/context'
 import { getKey } from '../../providers/keys'
 import { withProgress } from '../../util/progress/progress'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 type SearchResult = {
@@ -56,7 +56,7 @@ export const searchWeb: Tool<SearchResult> = {
         displayMatches(result?.matches ?? [])
     },
     execute: async (
-        context: ExecutionContext,
+        context: ChatContext,
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<SearchResult>> => {

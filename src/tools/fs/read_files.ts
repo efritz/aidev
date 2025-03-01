@@ -1,7 +1,7 @@
 import chalk from 'chalk'
+import { ChatContext } from '../../chat/context'
 import { expandFilePatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
-import { ExecutionContext } from '../context'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 export const readFiles: Tool<string[]> = {
@@ -35,11 +35,7 @@ export const readFiles: Tool<string[]> = {
             (result ?? []).map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),
         )
     },
-    execute: async (
-        context: ExecutionContext,
-        toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<string[]>> => {
+    execute: async (context: ChatContext, toolUseId: string, args: Arguments): Promise<ExecutionResult<string[]>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
