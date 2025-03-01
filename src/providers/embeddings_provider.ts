@@ -1,9 +1,7 @@
 import { Limiter } from '../util/ratelimits/limiter'
 import { EmbeddingsModel } from './preferences'
 
-export type Model = EmbeddingsModel
-
-export function registerModelLimits(limiter: Limiter, model: Model) {
+export function registerModelLimits(limiter: Limiter, model: EmbeddingsModel) {
     limiter.setConfig({
         name: model.model,
         maxPerSecond: model.maxPerSecond,
@@ -21,13 +19,13 @@ export interface EmbeddingsProvider {
 
 export interface EmbeddingsProviderSpec {
     providerName: string
-    models: Model[]
+    models: EmbeddingsModel[]
     needsAPIKey: boolean
     factory: EmbeddingsProviderFactory
 }
 
 export type EmbeddingsProviderOptions = {
-    model: Model
+    model: EmbeddingsModel
 }
 
 export type EmbeddingsProviderFactory = (opts: EmbeddingsProviderOptions) => Promise<EmbeddingsProvider>

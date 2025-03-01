@@ -4,9 +4,7 @@ import { Response } from '../messages/messages'
 import { Limiter } from '../util/ratelimits/limiter'
 import { ChatModel } from './preferences'
 
-export type Model = ChatModel
-
-export function registerModelLimits(limiter: Limiter, model: Model) {
+export function registerModelLimits(limiter: Limiter, model: ChatModel) {
     limiter.setConfig({
         name: model.model,
         maxPerSecond: model.maxPerSecond,
@@ -26,14 +24,14 @@ export type ChatProvider = {
 
 export type ChatProviderSpec = {
     providerName: string
-    models: Model[]
+    models: ChatModel[]
     needsAPIKey: boolean
     factory: ChatProviderFactory
 }
 
 export type ChatProviderOptions = {
     contextState: ContextState
-    model: Model
+    model: ChatModel
     system: string
     temperature?: number
     maxTokens?: number
