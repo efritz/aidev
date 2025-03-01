@@ -11,7 +11,7 @@
     },
     "main": "./dist/extension.cjs",
     "engines": {
-        "vscode": "^1.92.0"
+        "vscode": "^1.97.0"
     },
     "activationEvents": [
         "onStartupFinished"
@@ -39,7 +39,7 @@
         "clean": "rm -rf ./dist ai-0.0.0.vsix",
         "build": "bun run ./scripts/build-extension.ts",
         "install-node": "bun install --platform=node",
-        "vsce-package": "bun run vsce package",
+        "vsce-package": "bun run vsce package --no-dependencies",
         "package": "bun run install-node && bun run build && bun run vsce-package",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
