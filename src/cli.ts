@@ -11,7 +11,7 @@ import { EmbeddingsClients, initClients } from './embeddings/client/clients'
 import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { getPreferences, Preferences } from './providers/preferences'
-import { initProviders, Providers } from './providers/providers'
+import { ChatProviders, initChatProviders } from './providers/providers'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { safeReadFile } from './util/fs/safe'
@@ -29,7 +29,7 @@ async function main() {
 
     const limiter = createLimiter()
     const tracker = createUsageTracker()
-    const providers = await initProviders(preferences, limiter, tracker)
+    const providers = await initChatProviders(preferences, limiter, tracker)
     const embeddingsClients = await initClients(preferences, limiter, tracker)
 
     program
@@ -129,7 +129,7 @@ async function buildProjectInstructions(): Promise<string> {
 async function chat(
     preferences: Preferences,
     rules: Rule[],
-    providers: Providers,
+    providers: ChatProviders,
     embeddingsClients: EmbeddingsClients,
     tracker: UsageTracker,
     historyFilename?: string,

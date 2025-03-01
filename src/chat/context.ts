@@ -3,8 +3,8 @@ import { EmbeddingsClients } from '../embeddings/client/clients'
 import { createSQLiteEmbeddingsStore } from '../embeddings/store/sqlite'
 import { EmbeddingsStore } from '../embeddings/store/store'
 import { Preferences } from '../providers/preferences'
-import { Provider } from '../providers/provider'
-import { Providers } from '../providers/providers'
+import { ChatProvider } from '../providers/provider'
+import { ChatProviders } from '../providers/providers'
 import { Rule } from '../rules/types'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
@@ -13,12 +13,12 @@ import { UsageTracker } from '../util/usage/tracker'
 export type ChatContext = {
     preferences: Preferences
     rules: Rule[]
-    providers: Providers
+    providers: ChatProviders
     embeddingsClients: EmbeddingsClients
     tracker: UsageTracker
     interruptHandler: InterruptHandler
     prompter: Prompter
-    provider: Provider
+    provider: ChatProvider
     contextStateManager: ContextStateManager
 }
 

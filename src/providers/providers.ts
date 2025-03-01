@@ -1,46 +1,46 @@
 import { Limiter } from '../util/ratelimits/limiter'
 import { UsageTracker } from '../util/usage/tracker'
-import { AnthropicProviderFactory } from './anthropic/provider'
-import { DeepSeekProviderFactory } from './deepseek/provider'
-import { GoogleProviderFactory } from './google/provider'
-import { GroqProviderFactory } from './groq/provider'
-import { OllamaProviderFactory } from './ollama/provider'
-import { OpenAIProviderFactory } from './openai/provider'
+import { AnthropicChatProviderFactory } from './anthropic/provider'
+import { DeepSeekChatProviderFactory } from './deepseek/provider'
+import { GoogleChatProviderFactory } from './google/provider'
+import { GroqChatProviderFactory } from './groq/provider'
+import { OllamaChatProviderFactory } from './ollama/provider'
+import { OpenAIChatProviderFactory } from './openai/provider'
 import { Preferences } from './preferences'
-import { ProviderOptions as BaseProviderOptions, Provider, ProviderSpec } from './provider'
+import { ChatProviderOptions as BaseProviderOptions, ChatProvider, ChatProviderSpec } from './provider'
 
-export type Providers = {
-    providerSpecs: ProviderSpec[]
+export type ChatProviders = {
+    providerSpecs: ChatProviderSpec[]
     modelNames: string[]
     formattedModels: string
-    createProvider(opts: ProviderOptions): Promise<Provider>
+    createProvider(opts: ChatProviderOptions): Promise<ChatProvider>
 }
 
-export type ProviderOptions = Omit<BaseProviderOptions, 'model'> & {
+export type ChatProviderOptions = Omit<BaseProviderOptions, 'model'> & {
     modelName: string
 }
 
-export type ProviderSpecFactory = {
+export type ChatProviderSpecFactory = {
     name: string
-    create: (preferences: Preferences, limiter: Limiter, tracker: UsageTracker) => Promise<ProviderSpec>
+    create: (preferences: Preferences, limiter: Limiter, tracker: UsageTracker) => Promise<ChatProviderSpec>
 }
 
-export const providerSpecFactories: ProviderSpecFactory[] = [
-    AnthropicProviderFactory,
-    GoogleProviderFactory,
-    GroqProviderFactory,
-    OllamaProviderFactory,
-    OpenAIProviderFactory,
-    DeepSeekProviderFactory,
+export const chatProviderSpecFactories: ChatProviderSpecFactory[] = [
+    AnthropicChatProviderFactory,
+    GoogleChatProviderFactory,
+    GroqChatProviderFactory,
+    OllamaChatProviderFactory,
+    OpenAIChatProviderFactory,
+    DeepSeekChatProviderFactory,
 ]
 
-export const initProviders = async (
+export const initChatProviders = async (
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
-): Promise<Providers> => {
-    const providerSpecs: ProviderSpec[] = []
-    for (const factory of providerSpecFactories) {
+): Promise<ChatProviders> => {
+    const providerSpecs: ChatProviderSpec[] = []
+    for (const factory of chatProviderSpecFactories) {
         providerSpecs.push(await factory.create(preferences, limiter, tracker))
     }
 
@@ -58,11 +58,11 @@ export const initProviders = async (
         providerSpecs,
         modelNames: availableModelNames,
         formattedModels: formatModels(providerSpecs),
-        createProvider: async opts => createProvider(opts, providerSpecs),
+        createProvider: async opts => createChatProvider(opts, providerSpecs),
     }
 }
 
-function formatModels(providerSpecs: ProviderSpec[]): string {
+function formatModels(providerSpecs: ChatProviderSpec[]): string {
     return providerSpecs
         .map(
             ({ providerName, needsAPIKey, models }) =>
@@ -72,10 +72,10 @@ function formatModels(providerSpecs: ProviderSpec[]): string {
         .join('\n')
 }
 
-async function createProvider(
-    { modelName, ...opts }: ProviderOptions,
-    providerSpecs: ProviderSpec[],
-): Promise<Provider> {
+async function createChatProvider(
+    { modelName, ...opts }: ChatProviderOptions,
+    providerSpecs: ChatProviderSpec[],
+): Promise<ChatProvider> {
     const pairs = providerSpecs.flatMap(({ factory, models }) => models.map(model => ({ factory, model })))
 
     const pair = pairs.find(({ model: { name } }) => name === modelName)

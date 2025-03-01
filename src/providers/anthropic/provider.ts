@@ -3,25 +3,31 @@ import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resour
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
-import { createProvider, StreamFactory } from '../factory'
+import { createChatProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
+import {
+    ChatProvider,
+    ChatProviderFactory,
+    ChatProviderOptions,
+    ChatProviderSpec,
+    registerModelLimits,
+} from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
 const providerName = 'Anthropic'
 
-export const AnthropicProviderFactory = {
+export const AnthropicChatProviderFactory = {
     name: providerName,
-    create: createAnthropicProviderSpec,
+    create: createAnthropicChatProviderSpec,
 }
 
-export async function createAnthropicProviderSpec(
+export async function createAnthropicChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
-): Promise<ProviderSpec> {
+): Promise<ChatProviderSpec> {
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
@@ -30,16 +36,16 @@ export async function createAnthropicProviderSpec(
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createAnthropicProvider(providerName, apiKey ?? '', limiter, tracker),
+        factory: createAnthropicChatProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createAnthropicProvider(
+function createAnthropicChatProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,
     tracker: UsageTracker,
-): ProviderFactory {
+): ChatProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model, options },
@@ -47,7 +53,7 @@ function createAnthropicProvider(
         temperature = 0.0,
         maxTokens = options?.maxTokens || 4096,
         disableTools,
-    }: ProviderOptions): Promise<Provider> => {
+    }: ChatProviderOptions): Promise<ChatProvider> => {
         const defaultHeaders = options?.headers
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
         const modelTracker = tracker.trackerFor(modelName)
@@ -62,7 +68,7 @@ function createAnthropicProvider(
             disableTools,
         })
 
-        return createProvider({
+        return createChatProvider({
             providerName,
             modelName,
             system,

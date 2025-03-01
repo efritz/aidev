@@ -4,25 +4,31 @@ import { enabledTools } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
-import { createProvider, StreamFactory } from '../factory'
+import { createChatProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
+import {
+    ChatProvider,
+    ChatProviderFactory,
+    ChatProviderOptions,
+    ChatProviderSpec,
+    registerModelLimits,
+} from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer, toChunk } from './reducer'
 
 const providerName = 'OpenAI'
 
-export const OpenAIProviderFactory = {
+export const OpenAIChatProviderFactory = {
     name: providerName,
-    create: createOpenAIProviderSpec,
+    create: createOpenAIChatProviderSpec,
 }
 
-export async function createOpenAIProviderSpec(
+export async function createOpenAIChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
-): Promise<ProviderSpec> {
+): Promise<ChatProviderSpec> {
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
@@ -31,26 +37,26 @@ export async function createOpenAIProviderSpec(
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createOpenAIProvider(providerName, apiKey ?? '', limiter, tracker),
+        factory: createOpenAIChatProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createOpenAIProvider(
+function createOpenAIChatProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,
     tracker: UsageTracker,
-): ProviderFactory {
-    return createOpenAICompatibleProvider(providerName, apiKey, limiter, tracker)
+): ChatProviderFactory {
+    return createOpenAICompatibleChatProvider(providerName, apiKey, limiter, tracker)
 }
 
-export function createOpenAICompatibleProvider(
+export function createOpenAICompatibleChatProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,
     tracker: UsageTracker,
     baseURL?: string,
-): ProviderFactory {
+): ChatProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model, options },
@@ -58,7 +64,7 @@ export function createOpenAICompatibleProvider(
         temperature = 0.0,
         maxTokens = 4096,
         disableTools,
-    }: ProviderOptions): Promise<Provider> => {
+    }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new OpenAI({ apiKey, baseURL })
         const modelTracker = tracker.trackerFor(modelName)
 
@@ -72,7 +78,7 @@ export function createOpenAICompatibleProvider(
             supportsStreaming: options?.supportsStreaming ?? true,
         })
 
-        return createProvider({
+        return createChatProvider({
             providerName,
             modelName,
             system,

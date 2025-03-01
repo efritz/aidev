@@ -16,7 +16,7 @@ export function registerModelLimits(limiter: Limiter, model: Model) {
 
 export type ProgressFunction = (r?: Response) => void
 
-export type Provider = {
+export type ChatProvider = {
     providerName: string
     modelName: string
     system: string
@@ -24,14 +24,14 @@ export type Provider = {
     prompt: (progress?: ProgressFunction, signal?: AbortSignal) => Promise<Response>
 }
 
-export type ProviderSpec = {
+export type ChatProviderSpec = {
     providerName: string
     models: Model[]
     needsAPIKey: boolean
-    factory: ProviderFactory
+    factory: ChatProviderFactory
 }
 
-export type ProviderOptions = {
+export type ChatProviderOptions = {
     contextState: ContextState
     model: Model
     system: string
@@ -40,4 +40,4 @@ export type ProviderOptions = {
     disableTools?: boolean
 }
 
-export type ProviderFactory = (opts: ProviderOptions) => Promise<Provider>
+export type ChatProviderFactory = (opts: ChatProviderOptions) => Promise<ChatProvider>

@@ -2,23 +2,32 @@ import { ChatResponse, Message, Ollama, Tool } from 'ollama'
 import { enabledTools } from '../../tools/tools'
 import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
-import { createProvider, StreamFactory } from '../factory'
+import { createChatProvider, StreamFactory } from '../factory'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
+import {
+    ChatProvider,
+    ChatProviderFactory,
+    ChatProviderOptions,
+    ChatProviderSpec,
+    registerModelLimits,
+} from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
 const providerName = 'Ollama'
 
-export const OllamaProviderFactory = {
+export const OllamaChatProviderFactory = {
     name: providerName,
-    create: createOllamaProviderSpec,
+    create: createOllamaChatProviderSpec,
 }
 
 // Create an Ollama client with a configurable host
 const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
 
-export async function createOllamaProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ProviderSpec> {
+export async function createOllamaChatProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+): Promise<ChatProviderSpec> {
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
 
@@ -26,11 +35,11 @@ export async function createOllamaProviderSpec(preferences: Preferences, limiter
         providerName,
         models,
         needsAPIKey: false,
-        factory: createOllamaProvider(providerName, limiter),
+        factory: createOllamaChatProvider(providerName, limiter),
     }
 }
 
-function createOllamaProvider(providerName: string, limiter: Limiter): ProviderFactory {
+function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -38,7 +47,7 @@ function createOllamaProvider(providerName: string, limiter: Limiter): ProviderF
         temperature = 0.0,
         maxTokens = 4096,
         disableTools,
-    }: ProviderOptions): Promise<Provider> => {
+    }: ChatProviderOptions): Promise<ChatProvider> => {
         const createStream = createStreamFactory({
             limiter,
             model,
@@ -47,7 +56,7 @@ function createOllamaProvider(providerName: string, limiter: Limiter): ProviderF
             disableTools,
         })
 
-        return createProvider({
+        return createChatProvider({
             providerName,
             modelName,
             system,

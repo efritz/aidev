@@ -2,7 +2,7 @@ import { writeFile as _writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import chalk from 'chalk'
 import { diffLines } from 'diff'
-import { Provider } from '../../providers/provider'
+import { ChatProvider } from '../../providers/provider'
 import { CancelError, InterruptHandler } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
 import { Prompter } from '../prompter/prompter'
@@ -23,7 +23,7 @@ export async function executeWriteFile({
     originalContents,
     fromStash = false,
 }: {
-    provider: Provider
+    provider: ChatProvider
     prompter: Prompter
     interruptHandler: InterruptHandler
     path: string

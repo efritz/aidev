@@ -1,5 +1,5 @@
 import { Conversation } from '../conversation/conversation'
-import { ProgressFunction, Provider } from './provider'
+import { ChatProvider, ProgressFunction } from './provider'
 import { Reducer, reduceStream } from './reducer'
 
 export type Stream<T> = AsyncIterable<T>
@@ -7,7 +7,7 @@ export type StreamFactory<T, R> = (messages: R[], signal?: AbortSignal) => Promi
 export type ReducerFactory<T> = () => Reducer<T>
 export type ConversationFactory<T> = () => Conversation<T>
 
-export type ProviderOptions<T, R> = {
+export type ChatProviderOptions<T, R> = {
     providerName: string
     modelName: string
     system: string
@@ -16,14 +16,14 @@ export type ProviderOptions<T, R> = {
     createConversation: ConversationFactory<R>
 }
 
-export function createProvider<T, M>({
+export function createChatProvider<T, M>({
     providerName,
     modelName,
     system,
     createStream,
     createStreamReducer,
     createConversation,
-}: ProviderOptions<T, M>): Provider {
+}: ChatProviderOptions<T, M>): ChatProvider {
     const { providerMessages, ...conversationManager } = createConversation()
 
     return {

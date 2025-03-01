@@ -7,25 +7,31 @@ import {
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
-import { createProvider, StreamFactory } from '../factory'
+import { createChatProvider, StreamFactory } from '../factory'
 import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import { Provider, ProviderFactory, ProviderOptions, ProviderSpec, registerModelLimits } from '../provider'
+import {
+    ChatProvider,
+    ChatProviderFactory,
+    ChatProviderOptions,
+    ChatProviderSpec,
+    registerModelLimits,
+} from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
 const providerName = 'Google'
 
-export const GoogleProviderFactory = {
+export const GoogleChatProviderFactory = {
     name: providerName,
-    create: createGoogleProviderSpec,
+    create: createGoogleChatProviderSpec,
 }
 
-export async function createGoogleProviderSpec(
+export async function createGoogleChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
-): Promise<ProviderSpec> {
+): Promise<ChatProviderSpec> {
     const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
@@ -34,16 +40,16 @@ export async function createGoogleProviderSpec(
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createGoogleProvider(providerName, apiKey ?? '', limiter, tracker),
+        factory: createGoogleChatProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createGoogleProvider(
+function createGoogleChatProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,
     tracker: UsageTracker,
-): ProviderFactory {
+): ChatProviderFactory {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -51,7 +57,7 @@ function createGoogleProvider(
         temperature = 0.0,
         maxTokens = 4096,
         disableTools,
-    }: ProviderOptions): Promise<Provider> => {
+    }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new GoogleGenerativeAI(apiKey)
         const modelTracker = tracker.trackerFor(modelName)
 
@@ -65,7 +71,7 @@ function createGoogleProvider(
             disableTools,
         })
 
-        return createProvider({
+        return createChatProvider({
             providerName,
             modelName,
             system,

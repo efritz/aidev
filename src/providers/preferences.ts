@@ -5,7 +5,7 @@ import { clientSpecFactories } from '../embeddings/client/clients'
 import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
 import { loadYamlFromFile } from '../util/yaml/load'
-import { providerSpecFactories } from './providers'
+import { chatProviderSpecFactories } from './providers'
 
 const ChatModelSchema = z.object({
     name: z.string(),
@@ -43,7 +43,7 @@ const PreferencesSchema = z.object({
     summarizerModel: z.string(),
     webTranslatorModel: z.string(),
     providers: z.record(
-        z.enum(providerSpecFactories.map(f => f.name) as [string, ...string[]]),
+        z.enum(chatProviderSpecFactories.map(f => f.name) as [string, ...string[]]),
         z.array(ChatModelSchema),
     ),
     embeddings: z.record(
