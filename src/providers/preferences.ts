@@ -12,10 +12,15 @@ const ChatModelSchema = z.object({
     model: z.string(),
     options: z
         .object({
-            systemMessageRole: z.string().optional(),
-            supportsStreaming: z.boolean().optional(),
+            // Anthropic only
+            maxTokens: z.number().optional(),
+            headers: z.record(z.string(), z.string()).optional(),
+
+            // OpenAI only
             supportsTools: z.boolean().optional(),
+            supportsStreaming: z.boolean().optional(),
             minimumTempature: z.number().optional(),
+            systemMessageRole: z.enum(['developer', 'system', 'user']).optional(),
         })
         .optional(),
     maxPerSecond: z.number().optional(),
