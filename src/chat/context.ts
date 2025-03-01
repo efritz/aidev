@@ -1,10 +1,10 @@
 import { ContextStateManager } from '../context/state'
-import { EmbeddingsClients } from '../embeddings/client/clients'
 import { createSQLiteEmbeddingsStore } from '../embeddings/store/sqlite'
 import { EmbeddingsStore } from '../embeddings/store/store'
+import { ChatProvider } from '../providers/chat_provider'
+import { ChatProviders } from '../providers/chat_providers'
+import { EmbeddingsProviders } from '../providers/embeddings_providers'
 import { Preferences } from '../providers/preferences'
-import { ChatProvider } from '../providers/provider'
-import { ChatProviders } from '../providers/providers'
 import { Rule } from '../rules/types'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
@@ -14,7 +14,7 @@ export type ChatContext = {
     preferences: Preferences
     rules: Rule[]
     providers: ChatProviders
-    embeddingsClients: EmbeddingsClients
+    embeddingsClients: EmbeddingsProviders
     tracker: UsageTracker
     interruptHandler: InterruptHandler
     prompter: Prompter
@@ -44,7 +44,7 @@ let storeOnce: Promise<EmbeddingsStore> | undefined = undefined
 export async function embeddingsStore(context: ChatContext): Promise<EmbeddingsStore> {
     if (!storeOnce) {
         const embeddingsModel = context.preferences.embeddingsModel
-        const client = await context.embeddingsClients.createClient(embeddingsModel)
+        const client = await context.embeddingsClients.createProvider(embeddingsModel)
         storeOnce = createSQLiteEmbeddingsStore(client)
     }
 

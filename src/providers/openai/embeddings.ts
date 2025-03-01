@@ -1,22 +1,27 @@
 import OpenAI from 'openai'
-import { getKey } from '../../providers/keys'
-import { Preferences } from '../../providers/preferences'
 import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
-import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
+import {
+    EmbeddingsProvider,
+    EmbeddingsProviderFactory,
+    EmbeddingsProviderSpec,
+    registerModelLimits,
+} from '../embeddings_provider'
+import { getKey } from '../keys'
+import { Preferences } from '../preferences'
 
 const providerName = 'OpenAI'
 
-export const OpenAIClientFactory = {
+export const OpenAIEmbeddingsProviderFactory = {
     name: providerName,
-    create: createOpenAIClientSpec,
+    create: createOpenAIEmbeddingsProviderSpec,
 }
 
-export async function createOpenAIClientSpec(
+export async function createOpenAIEmbeddingsProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
-): Promise<ClientSpec> {
+): Promise<EmbeddingsProviderSpec> {
     const apiKey = await getKey(providerName)
     const models = preferences.embeddings[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
@@ -25,17 +30,17 @@ export async function createOpenAIClientSpec(
         providerName,
         models,
         needsAPIKey: !apiKey,
-        factory: createOpenAIClient(providerName, apiKey ?? '', limiter, tracker),
+        factory: createOpenAIEmbeddingsProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createOpenAIClient(
+function createOpenAIEmbeddingsProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,
     tracker: UsageTracker,
-): ClientFactory {
-    return async ({ model: { name: modelName, model, dimensions, maxInput } }): Promise<Client> => {
+): EmbeddingsProviderFactory {
+    return async ({ model: { name: modelName, model, dimensions, maxInput } }): Promise<EmbeddingsProvider> => {
         const client = new OpenAI({ apiKey })
         const modelTracker = tracker.trackerFor(modelName)
 

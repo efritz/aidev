@@ -1,11 +1,11 @@
 import path from 'path'
 import chalk from 'chalk'
 import { z } from 'zod'
-import { clientSpecFactories } from '../embeddings/client/clients'
 import { exists } from '../util/fs/safe'
 import { xdgConfigHome } from '../util/fs/xdgconfig'
 import { loadYamlFromFile } from '../util/yaml/load'
-import { chatProviderSpecFactories } from './providers'
+import { chatProviderSpecFactories } from './chat_providers'
+import { embeddingsProviderSpecFactories } from './embeddings_providers'
 
 const ChatModelSchema = z.object({
     name: z.string(),
@@ -47,7 +47,7 @@ const PreferencesSchema = z.object({
         z.array(ChatModelSchema),
     ),
     embeddings: z.record(
-        z.enum(clientSpecFactories.map(f => f.name) as [string, ...string[]]),
+        z.enum(embeddingsProviderSpecFactories.map(f => f.name) as [string, ...string[]]),
         z.array(EmbeddingModelSchema),
     ),
 })

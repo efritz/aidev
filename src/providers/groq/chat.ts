@@ -1,45 +1,41 @@
-import { ChatResponse, Message, Ollama, Tool } from 'ollama'
+import Groq from 'groq-sdk'
+import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
+import { ChatCompletionTool } from 'openai/resources'
 import { enabledTools } from '../../tools/tools'
-import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
+import { UsageTracker } from '../../util/usage/tracker'
+import { ChatProvider, ChatProviderOptions, ChatProviderSpec, registerModelLimits } from '../chat_provider'
 import { createChatProvider, StreamFactory } from '../factory'
+import { getKey } from '../keys'
 import { Preferences } from '../preferences'
-import {
-    ChatProvider,
-    ChatProviderFactory,
-    ChatProviderOptions,
-    ChatProviderSpec,
-    registerModelLimits,
-} from '../provider'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 
-const providerName = 'Ollama'
+const providerName = 'Groq'
 
-export const OllamaChatProviderFactory = {
+export const GroqChatProviderFactory = {
     name: providerName,
-    create: createOllamaChatProviderSpec,
+    create: createGroqChatProviderSpec,
 }
 
-// Create an Ollama client with a configurable host
-const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
-
-export async function createOllamaChatProviderSpec(
+export async function createGroqChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
+    tracker: UsageTracker,
 ): Promise<ChatProviderSpec> {
+    const apiKey = await getKey(providerName)
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
 
     return {
         providerName,
         models,
-        needsAPIKey: false,
-        factory: createOllamaChatProvider(providerName, limiter),
+        needsAPIKey: !apiKey,
+        factory: createGroqChatProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatProviderFactory {
+function createGroqChatProvider(providerName: string, apiKey: string, limiter: Limiter, tracker: UsageTracker) {
     return async ({
         contextState,
         model: { name: modelName, model },
@@ -48,7 +44,11 @@ function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatP
         maxTokens = 4096,
         disableTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
+        const client = new Groq({ apiKey })
+        const modelTracker = tracker.trackerFor(modelName)
+
         const createStream = createStreamFactory({
+            client,
             limiter,
             model,
             temperature,
@@ -61,30 +61,32 @@ function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatP
             modelName,
             system,
             createStream,
-            createStreamReducer,
+            createStreamReducer: () => createStreamReducer(modelTracker),
             createConversation: () => createConversation(contextState, system),
         })
     }
 }
 
 function createStreamFactory({
+    client,
     limiter,
     model,
     temperature,
     maxTokens,
     disableTools,
 }: {
+    client: Groq
     limiter: Limiter
     model: string
     temperature?: number
     maxTokens?: number
     disableTools?: boolean
-}): StreamFactory<ChatResponse, Message> {
+}): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
     const tools = disableTools
         ? []
         : enabledTools.map(
-              ({ name, description, parameters }): Tool => ({
-                  type: '',
+              ({ name, description, parameters }): ChatCompletionTool => ({
+                  type: 'function',
                   function: {
                       name,
                       description,
@@ -93,20 +95,17 @@ function createStreamFactory({
               }),
           )
 
-    return wrapAsyncIterable(limiter, model, async (messages: Message[], signal?: AbortSignal) => {
-        // https://github.com/ollama/ollama-js/issues/123
-        const iterable = toIterable(() =>
-            ollamaClient.chat({
+    return wrapAsyncIterable(limiter, model, async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) =>
+        client.chat.completions.create(
+            {
                 model,
                 messages,
-                options: {
-                    temperature,
-                    num_predict: maxTokens,
-                },
+                stream: true,
+                temperature,
+                max_tokens: maxTokens,
                 tools,
-            }),
-        )
-
-        return abortableIterable(iterable, signal)
-    })
+            },
+            { signal },
+        ),
+    )
 }

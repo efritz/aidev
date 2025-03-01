@@ -1,19 +1,27 @@
 import { Ollama } from 'ollama'
-import { Preferences } from '../../providers/preferences'
 import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
-import { Client, ClientFactory, ClientSpec, registerModelLimits } from './client'
+import {
+    EmbeddingsProvider,
+    EmbeddingsProviderFactory,
+    EmbeddingsProviderSpec,
+    registerModelLimits,
+} from '../embeddings_provider'
+import { Preferences } from '../preferences'
 
 const providerName = 'Ollama'
 
-export const OllamaClientFactory = {
+export const OllamaEmbeddingsProviderFactory = {
     name: providerName,
-    create: createOllamaClientSpec,
+    create: createOllamaEmbeddingsProviderSpec,
 }
 
 // Create an Ollama client with a configurable host
 const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
 
-export async function createOllamaClientSpec(preferences: Preferences, limiter: Limiter): Promise<ClientSpec> {
+export async function createOllamaEmbeddingsProviderSpec(
+    preferences: Preferences,
+    limiter: Limiter,
+): Promise<EmbeddingsProviderSpec> {
     const models = preferences.embeddings[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
 
@@ -21,12 +29,12 @@ export async function createOllamaClientSpec(preferences: Preferences, limiter: 
         providerName,
         models,
         needsAPIKey: false,
-        factory: createOllamaClient(providerName, limiter),
+        factory: createOllamaEmbeddingsProvider(providerName, limiter),
     }
 }
 
-function createOllamaClient(providerName: string, limiter: Limiter): ClientFactory {
-    return async ({ model: { name: modelName, model, dimensions, maxInput } }): Promise<Client> => {
+function createOllamaEmbeddingsProvider(providerName: string, limiter: Limiter): EmbeddingsProviderFactory {
+    return async ({ model: { name: modelName, model, dimensions, maxInput } }): Promise<EmbeddingsProvider> => {
         return {
             providerName,
             modelName,

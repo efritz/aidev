@@ -1,5 +1,5 @@
-import { EmbeddingsModel } from '../../providers/preferences'
-import { Limiter } from '../../util/ratelimits/limiter'
+import { Limiter } from '../util/ratelimits/limiter'
+import { EmbeddingsModel } from './preferences'
 
 export type Model = EmbeddingsModel
 
@@ -11,7 +11,7 @@ export function registerModelLimits(limiter: Limiter, model: Model) {
     })
 }
 
-export interface Client {
+export interface EmbeddingsProvider {
     providerName: string
     modelName: string
     dimensions: number
@@ -19,15 +19,15 @@ export interface Client {
     embed: (input: string[], signal?: AbortSignal) => Promise<number[][]>
 }
 
-export interface ClientSpec {
+export interface EmbeddingsProviderSpec {
     providerName: string
     models: Model[]
     needsAPIKey: boolean
-    factory: ClientFactory
+    factory: EmbeddingsProviderFactory
 }
 
-export type ClientOptions = {
+export type EmbeddingsProviderOptions = {
     model: Model
 }
 
-export type ClientFactory = (opts: ClientOptions) => Promise<Client>
+export type EmbeddingsProviderFactory = (opts: EmbeddingsProviderOptions) => Promise<EmbeddingsProvider>

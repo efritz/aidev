@@ -2,13 +2,13 @@ import { mkdir } from 'fs/promises'
 import path, { dirname } from 'path'
 import { Database } from 'bun:sqlite'
 import * as sqliteVec from 'sqlite-vec'
+import type { EmbeddingsProvider } from '../../providers/embeddings_provider'
 import { exists } from '../../util/fs/safe'
 import { xdgCacheHome } from '../../util/fs/xdgconfig'
 import { hash } from '../../util/hash/hash'
-import type { Client } from '../client/client'
 import { chunkMetadata, EmbeddedContent, EmbeddingsStore } from './store'
 
-export async function createSQLiteEmbeddingsStore(client: Client): Promise<EmbeddingsStore> {
+export async function createSQLiteEmbeddingsStore(client: EmbeddingsProvider): Promise<EmbeddingsStore> {
     const db = await initDatabase(dbFilePath(), client.dimensions)
     const selectHashes = prepSelectHashes(db)
     const deleteHashes = prepDeleteHashes(db)

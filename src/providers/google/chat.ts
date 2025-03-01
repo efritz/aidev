@@ -7,16 +7,16 @@ import {
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
-import { createChatProvider, StreamFactory } from '../factory'
-import { getKey } from '../keys'
-import { Preferences } from '../preferences'
 import {
     ChatProvider,
     ChatProviderFactory,
     ChatProviderOptions,
     ChatProviderSpec,
     registerModelLimits,
-} from '../provider'
+} from '../chat_provider'
+import { createChatProvider, StreamFactory } from '../factory'
+import { getKey } from '../keys'
+import { Preferences } from '../preferences'
 import { createConversation } from './conversation'
 import { createStreamReducer } from './reducer'
 

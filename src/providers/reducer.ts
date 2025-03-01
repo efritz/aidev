@@ -1,5 +1,5 @@
 import { AssistantMessage, Response } from '../messages/messages'
-import { ProgressFunction } from './provider'
+import { ProgressFunction } from './chat_provider'
 
 export type Reducer<T> = {
     messages: AssistantMessage[]

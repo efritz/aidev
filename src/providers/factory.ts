@@ -1,5 +1,5 @@
 import { Conversation } from '../conversation/conversation'
-import { ChatProvider, ProgressFunction } from './provider'
+import { ChatProvider, ProgressFunction } from './chat_provider'
 import { Reducer, reduceStream } from './reducer'
 
 export type Stream<T> = AsyncIterable<T>

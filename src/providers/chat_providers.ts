@@ -1,13 +1,13 @@
 import { Limiter } from '../util/ratelimits/limiter'
 import { UsageTracker } from '../util/usage/tracker'
-import { AnthropicChatProviderFactory } from './anthropic/provider'
-import { DeepSeekChatProviderFactory } from './deepseek/provider'
-import { GoogleChatProviderFactory } from './google/provider'
-import { GroqChatProviderFactory } from './groq/provider'
-import { OllamaChatProviderFactory } from './ollama/provider'
-import { OpenAIChatProviderFactory } from './openai/provider'
+import { AnthropicChatProviderFactory } from './anthropic/chat'
+import { ChatProviderOptions as BaseProviderOptions, ChatProvider, ChatProviderSpec } from './chat_provider'
+import { DeepSeekChatProviderFactory } from './deepseek/chat'
+import { GoogleChatProviderFactory } from './google/chat'
+import { GroqChatProviderFactory } from './groq/chat'
+import { OllamaChatProviderFactory } from './ollama/chat'
+import { OpenAIChatProviderFactory } from './openai/chat'
 import { Preferences } from './preferences'
-import { ChatProviderOptions as BaseProviderOptions, ChatProvider, ChatProviderSpec } from './provider'
 
 export type ChatProviders = {
     providerSpecs: ChatProviderSpec[]

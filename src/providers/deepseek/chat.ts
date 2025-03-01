@@ -1,9 +1,9 @@
 import { Limiter } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
+import { ChatProviderFactory, ChatProviderSpec } from '../chat_provider'
 import { getKey } from '../keys'
-import { createOpenAICompatibleChatProvider } from '../openai/provider'
+import { createOpenAICompatibleChatProvider } from '../openai/chat'
 import { Preferences } from '../preferences'
-import { ChatProviderFactory, ChatProviderSpec } from '../provider'
 
 const providerName = 'DeepSeek'
 

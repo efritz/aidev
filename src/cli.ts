@@ -7,11 +7,11 @@ import { ChatContext } from './chat/context'
 import { handler } from './chat/handler'
 import { loadHistory } from './chat/history'
 import { createContextState } from './context/state'
-import { EmbeddingsClients, initClients } from './embeddings/client/clients'
 import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
+import { ChatProviders, initChatProviders } from './providers/chat_providers'
+import { EmbeddingsProviders, initEmbeddingsProviders } from './providers/embeddings_providers'
 import { getPreferences, Preferences } from './providers/preferences'
-import { ChatProviders, initChatProviders } from './providers/providers'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { safeReadFile } from './util/fs/safe'
@@ -30,7 +30,7 @@ async function main() {
     const limiter = createLimiter()
     const tracker = createUsageTracker()
     const providers = await initChatProviders(preferences, limiter, tracker)
-    const embeddingsClients = await initClients(preferences, limiter, tracker)
+    const embeddingsClients = await initEmbeddingsProviders(preferences, limiter, tracker)
 
     program
         .name('ai')
@@ -130,7 +130,7 @@ async function chat(
     preferences: Preferences,
     rules: Rule[],
     providers: ChatProviders,
-    embeddingsClients: EmbeddingsClients,
+    embeddingsClients: EmbeddingsProviders,
     tracker: UsageTracker,
     historyFilename?: string,
     port?: number,
