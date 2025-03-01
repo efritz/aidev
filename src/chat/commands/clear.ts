@@ -1,6 +1,6 @@
 import chalk from 'chalk'
-import { ChatContext } from '../../context'
-import { CommandDescription } from './../command'
+import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const clearCommand: CommandDescription = {
     prefix: ':clear',

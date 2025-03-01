@@ -1,9 +1,9 @@
 import { writeFile } from 'fs/promises'
 import chalk from 'chalk'
-import { ContextDirectory, ContextFile } from '../../../context/state'
-import { Message } from '../../../messages/messages'
-import { ChatContext } from '../../context'
+import { ContextDirectory, ContextFile } from '../../context/state'
+import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const saveCommand: CommandDescription = {
     prefix: ':save',

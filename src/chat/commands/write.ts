@@ -1,9 +1,9 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { safeReadFile } from '../../../util/fs/safe'
-import { executeWriteFile } from '../../../util/fs/write'
-import { ChatContext } from '../../context'
+import { safeReadFile } from '../../util/fs/safe'
+import { executeWriteFile } from '../../util/fs/write'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const writeCommand: CommandDescription = {
     prefix: ':write',

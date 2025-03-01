@@ -1,7 +1,7 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { ChatContext, swapProvider } from '../../context'
 import { CommandDescription } from '../command'
+import { ChatContext, swapProvider } from '../context'
 
 export const modelCommand: CommandDescription = {
     prefix: ':model',

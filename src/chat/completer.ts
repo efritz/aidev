@@ -1,5 +1,5 @@
 import { CompleterResult } from 'readline'
-import { commands, completeCommand } from './commands/commands'
+import { commands, completeCommand } from './commands'
 import { ChatContext } from './context'
 
 export type CompleterType = 'meta' | 'choice'

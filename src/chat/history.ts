@@ -4,7 +4,7 @@ import { AssistantMessage, MetaMessage, UserMessage } from '../messages/messages
 import { findMatchingRule } from '../rules/matcher'
 import { enabledTools } from '../tools/tools'
 import { replayWriteFile } from '../util/fs/write'
-import { reviver, SaveFilePayload } from './commands/conversation/save'
+import { reviver, SaveFilePayload } from './commands/save'
 import { ChatContext, swapProvider } from './context'
 import { formatMessage } from './output'
 

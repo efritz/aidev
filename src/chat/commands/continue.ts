@@ -1,6 +1,6 @@
 import chalk from 'chalk'
-import { canPromptAssistant, ChatContext } from '../../context'
-import { CommandDescription } from './../command'
+import { CommandDescription } from '../command'
+import { canPromptAssistant, ChatContext } from '../context'
 
 export const continueCommand: CommandDescription = {
     prefix: ':continue',

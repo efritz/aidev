@@ -1,10 +1,10 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { completeDirectoryPaths, parseArgsWithEscapedSpaces } from '../../../util/fs/completion'
-import { expandDirectoryPatterns } from '../../../util/fs/glob'
-import { filterIgnoredPaths } from '../../../util/fs/ignore'
-import { ChatContext } from '../../context'
+import { completeDirectoryPaths, parseArgsWithEscapedSpaces } from '../../util/fs/completion'
+import { expandDirectoryPatterns } from '../../util/fs/glob'
+import { filterIgnoredPaths } from '../../util/fs/ignore'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const loaddirCommand: CommandDescription = {
     prefix: ':loaddir',

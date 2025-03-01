@@ -1,7 +1,7 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const unstashCommand: CommandDescription = {
     prefix: ':unstash',

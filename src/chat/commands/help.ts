@@ -1,7 +1,7 @@
 import chalk from 'chalk'
-import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
 import { commands } from '../commands'
+import { ChatContext } from '../context'
 
 export const helpCommand: CommandDescription = {
     prefix: ':help',

@@ -1,5 +1,5 @@
 import { CompleterResult } from 'readline'
-import { ChatContext } from '../context'
+import { ChatContext } from './context'
 
 export type CommandDescription = {
     prefix: string

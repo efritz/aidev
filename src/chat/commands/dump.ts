@@ -1,9 +1,9 @@
 import { writeFile } from 'fs/promises'
 import chalk from 'chalk'
 import * as ncp from 'copy-paste'
-import { ContextStateManager } from '../../../context/state'
-import { ChatContext } from '../../context'
+import { ContextStateManager } from '../../context/state'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const dumpCommand: CommandDescription = {
     prefix: ':dump',

@@ -1,7 +1,7 @@
 import chalk from 'chalk'
-import { executeCommand, formatShellResult, serializeOutput, ShellResult } from '../../../util/shell/exec'
-import { ChatContext } from '../../context'
+import { executeCommand, formatShellResult, serializeOutput, ShellResult } from '../../util/shell/exec'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const shellCommand: CommandDescription = {
     prefix: ':shell',

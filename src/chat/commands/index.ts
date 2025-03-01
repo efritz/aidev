@@ -1,7 +1,7 @@
 import chalk from 'chalk'
-import { indexWorkspace } from '../../../embeddings/workspace'
-import { ChatContext } from '../../context'
-import { CommandDescription } from './../command'
+import { indexWorkspace } from '../../embeddings/workspace'
+import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const indexCommand: CommandDescription = {
     prefix: ':index',

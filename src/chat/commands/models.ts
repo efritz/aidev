@@ -1,5 +1,5 @@
-import { ChatContext } from '../../context'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const modelsCommand: CommandDescription = {
     prefix: ':models',

@@ -1,7 +1,7 @@
 import chalk from 'chalk'
-import { ChatContext } from '../../context'
-import { replayMessages } from '../../history'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
+import { replayMessages } from '../history'
 
 export const redoCommand: CommandDescription = {
     prefix: ':redo',

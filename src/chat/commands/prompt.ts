@@ -1,8 +1,8 @@
 import chalk from 'chalk'
-import { CancelError } from '../../../util/interrupts/interrupts'
-import { withContentEditor } from '../../../util/vscode/edit'
-import { canPromptAssistant, ChatContext } from '../../context'
-import { CommandDescription } from './../command'
+import { CancelError } from '../../util/interrupts/interrupts'
+import { withContentEditor } from '../../util/vscode/edit'
+import { CommandDescription } from '../command'
+import { canPromptAssistant, ChatContext } from '../context'
 
 export const promptCommand: CommandDescription = {
     prefix: ':prompt',

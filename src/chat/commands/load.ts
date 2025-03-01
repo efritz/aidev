@@ -1,10 +1,10 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { completeFilePaths, parseArgsWithEscapedSpaces } from '../../../util/fs/completion'
-import { expandFilePatterns } from '../../../util/fs/glob'
-import { filterIgnoredPaths } from '../../../util/fs/ignore'
-import { ChatContext } from '../../context'
+import { completeFilePaths, parseArgsWithEscapedSpaces } from '../../util/fs/completion'
+import { expandFilePatterns } from '../../util/fs/glob'
+import { filterIgnoredPaths } from '../../util/fs/ignore'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const loadCommand: CommandDescription = {
     prefix: ':load',

@@ -1,9 +1,9 @@
 import chalk from 'chalk'
-import { shouldIncludeFile } from '../../../context/state'
-import { Branch } from '../../../conversation/conversation'
-import { Message } from '../../../messages/messages'
-import { ChatContext } from '../../context'
+import { shouldIncludeFile } from '../../context/state'
+import { Branch } from '../../conversation/conversation'
+import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
+import { ChatContext } from '../context'
 
 export const statusCommand: CommandDescription = {
     prefix: ':status',
