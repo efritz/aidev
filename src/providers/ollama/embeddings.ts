@@ -1,4 +1,3 @@
-import { Ollama } from 'ollama'
 import { Limiter, wrapPromise } from '../../util/ratelimits/limiter'
 import {
     EmbeddingsProvider,
@@ -7,6 +6,7 @@ import {
     registerModelLimits,
 } from '../embeddings_provider'
 import { Preferences } from '../preferences'
+import { ollamaClient } from './client'
 
 const providerName = 'Ollama'
 
@@ -14,9 +14,6 @@ export const OllamaEmbeddingsProviderFactory = {
     name: providerName,
     create: createOllamaEmbeddingsProviderSpec,
 }
-
-// Create an Ollama client with a configurable host
-const ollamaClient = new Ollama({ host: process.env['OLLAMA_HOST'] || 'http://localhost:11434' })
 
 export async function createOllamaEmbeddingsProviderSpec(
     preferences: Preferences,
