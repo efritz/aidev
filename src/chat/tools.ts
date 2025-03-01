@@ -1,6 +1,5 @@
 import chalk from 'chalk'
 import { Response, ToolUse } from '../messages/messages'
-import { shouldReprompt } from '../reprompt/mediator'
 import { matchNewPostInvocationRules, matchNewPreInvocationRules } from '../rules/matcher'
 import { Rule } from '../rules/types'
 import { ExecutionResult } from '../tools/tool'
@@ -8,6 +7,7 @@ import { findTool } from '../tools/tools'
 import { ProgressResult, withProgress } from '../util/progress/progress'
 import { generateRandomName } from '../util/random/random'
 import { ChatContext } from './context'
+import { shouldReprompt } from './mediator'
 import { promptWithPrefixes } from './output'
 
 export async function runToolsInResponse(
