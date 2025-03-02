@@ -5,4 +5,4 @@ timing: post
 paths: '*.ts'
 ---
 
-After writing TypeScript files, check for lint errors with `bun eslint`.
+After writing TypeScript files, check for lint errors with `bun lint`.
