@@ -1,6 +1,5 @@
 import { ContextStateManager } from '../context/state'
-import { createSQLiteEmbeddingsStore } from '../embeddings/store/sqlite'
-import { EmbeddingsStore } from '../embeddings/store/store'
+import { createSQLiteEmbeddingsStore, EmbeddingsStore } from '../indexing/store'
 import { ChatProvider } from '../providers/chat_provider'
 import { ChatProviders } from '../providers/chat_providers'
 import { EmbeddingsProviders } from '../providers/embeddings_providers'

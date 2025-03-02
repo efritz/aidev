@@ -1,9 +1,19 @@
-import { Agent, runAgent } from '../../agent/agent'
-import { ChatContext } from '../../chat/context'
-import { CancelError } from '../../util/interrupts/interrupts'
-import { createXmlPattern } from '../../util/xml/xml'
-import { RawEmbeddableContent } from '../store/store'
-import { CodeBlock } from './code'
+import { Agent, runAgent } from '../agent/agent'
+import { ChatContext } from '../chat/context'
+import { CancelError } from '../util/interrupts/interrupts'
+import { createXmlPattern } from '../util/xml/xml'
+import { RawEmbeddableContent } from './store'
+
+export interface CodeBlock {
+    name: string
+    type: string
+    startLine: number
+    endLine: number
+    content: string
+
+    parent?: CodeBlock
+    children: CodeBlock[]
+}
 
 export interface Summary {
     signature: string

@@ -1,14 +1,12 @@
-import { ChatContext, embeddingsStore } from '../../chat/context'
-import { expandFilePatterns } from '../../util/fs/glob'
-import { filterIgnoredPaths } from '../../util/fs/ignore'
-import { safeReadFile } from '../../util/fs/safe'
-import { hash } from '../../util/hash/hash'
-import { CancelError } from '../../util/interrupts/interrupts'
-import { ProgressResult, Updater, withProgress } from '../../util/progress/progress'
-import { EmbeddableContent, EmbeddingsStore, RawEmbeddableContent } from '../store/store'
-import { CodeBlock, splitSourceCode } from './code'
-import { createParsers } from './languages'
-import { summarizeCodeBlocks, Summary } from './summarizer'
+import { ChatContext, embeddingsStore } from '../chat/context'
+import { expandFilePatterns } from '../util/fs/glob'
+import { filterIgnoredPaths } from '../util/fs/ignore'
+import { safeReadFile } from '../util/fs/safe'
+import { hash } from '../util/hash/hash'
+import { CancelError } from '../util/interrupts/interrupts'
+import { ProgressResult, Updater, withProgress } from '../util/progress/progress'
+import { chunkCodeFileAndHydrate } from './code'
+import { EmbeddableContent, EmbeddingsStore, RawEmbeddableContent } from './store'
 
 export type IndexingProgress = {
     stateByFile: Map<string, string>
@@ -161,99 +159,5 @@ async function chunkFileAndHydrate(
     progress: IndexingProgress,
     update: () => void,
 ): Promise<EmbeddableContent[]> {
-    for (const language of await createParsers()) {
-        if (!language.extensions.some(extension => file.filename.endsWith(extension))) {
-            continue
-        }
-
-        progress.stateByFile.set(file.filename, 'Splitting code...')
-        update()
-
-        const blocks = await splitSourceCode(file.content, language)
-        if (blocks.length === 0) {
-            continue
-        }
-
-        if (!context.preferences.summarizerModel) {
-            return blocks.map(block => ({
-                filename: file.filename,
-                filehash: file.filehash,
-                content: block.content,
-                name: block.name,
-            }))
-        }
-
-        let done = 0
-        progress.numChunks += blocks.length
-        progress.stateByFile.set(file.filename, `Summarizing ${done}/${blocks.length} code chunks...`)
-        update()
-
-        const summariesByBlock = await summarizeCodeBlocks(context, file, blocks, signal, () => {
-            done++
-            progress.numChunksSummarized++
-            progress.stateByFile.set(file.filename, `Summarizing ${done}/${blocks.length} code chunks...`)
-            update()
-        })
-
-        return blocks.map(block => blockToChunk(file, summariesByBlock, block))
-    }
-
-    return [file]
-}
-
-function blockToChunk(
-    file: RawEmbeddableContent,
-    summariesByBlock: Map<CodeBlock, Summary>,
-    block: CodeBlock,
-): EmbeddableContent {
-    let content = block.content
-    const header: string[] = []
-    const metadata: string[] = []
-    const blockSummary = summariesByBlock.get(block)!
-
-    header.push(`# ${block.name}`)
-    header.push(``)
-    header.push(`Filename: ${file.filename}`)
-    header.push(`Type: ${block.type}`)
-    header.push(`Signature: ${blockSummary.signature}`)
-    header.push(``)
-    header.push(blockSummary.detailedSummary)
-
-    if (block.children.length > 0) {
-        metadata.push(`## Children`)
-        metadata.push(``)
-        metadata.push(
-            `The following chunks are defined within this chunk of source code. Their full implementation have been elided from this chunk.`,
-        )
-
-        for (const child of block.children) {
-            const childSummary = summariesByBlock.get(child)!
-
-            metadata.push(``)
-            metadata.push(`### ${child.name}`)
-            metadata.push(``)
-            metadata.push(`Type: ${child.type}`)
-            metadata.push(`Signature: ${childSummary.signature}`)
-            metadata.push(``)
-            metadata.push(childSummary.conciseSummary)
-
-            content = content.replace(child.content, `[...Implementation of ${child.name} omitted...]`)
-        }
-
-        metadata.push(``)
-    }
-
-    metadata.push('## Code')
-    metadata.push('```\n' + content + '\n```')
-
-    return {
-        filename: file.filename,
-        filehash: file.filehash,
-        content: block.content,
-        name: block.name,
-        metadata: {
-            header: header.join('\n'),
-            detail: metadata.join('\n'),
-        },
-    }
+    return (await chunkCodeFileAndHydrate(context, file, signal, progress, update)) ?? [file]
 }

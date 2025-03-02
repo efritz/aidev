@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 import { ChatContext } from '../../chat/context'
-import { indexWorkspace, isIndexUpToDate } from '../../embeddings/workspace'
-import { queryWorkspace } from '../../embeddings/workspace/query'
+import { indexWorkspace, isIndexUpToDate } from '../../indexing'
+import { queryWorkspace } from '../../indexing/query'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 type SearchResult = {

@@ -3,7 +3,7 @@ import Parser, { Query } from 'tree-sitter'
 import Go from 'tree-sitter-go'
 import TypeScript from 'tree-sitter-typescript'
 import { z } from 'zod'
-import { loadYamlFromFile } from '../../util/yaml/load'
+import { loadYamlFromFile } from '../util/yaml/load'
 
 export type LanguageConfiguration = {
     name: string
@@ -49,7 +49,7 @@ async function createParsersUncached(): Promise<LanguageConfiguration[]> {
     })
 }
 
-const repoRoot = path.join(__dirname, '..', '..', '..')
+const repoRoot = path.join(__dirname, '..', '..')
 const queriesPath = path.join(repoRoot, 'configs', 'languages.yaml')
 
 const LanguagesConfigSchema = z.object({

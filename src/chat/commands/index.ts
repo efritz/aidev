@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { indexWorkspace } from '../../embeddings/workspace'
+import { indexWorkspace } from '../../indexing'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
 

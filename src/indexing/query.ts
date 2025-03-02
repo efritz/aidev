@@ -1,6 +1,6 @@
-import { ChatContext, embeddingsStore } from '../../chat/context'
-import { exists } from '../../util/fs/safe'
-import { EmbeddedContent } from '../store/store'
+import { ChatContext, embeddingsStore } from '../chat/context'
+import { exists } from '../util/fs/safe'
+import { EmbeddedContent } from './store'
 
 export async function queryWorkspace(context: ChatContext, query: string): Promise<EmbeddedContent[]> {
     const store = await embeddingsStore(context)

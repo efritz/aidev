@@ -2,13 +2,82 @@ import { mkdir } from 'fs/promises'
 import path, { dirname } from 'path'
 import { Database } from 'bun:sqlite'
 import * as sqliteVec from 'sqlite-vec'
-import type { EmbeddingsProvider } from '../../providers/embeddings_provider'
-import { exists } from '../../util/fs/safe'
-import { xdgCacheHome } from '../../util/fs/xdgconfig'
-import { hash } from '../../util/hash/hash'
-import { chunkMetadata, EmbeddedContent, EmbeddingsStore } from './store'
+import type { EmbeddingsProvider } from '../providers/embeddings_provider'
+import { exists } from '../util/fs/safe'
+import { xdgCacheHome } from '../util/fs/xdgconfig'
+import { hash } from '../util/hash/hash'
 
-export async function createSQLiteEmbeddingsStore(client: EmbeddingsProvider): Promise<EmbeddingsStore> {
+export type EmbeddedContent = {
+    filename: string
+    filehash: string
+    content: string
+    name?: string
+    metadata?: string
+}
+
+export type Metadata = {
+    header: string
+    detail: string
+}
+
+export type RawEmbeddableContent = Omit<EmbeddedContent, 'name' | 'metadata'>
+
+export type EmbeddableContent = RawEmbeddableContent & {
+    name?: string
+    metadata?: Metadata
+}
+
+export type EmbeddingsStore = Awaited<ReturnType<typeof createSQLiteEmbeddingsStore>>
+
+//
+//
+
+const charactersPerToken = 4
+const tokenBudgetMinimum = 128
+const tokenOverlapPercentage = 0.2
+
+export function chunkMetadata(metadata: Metadata, maxInput: number): string[] {
+    const tokenBudget = maxInput - metadata.header.length / charactersPerToken - tokenBudgetMinimum
+    if (tokenBudget <= 0) {
+        throw new Error('Chunk header is too large to embed')
+    }
+
+    return [...generateEmbeddablePages(metadata.detail, tokenBudget)].map(page =>
+        (metadata.header + '\n\n' + page).trim(),
+    )
+}
+
+// TODO - find more natural breaking points
+
+// yield consecutive pages of the string that fit within the token budget for each page.
+// Each consecutive page will overlap ~20% of the previous page to ensure we don't miss
+// any relevant data on page boundaries when embedding the contenet
+function* generateEmbeddablePages(body: string, tokenPerPage: number): Generator<string> {
+    if (body.length === 0) {
+        yield ''
+        return
+    }
+
+    const charPerPage = Math.floor(tokenPerPage * charactersPerToken)
+    const charOverlap = Math.floor(tokenPerPage * charactersPerToken * tokenOverlapPercentage)
+
+    let start = 0
+    while (start < body.length) {
+        const end = start + charPerPage
+        const page = body.substring(start, end)
+        yield page
+
+        if (end >= body.length) {
+            return
+        }
+        start = end - charOverlap
+    }
+}
+
+//
+//
+
+export async function createSQLiteEmbeddingsStore(client: EmbeddingsProvider) {
     const db = await initDatabase(dbFilePath(), client.dimensions)
     const selectHashes = prepSelectHashes(db)
     const deleteHashes = prepDeleteHashes(db)
@@ -16,7 +85,7 @@ export async function createSQLiteEmbeddingsStore(client: EmbeddingsProvider): P
     const insertEmbeddings = prepInsertEmbeddings(db)
 
     return {
-        save: async (batch, signal) => {
+        save: async (batch: EmbeddableContent[], signal?: AbortSignal): Promise<void> => {
             // Chunks may too big to embed all at once. Chunk them into appropriate sizes. Each
             // of the chunk pages will be embedded into vectors that refer to the same batch item.
             const serializedChunksWithBatchIndex = batch.flatMap(({ content, metadata }, batchIndex) =>
@@ -54,9 +123,9 @@ export async function createSQLiteEmbeddingsStore(client: EmbeddingsProvider): P
             )
         },
 
-        delete: async hashes => deleteHashes(hashes),
-        hashes: async () => selectHashes(),
-        query: async query => selectEmbeddings((await client.embed([query]))[0]),
+        delete: (hashes: Set<string>): Promise<void> => deleteHashes(hashes),
+        hashes: (): Promise<Set<string>> => Promise.resolve(selectHashes()),
+        query: async (query: string): Promise<EmbeddedContent[]> => selectEmbeddings((await client.embed([query]))[0]),
     }
 }
 
