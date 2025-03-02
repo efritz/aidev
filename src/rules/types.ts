@@ -1,14 +1,6 @@
-import { ToolUse } from '../messages/messages'
+import { Rule as SerializableRule, ToolUse } from '../messages/messages'
 
-export type Rule = {
-    description: string
-    tool: string
-    timing: 'pre' | 'post'
-    matcher: RuleMatcher
-    body: string
-}
-
-export type SerializableRule = Omit<Rule, 'matcher'> & { condition: string }
+export type Rule = Omit<SerializableRule, 'condition'> & { matcher: RuleMatcher }
 
 export interface RuleMatcherFactory {
     parseMatchConfig(config: Record<string, any>): RuleMatcher

@@ -1,7 +1,7 @@
 import { ChatContext } from '../chat/context'
-import { ToolUse } from '../messages/messages'
+import { Rule as SerializableRule, ToolUse } from '../messages/messages'
 import { hash } from '../util/hash/hash'
-import { Rule, SerializableRule } from './types'
+import { Rule } from './types'
 
 export function matchNewPreInvocationRules(context: ChatContext, tools: ToolUse[]): Rule[] {
     return matchNewInvocationRules(context, tools, 'pre')
