@@ -7,8 +7,8 @@ import {
     shouldIncludeDirectory,
     shouldIncludeFile,
 } from '../context/state'
-import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
-import { Rule, SerializableRule } from '../rules/types'
+import { AssistantMessage, Message, MetaMessage, Rule as SerializableRule, UserMessage } from '../messages/messages'
+import { Rule } from '../rules/types'
 import { extract } from '../util/lists/lists'
 
 export type Conversation<T> = ConversationManager & {
