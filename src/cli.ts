@@ -1,3 +1,4 @@
+import EventEmitter from 'events'
 import path from 'path'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
@@ -178,6 +179,7 @@ async function chat(
             interruptHandler,
             prompter,
             provider,
+            events: new EventEmitter(),
             contextStateManager,
         }
 

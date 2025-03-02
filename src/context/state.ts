@@ -1,4 +1,3 @@
-import EventEmitter from 'events'
 import { Dirent } from 'fs'
 import { readdir, readFile } from 'fs/promises'
 import chokidar from 'chokidar'
@@ -20,7 +19,6 @@ export function createEmptyContextState(): ContextState {
 }
 
 export interface ContextStateManager extends ContextState {
-    events: EventEmitter
     dispose: () => void
     addRule: (rule: Rule) => Promise<void>
     addFiles: (paths: string | string[], reason: InclusionReason) => Promise<void>
@@ -55,7 +53,6 @@ export type InclusionReason =
 export async function createContextState(): Promise<ContextStateManager> {
     const pathFilterer = await createIgnoredPathFilterer()
 
-    const events = new EventEmitter()
     const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false, ignored: path => !pathFilterer(path) })
     const dispose = () => watcher.close()
 
@@ -76,8 +73,6 @@ export async function createContextState(): Promise<ContextStateManager> {
         } catch (error: any) {
             file.content = { error: `Error reading file: ${error.message}` }
         }
-
-        events.emit('change', path)
     }
 
     const updateDirectory = async (path: string) => {
@@ -95,8 +90,6 @@ export async function createContextState(): Promise<ContextStateManager> {
         } catch (error: any) {
             directory.entries = { error: `Error reading directory: ${error.message}` }
         }
-
-        events.emit('change', path)
     }
 
     watcher.on('all', async (eventName: string, path: string) => updateFileOrDirectory(path))
@@ -179,7 +172,6 @@ export async function createContextState(): Promise<ContextStateManager> {
 
         files.delete(path)
         watcher.unwatch(path)
-        events.emit('remove', path)
         return true
     }
 
@@ -191,7 +183,6 @@ export async function createContextState(): Promise<ContextStateManager> {
 
         directories.delete(path)
         watcher.unwatch(path)
-        events.emit('remove', path)
         return true
     }
 
@@ -224,7 +215,6 @@ export async function createContextState(): Promise<ContextStateManager> {
     }
 
     return {
-        events,
         dispose,
         rules,
         files,
