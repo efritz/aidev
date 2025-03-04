@@ -459,8 +459,10 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     // the set of visible messages. There might be other branches that include resources that
     // aren't relevant on this branch. We'll ignore those.
     const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
-    const files = [...contextState.files.values()].filter(f => shouldIncludeFile(f, visibleToolUseIds))
-    const directories = [...contextState.directories.values()].filter(d => shouldIncludeDirectory(d, visibleToolUseIds))
+    const files = [...contextState.files().values()].filter(f => shouldIncludeFile(f, visibleToolUseIds))
+    const directories = [...contextState.directories().values()].filter(d =>
+        shouldIncludeDirectory(d, visibleToolUseIds),
+    )
 
     // A map from target index int he message list to the set of files and directories that should
     // be included at that index. We'll build this up by iterating the messages, then interlace the

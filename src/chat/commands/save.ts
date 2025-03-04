@@ -21,8 +21,8 @@ async function handleSave(context: ChatContext, args: string) {
     const contents: SaveFilePayload = {
         model: context.provider.modelName,
         messages: context.provider.conversationManager.messages(),
-        contextFiles: mapToRecord(context.contextStateManager.files),
-        contextDirectories: mapToRecord(context.contextStateManager.directories),
+        contextFiles: mapToRecord(context.contextStateManager.files()),
+        contextDirectories: mapToRecord(context.contextStateManager.directories()),
     }
 
     const filename = `chat-${Math.floor(Date.now() / 1000)}.json`

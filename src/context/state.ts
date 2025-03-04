@@ -1,26 +1,27 @@
 import { Dirent } from 'fs'
 import { readdir, readFile } from 'fs/promises'
 import chokidar from 'chokidar'
-import { Rule } from '../rules/types'
 import { createIgnoredPathFilterer } from '../util/fs/ignore'
 
 export interface ContextState {
-    rules: Rule[]
-    files: Map<string, ContextFile>
-    directories: Map<string, ContextDirectory>
+    files: () => Map<string, ContextFile>
+    directories: () => Map<string, ContextDirectory>
 }
 
 export function createEmptyContextState(): ContextState {
+    const files = new Map<string, ContextFile>()
+    const directories = new Map<string, ContextDirectory>()
+
     return {
-        rules: [],
-        files: new Map<string, ContextFile>(),
-        directories: new Map<string, ContextDirectory>(),
+        files: () => files,
+        directories: () => directories,
     }
 }
 
 export interface ContextStateManager extends ContextState {
     dispose: () => void
-    addRule: (rule: Rule) => Promise<void>
+    setFiles: (files: Map<string, ContextFile>) => void
+    setDirectories: (directories: Map<string, ContextDirectory>) => void
     addFiles: (paths: string | string[], reason: InclusionReason) => Promise<void>
     addDirectories: (paths: string | string[], reason: InclusionReason) => Promise<void>
     removeFile: (path: string) => boolean
@@ -56,9 +57,8 @@ export async function createContextState(): Promise<ContextStateManager> {
     const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false, ignored: path => !pathFilterer(path) })
     const dispose = () => watcher.close()
 
-    const rules: Rule[] = []
-    const files = new Map<string, ContextFile>()
-    const directories = new Map<string, ContextDirectory>()
+    let files = new Map<string, ContextFile>()
+    let directories = new Map<string, ContextDirectory>()
 
     const updateFileOrDirectory = (path: string) => Promise.all([updateFile(path), updateDirectory(path)])
 
@@ -146,8 +146,12 @@ export async function createContextState(): Promise<ContextStateManager> {
         return ps
     }
 
-    const addRule = async (rule: Rule): Promise<void> => {
-        rules.push(rule)
+    const setFiles = (_files: Map<string, ContextFile>) => {
+        files = _files
+    }
+
+    const setDirectories = (_directories: Map<string, ContextDirectory>) => {
+        directories = _directories
     }
 
     const addFiles = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
@@ -216,10 +220,10 @@ export async function createContextState(): Promise<ContextStateManager> {
 
     return {
         dispose,
-        rules,
-        files,
-        directories,
-        addRule,
+        setFiles,
+        setDirectories,
+        files: () => files,
+        directories: () => directories,
         addFiles,
         addDirectories,
         removeFile,

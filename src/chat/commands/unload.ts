@@ -25,7 +25,7 @@ export async function handleUnloadPatterns(context: ChatContext, patterns: strin
     const matchedPaths =
         patterns.length > 0
             ? await filterIgnoredPaths(await expandFileAndDirectoryPatterns(patterns))
-            : [...context.contextStateManager.files.keys(), ...context.contextStateManager.directories.keys()]
+            : [...context.contextStateManager.files().keys(), ...context.contextStateManager.directories().keys()]
 
     const paths: string[] = []
     for (const path of matchedPaths) {

@@ -55,7 +55,7 @@ async function handleDump(context: ChatContext, args: string) {
 function serialize(contextStateManager: ContextStateManager): string {
     let output = '<files>\n'
 
-    for (const [path, contextFile] of contextStateManager.files) {
+    for (const [path, contextFile] of contextStateManager.files()) {
         output += `<file path="${path}">\n${contextFile.content}</file>\n\n`
     }
 
