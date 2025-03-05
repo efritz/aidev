@@ -1,6 +1,6 @@
 import { Dirent } from 'fs'
 import { readdir, readFile } from 'fs/promises'
-import chokidar from 'chokidar'
+import chokidar, { FSWatcher } from 'chokidar'
 import { createIgnoredPathFilterer } from '../util/fs/ignore'
 
 export interface ContextState {
@@ -19,13 +19,13 @@ export function createEmptyContextState(): ContextState {
 }
 
 export interface ContextStateManager extends ContextState {
-    dispose: () => void
     setFiles: (files: Map<string, ContextFile>) => void
-    setDirectories: (directories: Map<string, ContextDirectory>) => void
     addFiles: (paths: string | string[], reason: InclusionReason) => Promise<void>
-    addDirectories: (paths: string | string[], reason: InclusionReason) => Promise<void>
     removeFile: (path: string) => boolean
+    setDirectories: (directories: Map<string, ContextDirectory>) => void
+    addDirectories: (paths: string | string[], reason: InclusionReason) => Promise<void>
     removeDirectory: (path: string) => boolean
+    dispose: () => void
 }
 
 export type ContextFile = {
@@ -52,16 +52,30 @@ export type InclusionReason =
     | { type: 'editor'; currentlyOpen: boolean }
 
 export async function createContextState(): Promise<ContextStateManager> {
-    const pathFilterer = await createIgnoredPathFilterer()
+    const files = new Map<string, ContextFile>()
+    const directories = new Map<string, ContextDirectory>()
+    const watcher = createNewFileWatcher(await createIgnoredPathFilterer())
 
-    const watcher = chokidar.watch([], { persistent: true, ignoreInitial: false, ignored: path => !pathFilterer(path) })
-    const dispose = () => watcher.close()
+    return {
+        files: () => files,
+        setFiles: newFiles => replaceMap(files, newFiles),
+        ...createNewFileManager(files, watcher),
+        directories: () => directories,
+        setDirectories: newDirectories => replaceMap(directories, newDirectories),
+        ...createNewDirectoryManager(directories, watcher),
+        dispose: () => watcher.close(),
+    }
+}
 
-    let files = new Map<string, ContextFile>()
-    let directories = new Map<string, ContextDirectory>()
+function createNewFileWatcher(pathFilterer: (path: string) => boolean): FSWatcher {
+    return chokidar.watch([], {
+        persistent: true,
+        ignoreInitial: false,
+        ignored: path => !pathFilterer(path),
+    })
+}
 
-    const updateFileOrDirectory = (path: string) => Promise.all([updateFile(path), updateDirectory(path)])
-
+function createNewFileManager(files: Map<string, ContextFile>, watcher: FSWatcher) {
     const updateFile = async (path: string) => {
         const file = files.get(path)
         if (!file) {
@@ -75,24 +89,7 @@ export async function createContextState(): Promise<ContextStateManager> {
         }
     }
 
-    const updateDirectory = async (path: string) => {
-        const directory = directories.get(path)
-        if (!directory) {
-            return
-        }
-
-        try {
-            directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
-                name: entry.name,
-                isFile: entry.isFile(),
-                isDirectory: entry.isDirectory(),
-            }))
-        } catch (error: any) {
-            directory.entries = { error: `Error reading directory: ${error.message}` }
-        }
-    }
-
-    watcher.on('all', async (eventName: string, path: string) => updateFileOrDirectory(path))
+    watcher.on('all', async (eventName: string, path: string) => updateFile(path))
 
     const getOrCreateFiles = async (paths: string | string[]): Promise<ContextFile[]> => {
         const newPaths: string[] = []
@@ -120,6 +117,50 @@ export async function createContextState(): Promise<ContextStateManager> {
         return ps
     }
 
+    const addFiles = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
+        for (const file of await getOrCreateFiles(paths)) {
+            const { inclusionReasons } = file
+            updateInclusionReasons(inclusionReasons, reason)
+        }
+    }
+
+    const removeFile = (path: string): boolean => {
+        const file = files.get(path)
+        if (!file) {
+            return false
+        }
+
+        files.delete(path)
+        watcher.unwatch(path)
+        return true
+    }
+
+    return {
+        addFiles,
+        removeFile,
+    }
+}
+
+function createNewDirectoryManager(directories: Map<string, ContextDirectory>, watcher: FSWatcher) {
+    const updateDirectory = async (path: string) => {
+        const directory = directories.get(path)
+        if (!directory) {
+            return
+        }
+
+        try {
+            directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
+                name: entry.name,
+                isFile: entry.isFile(),
+                isDirectory: entry.isDirectory(),
+            }))
+        } catch (error: any) {
+            directory.entries = { error: `Error reading directory: ${error.message}` }
+        }
+    }
+
+    watcher.on('all', async (eventName: string, path: string) => updateDirectory(path))
+
     const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
         const newPaths: string[] = []
         const ps = await Promise.all(
@@ -146,37 +187,11 @@ export async function createContextState(): Promise<ContextStateManager> {
         return ps
     }
 
-    const setFiles = (_files: Map<string, ContextFile>) => {
-        files = _files
-    }
-
-    const setDirectories = (_directories: Map<string, ContextDirectory>) => {
-        directories = _directories
-    }
-
-    const addFiles = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
-        for (const file of await getOrCreateFiles(paths)) {
-            const { inclusionReasons } = file
-            updateInclusionReasons(inclusionReasons, reason)
-        }
-    }
-
     const addDirectories = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
         for (const directory of await getOrCreateDirectory(paths)) {
             const { inclusionReasons } = directory
             updateInclusionReasons(inclusionReasons, reason)
         }
-    }
-
-    const removeFile = (path: string): boolean => {
-        const file = files.get(path)
-        if (!file) {
-            return false
-        }
-
-        files.delete(path)
-        watcher.unwatch(path)
-        return true
     }
 
     const removeDirectory = (path: string): boolean => {
@@ -190,84 +205,39 @@ export async function createContextState(): Promise<ContextStateManager> {
         return true
     }
 
-    const updateInclusionReasons = (reasons: InclusionReason[], reason: InclusionReason) => {
-        if (
-            (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
-            (reason.type === 'tool_use' &&
-                reasons.some(
-                    r =>
-                        r.type === 'tool_use' &&
-                        r.toolUseClass === reason.toolUseClass &&
-                        r.toolUseId === reason.toolUseId,
-                ))
-        ) {
-            // Already exists
-            return
-        }
-
-        if (reason.type === 'editor') {
-            const matching = reasons.find(r => r.type === 'editor')
-            if (matching) {
-                // Update in-place
-                matching.currentlyOpen = reason.currentlyOpen
-                return
-            }
-        }
-
-        // No matching reasons exist
-        reasons.push(reason)
-    }
-
     return {
-        dispose,
-        setFiles,
-        setDirectories,
-        files: () => files,
-        directories: () => directories,
-        addFiles,
         addDirectories,
-        removeFile,
         removeDirectory,
     }
 }
 
-export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
-    return shouldInclude(file.inclusionReasons, visibleToolUses)
-}
+function updateInclusionReasons(reasons: InclusionReason[], reason: InclusionReason) {
+    if (
+        (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
+        (reason.type === 'tool_use' &&
+            reasons.some(
+                r =>
+                    r.type === 'tool_use' && r.toolUseClass === reason.toolUseClass && r.toolUseId === reason.toolUseId,
+            ))
+    ) {
+        // Already exists
+        return
+    }
 
-export function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
-    return shouldInclude(directory.inclusionReasons, visibleToolUses)
-}
-
-function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): boolean {
-    for (const reason of reasons) {
-        switch (reason.type) {
-            case 'explicit':
-                return true
-
-            case 'tool_use':
-                // If we ONLY write to a file we don't need to include it. We only want to include
-                // a file if it's explicitly read by a tool. We keep the 'write' tool use class to
-                // ensure that we always include the file contents after the last modification so
-                // the assistant doesn't get confused about the current state of the contents.
-                if (reason.toolUseClass === 'read' && visibleToolUses.includes(reason.toolUseId)) {
-                    return true
-                }
-
-                break
-
-            case 'editor':
-                if (reason.currentlyOpen) {
-                    return true
-                }
-
-                break
+    if (reason.type === 'editor') {
+        const matching = reasons.find(r => r.type === 'editor')
+        if (matching) {
+            // Update in-place
+            matching.currentlyOpen = reason.currentlyOpen
+            return
         }
     }
 
-    return false
+    // No matching reasons exist
+    reasons.push(reason)
 }
 
-export function includedByToolUse(inclusionReasons: InclusionReason[], toolUseIds: string[]): boolean {
-    return inclusionReasons.some(reason => reason.type === 'tool_use' && toolUseIds.includes(reason.toolUseId))
+function replaceMap<K, V>(target: Map<K, V>, source: Map<K, V>) {
+    target.clear()
+    source.forEach((value, key) => target.set(key, value))
 }

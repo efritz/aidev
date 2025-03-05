@@ -1,12 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import {
-    ContextDirectory,
-    ContextFile,
-    ContextState,
-    includedByToolUse,
-    shouldIncludeDirectory,
-    shouldIncludeFile,
-} from '../context/state'
+import { ContextDirectory, ContextFile, ContextState, InclusionReason } from '../context/state'
 import { AssistantMessage, Message, MetaMessage, Rule as SerializableRule, UserMessage } from '../messages/messages'
 import { Rule } from '../rules/types'
 import { extract } from '../util/lists/lists'
@@ -573,4 +566,45 @@ function createRuleMessage(rules: SerializableRule[]): UserMessage {
         type: 'text',
         content: 'Active rules have been updated.\n\n' + payloads.join('\n'),
     }
+}
+
+function includedByToolUse(inclusionReasons: InclusionReason[], toolUseIds: string[]): boolean {
+    return inclusionReasons.some(reason => reason.type === 'tool_use' && toolUseIds.includes(reason.toolUseId))
+}
+
+export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
+    return shouldInclude(file.inclusionReasons, visibleToolUses)
+}
+
+export function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
+    return shouldInclude(directory.inclusionReasons, visibleToolUses)
+}
+
+function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): boolean {
+    for (const reason of reasons) {
+        switch (reason.type) {
+            case 'explicit':
+                return true
+
+            case 'tool_use':
+                // If we ONLY write to a file we don't need to include it. We only want to include
+                // a file if it's explicitly read by a tool. We keep the 'write' tool use class to
+                // ensure that we always include the file contents after the last modification so
+                // the assistant doesn't get confused about the current state of the contents.
+                if (reason.toolUseClass === 'read' && visibleToolUses.includes(reason.toolUseId)) {
+                    return true
+                }
+
+                break
+
+            case 'editor':
+                if (reason.currentlyOpen) {
+                    return true
+                }
+
+                break
+        }
+    }
+
+    return false
 }
