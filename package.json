@@ -43,7 +43,8 @@
         "package": "bun run install-node && bun run build && bun run vsce-package",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
-        "test": "jest"
+        "test": "jest",
+        "generate-import-graph": "bash -c 'bun run ./scripts/import-graph.ts \"$@\" > directory-imports.dot && dot -Tsvg directory-imports.dot -o directory-imports.svg' --"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "0.37.0",
