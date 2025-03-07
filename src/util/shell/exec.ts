@@ -46,8 +46,9 @@ async function runCommand(context: ChatContext, command: string, update: Updater
                     update(output)
                 }
             }
-
-            const cmd = spawn('zsh', ['-c', command])
+            const shellCommand = context.preferences.shellCommand || "zsh -c";
+            const [shell, shellFlag] = shellCommand.split(" ", 2);
+            const cmd = spawn(shell, [shellFlag, command]);
             cmd.stdout.on('data', data => aggregate('stdout', data.toString()))
             cmd.stderr.on('data', data => aggregate('stderr', data.toString()))
 
