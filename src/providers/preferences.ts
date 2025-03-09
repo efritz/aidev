@@ -51,7 +51,7 @@ const PreferencesSchema = z.object({
         z.array(EmbeddingModelSchema),
     ),
     shellCommand: z.string(),
-});
+})
 
 export type ChatModel = z.infer<typeof ChatModelSchema>
 export type EmbeddingsModel = z.infer<typeof EmbeddingModelSchema>
