@@ -14,7 +14,7 @@ export type Branch = {
     messages: Message[]
 }
 
-export type ConversationManager = {
+export type ConversationManager = StashManager & {
     messages(): Message[]
     visibleMessages(): Message[]
     setMessages(messages: Message[]): void
@@ -25,11 +25,6 @@ export type ConversationManager = {
     savepoints(): string[]
     addSavepoint(name: string): boolean
     rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
-
-    stashedFiles(): Map<string, string>
-    stashFile(path: string, content: string, originalContent: string, fromStash: boolean): void
-    unstashFile(path: string): boolean
-    applyStashedFile(path: string, content: string, originalContents: string): void
 
     undo(): boolean
     redo(): boolean
@@ -170,43 +165,6 @@ export function createConversation<T>({
         }
 
         pushMeta({ type: 'savepoint', name })
-        return true
-    }
-
-    const stashedFiles = (): Map<string, string> => {
-        const stash = new Map<string, string>()
-        for (const message of visibleMessages()) {
-            if (message.role === 'meta') {
-                if (message.type === 'stash') {
-                    stash.set(message.path, message.content)
-                } else if (message.type === 'unstash' || message.type === 'applyStash') {
-                    stash.delete(message.path)
-                }
-            }
-        }
-        return stash
-    }
-
-    const stashFile = (path: string, content: string, originalContent: string, fromStash: boolean) => {
-        pushMeta({ type: 'stash', path, content, originalContent, fromStash })
-        return true
-    }
-
-    const unstashFile = (path: string): boolean => {
-        if (!stashedFiles().has(path)) {
-            return false
-        }
-
-        pushMeta({ type: 'unstash', path })
-        return true
-    }
-
-    const applyStashedFile = (path: string, content: string, originalContent: string): boolean => {
-        if (!stashedFiles().has(path)) {
-            return false
-        }
-
-        pushMeta({ type: 'applyStash', path, content, originalContent })
         return true
     }
 
@@ -427,10 +385,6 @@ export function createConversation<T>({
         savepoints,
         addSavepoint,
         rollbackToSavepoint,
-        stashedFiles,
-        stashFile,
-        unstashFile,
-        applyStashedFile,
         undo,
         redo,
         branchMetadata,
@@ -441,6 +395,7 @@ export function createConversation<T>({
         renameBranch,
         removeBranch,
         addRules,
+        ...createStashManager(visibleMessages, pushMeta),
     }
 }
 
@@ -607,4 +562,60 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
     }
 
     return false
+}
+
+//
+//
+
+interface StashManager {
+    stashedFiles(): Map<string, string>
+    stashFile(path: string, content: string, originalContent: string, fromStash: boolean): void
+    unstashFile(path: string): boolean
+    applyStashedFile(path: string, content: string, originalContents: string): void
+}
+
+function createStashManager(visibleMessages: () => Message[], pushMeta: (message: MetaMessage) => void): StashManager {
+    const stashedFiles = (): Map<string, string> => {
+        const stash = new Map<string, string>()
+        for (const message of visibleMessages()) {
+            if (message.role === 'meta') {
+                if (message.type === 'stash') {
+                    stash.set(message.path, message.content)
+                } else if (message.type === 'unstash' || message.type === 'applyStash') {
+                    stash.delete(message.path)
+                }
+            }
+        }
+        return stash
+    }
+
+    const stashFile = (path: string, content: string, originalContent: string, fromStash: boolean) => {
+        pushMeta({ type: 'stash', path, content, originalContent, fromStash })
+        return true
+    }
+
+    const unstashFile = (path: string): boolean => {
+        if (!stashedFiles().has(path)) {
+            return false
+        }
+
+        pushMeta({ type: 'unstash', path })
+        return true
+    }
+
+    const applyStashedFile = (path: string, content: string, originalContent: string): boolean => {
+        if (!stashedFiles().has(path)) {
+            return false
+        }
+
+        pushMeta({ type: 'applyStash', path, content, originalContent })
+        return true
+    }
+
+    return {
+        stashedFiles,
+        stashFile,
+        unstashFile,
+        applyStashedFile,
+    }
 }
