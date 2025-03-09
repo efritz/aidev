@@ -16,6 +16,7 @@ export type Branch = {
 
 export type ConversationManager = BranchManager &
     UndoRedoManager &
+    SavepointManager &
     StashManager &
     RuleManager & {
         messages(): Message[]
@@ -24,10 +25,6 @@ export type ConversationManager = BranchManager &
 
         pushUser(message: UserMessage): string[]
         pushAssistant(message: AssistantMessage): void
-
-        savepoints(): string[]
-        addSavepoint(name: string): boolean
-        rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
     }
 
 type ConversationOptions<T> = {
@@ -51,6 +48,18 @@ export function createConversation<T>({
 
     const setMessages = (messages: Message[]) => {
         chatMessages.splice(0, chatMessages.length, ...messages)
+    }
+
+    const isUndoTarget = (message: Message): boolean => {
+        switch (message.role) {
+            case 'meta':
+                return true
+
+            case 'user':
+                return message.type === 'text'
+        }
+
+        return false
     }
 
     const addMessage = (message: Message) => {
@@ -87,6 +96,17 @@ export function createConversation<T>({
         return branchMetadata()[currentBranch()].messages.filter(m => !(m.role === 'meta' && m.type === 'switch'))
     }
 
+    const savepointManager = createSavepointManager(
+        visibleMessages,
+        pushMeta,
+        branchMetadata,
+        currentBranch,
+        saveSnapshot,
+        messages,
+        setMessages,
+        removeBranches,
+    )
+
     const providerMessages = (): T[] => {
         const providerMessages: T[] = []
         if (initialMessage) {
@@ -118,79 +138,6 @@ export function createConversation<T>({
         return providerMessages
     }
 
-    const savepoints = (): string[] => {
-        return visibleMessages()
-            .filter(message => message.role === 'meta' && message.type === 'savepoint')
-            .map(message => message.name)
-    }
-
-    const addSavepoint = (name: string): boolean => {
-        if (savepoints().includes(name)) {
-            return false
-        }
-
-        pushMeta({ type: 'savepoint', name })
-        return true
-    }
-
-    const rollbackToSavepoint = (name: string): { success: boolean; prunedBranches: string[] } => {
-        const isMatchingSavepoint = (message: Message): boolean =>
-            message.role === 'meta' && message.type === 'savepoint' && message.name === name
-
-        const branches = branchMetadata()
-        const visibleMessages = branches[currentBranch()].messages
-
-        const messageIdsToRemove: string[] = []
-        const children: string[] = []
-        let foundMatchingSavepoint = false
-
-        for (const message of visibleMessages) {
-            if (isMatchingSavepoint(message)) {
-                foundMatchingSavepoint = true
-            }
-
-            if (foundMatchingSavepoint) {
-                if (message.role === 'meta' && message.type === 'branch') {
-                    children.push(message.name)
-                }
-
-                messageIdsToRemove.push(message.id)
-            }
-        }
-
-        if (!foundMatchingSavepoint) {
-            return { success: false, prunedBranches: [] }
-        }
-
-        let branchName: string = currentBranch()
-        while (true) {
-            const parent = branches[branchName].parent
-            if (parent && branches[parent].messages.some(isMatchingSavepoint)) {
-                branchName = parent
-            } else {
-                break
-            }
-        }
-
-        saveSnapshot()
-        const prunedBranches = removeBranches(children)
-        setMessages(chatMessages.filter(message => !messageIdsToRemove.includes(message.id)))
-        pushMeta({ type: 'switch', name: branchName })
-        return { success: true, prunedBranches }
-    }
-
-    const isUndoTarget = (message: Message): boolean => {
-        switch (message.role) {
-            case 'meta':
-                return true
-
-            case 'user':
-                return message.type === 'text'
-        }
-
-        return false
-    }
-
     return {
         providerMessages,
         messages,
@@ -198,14 +145,12 @@ export function createConversation<T>({
         setMessages,
         pushUser,
         pushAssistant,
-        savepoints,
-        addSavepoint,
-        rollbackToSavepoint,
 
         branchMetadata,
         currentBranch,
         ...branchManager,
         ...undoRedoManager,
+        ...savepointManager,
         ...createStashManager(visibleMessages, pushMeta),
         ...createRuleManager(pushMeta),
     }
@@ -605,6 +550,93 @@ function createUndoRedoManager(
         undo,
         redo,
         saveSnapshot,
+    }
+}
+
+//
+//
+
+interface SavepointManager {
+    savepoints(): string[]
+    addSavepoint(name: string): boolean
+    rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
+}
+
+function createSavepointManager(
+    visibleMessages: () => Message[],
+    pushMeta: (message: MetaMessage) => void,
+    branchMetadata: () => Record<string, Branch>,
+    currentBranch: () => string,
+    saveSnapshot: () => void,
+    messages: () => Message[],
+    setMessages: (messages: Message[]) => void,
+    removeBranches: (names: string[]) => string[],
+): SavepointManager {
+    const savepoints = (): string[] => {
+        return visibleMessages()
+            .filter(message => message.role === 'meta' && message.type === 'savepoint')
+            .map(message => message.name)
+    }
+
+    const addSavepoint = (name: string): boolean => {
+        if (savepoints().includes(name)) {
+            return false
+        }
+
+        pushMeta({ type: 'savepoint', name })
+        return true
+    }
+
+    const rollbackToSavepoint = (name: string): { success: boolean; prunedBranches: string[] } => {
+        const isMatchingSavepoint = (message: Message): boolean =>
+            message.role === 'meta' && message.type === 'savepoint' && message.name === name
+
+        const branches = branchMetadata()
+        const visibleMessages = branches[currentBranch()].messages
+
+        const messageIdsToRemove: string[] = []
+        const children: string[] = []
+        let foundMatchingSavepoint = false
+
+        for (const message of visibleMessages) {
+            if (isMatchingSavepoint(message)) {
+                foundMatchingSavepoint = true
+            }
+
+            if (foundMatchingSavepoint) {
+                if (message.role === 'meta' && message.type === 'branch') {
+                    children.push(message.name)
+                }
+
+                messageIdsToRemove.push(message.id)
+            }
+        }
+
+        if (!foundMatchingSavepoint) {
+            return { success: false, prunedBranches: [] }
+        }
+
+        let branchName: string = currentBranch()
+        while (true) {
+            const parent = branches[branchName].parent
+            if (parent && branches[parent].messages.some(isMatchingSavepoint)) {
+                branchName = parent
+            } else {
+                break
+            }
+        }
+
+        saveSnapshot()
+        const prunedBranches = removeBranches(children)
+        setMessages(messages().filter(message => !messageIdsToRemove.includes(message.id)))
+        pushMeta({ type: 'switch', name: branchName })
+        return { success: true, prunedBranches }
+    }
+
+    return {
+        savepoints,
+        addSavepoint,
+        rollbackToSavepoint,
     }
 }
 
