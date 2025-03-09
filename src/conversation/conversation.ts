@@ -54,12 +54,12 @@ export function createConversation<T>({
     initialMessage,
     postPush,
 }: ConversationOptions<T>): Conversation<T> {
-    let chatMessages: Message[] = []
+    const chatMessages: Message[] = []
     const undoStack: Message[][] = []
     const redoStack: Message[][] = []
 
     const setMessages = (messages: Message[]) => {
-        chatMessages = messages
+        chatMessages.splice(0, chatMessages.length, ...messages)
     }
 
     const saveSnapshot = (): void => {
