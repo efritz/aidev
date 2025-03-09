@@ -14,31 +14,30 @@ export type Branch = {
     messages: Message[]
 }
 
-export type ConversationManager = StashManager & {
-    messages(): Message[]
-    visibleMessages(): Message[]
-    setMessages(messages: Message[]): void
+export type ConversationManager = StashManager &
+    RuleManager & {
+        messages(): Message[]
+        visibleMessages(): Message[]
+        setMessages(messages: Message[]): void
 
-    pushUser(message: UserMessage): string[]
-    pushAssistant(message: AssistantMessage): void
+        pushUser(message: UserMessage): string[]
+        pushAssistant(message: AssistantMessage): void
 
-    savepoints(): string[]
-    addSavepoint(name: string): boolean
-    rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
+        savepoints(): string[]
+        addSavepoint(name: string): boolean
+        rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
 
-    undo(): boolean
-    redo(): boolean
+        undo(): boolean
+        redo(): boolean
 
-    branchMetadata(): Record<string, Branch>
-    branches(): string[]
-    currentBranch(): string
-    branch(name: string): boolean
-    switchBranch(name: string): boolean
-    renameBranch(oldName: string, newName: string): boolean
-    removeBranch(name: string): { success: boolean; prunedBranches: string[] }
-
-    addRules(rules: Rule[]): void
-}
+        branchMetadata(): Record<string, Branch>
+        branches(): string[]
+        currentBranch(): string
+        branch(name: string): boolean
+        switchBranch(name: string): boolean
+        renameBranch(oldName: string, newName: string): boolean
+        removeBranch(name: string): { success: boolean; prunedBranches: string[] }
+    }
 
 type ConversationOptions<T> = {
     contextState: ContextState
@@ -365,16 +364,6 @@ export function createConversation<T>({
         }
     }
 
-    const addRules = (rules: Rule[]): void => {
-        pushMeta({
-            type: 'rule',
-            rules: rules.map(({ matcher, ...rest }) => ({
-                ...rest,
-                condition: matcher.condition(),
-            })),
-        })
-    }
-
     return {
         providerMessages,
         messages: () => chatMessages,
@@ -394,8 +383,8 @@ export function createConversation<T>({
         switchBranch,
         renameBranch,
         removeBranch,
-        addRules,
         ...createStashManager(visibleMessages, pushMeta),
+        ...createRuleManager(pushMeta),
     }
 }
 
@@ -618,4 +607,25 @@ function createStashManager(visibleMessages: () => Message[], pushMeta: (message
         unstashFile,
         applyStashedFile,
     }
+}
+
+//
+//
+
+interface RuleManager {
+    addRules(rules: Rule[]): void
+}
+
+function createRuleManager(pushMeta: (message: MetaMessage) => void): RuleManager {
+    const addRules = (rules: Rule[]): void => {
+        pushMeta({
+            type: 'rule',
+            rules: rules.map(({ matcher, ...rest }) => ({
+                ...rest,
+                condition: matcher.condition(),
+            })),
+        })
+    }
+
+    return { addRules }
 }
