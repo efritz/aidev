@@ -15,6 +15,7 @@ export type Branch = {
 }
 
 export type ConversationManager = BranchManager &
+    UndoRedoManager &
     StashManager &
     RuleManager & {
         messages(): Message[]
@@ -27,9 +28,6 @@ export type ConversationManager = BranchManager &
         savepoints(): string[]
         addSavepoint(name: string): boolean
         rollbackToSavepoint(name: string): { success: boolean; prunedBranches: string[] }
-
-        undo(): boolean
-        redo(): boolean
     }
 
 type ConversationOptions<T> = {
@@ -48,16 +46,11 @@ export function createConversation<T>({
     postPush,
 }: ConversationOptions<T>): Conversation<T> {
     const chatMessages: Message[] = []
-    const undoStack: Message[][] = []
-    const redoStack: Message[][] = []
+
+    const messages = () => chatMessages
 
     const setMessages = (messages: Message[]) => {
         chatMessages.splice(0, chatMessages.length, ...messages)
-    }
-
-    const saveSnapshot = (): void => {
-        undoStack.push([...chatMessages])
-        redoStack.length = 0
     }
 
     const addMessage = (message: Message) => {
@@ -80,6 +73,8 @@ export function createConversation<T>({
     const pushAssistant = (message: AssistantMessage) => {
         addMessage({ ...message, id: uuidv4(), role: 'assistant' })
     }
+
+    const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
     const { branchMetadata, currentBranch, removeBranches, childBranches, ...branchManager } = createBranchManager(
         pushMeta,
@@ -196,29 +191,9 @@ export function createConversation<T>({
         return false
     }
 
-    const undo = (): boolean => {
-        if (undoStack.length === 0) {
-            return false
-        }
-
-        redoStack.push([...chatMessages])
-        setMessages(undoStack.pop()!)
-        return true
-    }
-
-    const redo = (): boolean => {
-        if (redoStack.length === 0) {
-            return false
-        }
-
-        undoStack.push([...chatMessages])
-        setMessages(redoStack.pop()!)
-        return true
-    }
-
     return {
         providerMessages,
-        messages: () => chatMessages,
+        messages,
         visibleMessages,
         setMessages,
         pushUser,
@@ -226,12 +201,11 @@ export function createConversation<T>({
         savepoints,
         addSavepoint,
         rollbackToSavepoint,
-        undo,
-        redo,
 
         branchMetadata,
         currentBranch,
         ...branchManager,
+        ...undoRedoManager,
         ...createStashManager(visibleMessages, pushMeta),
         ...createRuleManager(pushMeta),
     }
@@ -582,6 +556,55 @@ function createBranchManager(
         removeBranch,
         removeBranches,
         childBranches,
+    }
+}
+
+//
+//
+
+interface UndoRedoManager {
+    undo(): boolean
+    redo(): boolean
+}
+
+function createUndoRedoManager(
+    messages: () => Message[],
+    setMessages: (messages: Message[]) => void,
+): UndoRedoManager & {
+    saveSnapshot: () => void
+} {
+    const undoStack: Message[][] = []
+    const redoStack: Message[][] = []
+
+    const undo = (): boolean => {
+        if (undoStack.length === 0) {
+            return false
+        }
+
+        redoStack.push([...messages()])
+        setMessages(undoStack.pop()!)
+        return true
+    }
+
+    const redo = (): boolean => {
+        if (redoStack.length === 0) {
+            return false
+        }
+
+        undoStack.push([...messages()])
+        setMessages(redoStack.pop()!)
+        return true
+    }
+
+    const saveSnapshot = (): void => {
+        undoStack.push([...messages()])
+        redoStack.length = 0
+    }
+
+    return {
+        undo,
+        redo,
+        saveSnapshot,
     }
 }
 
