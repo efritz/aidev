@@ -25,7 +25,7 @@ export function createNewFileManager(watcher: FSWatcher) {
         }
     }
 
-    watcher.on('all', async (eventName: string, path: string) => updateFile(path))
+    watcher.on('all', async (_event: string, path: string) => updateFile(path))
 
     const getOrCreateFiles = async (paths: string | string[]): Promise<ContextFile[]> => {
         const newPaths: string[] = []

@@ -36,7 +36,7 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
         }
     }
 
-    watcher.on('all', async (eventName: string, path: string) => updateDirectory(path))
+    watcher.on('all', async (_event: string, path: string) => updateDirectory(path))
 
     const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
         const newPaths: string[] = []

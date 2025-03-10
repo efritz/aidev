@@ -3,10 +3,9 @@ import { ContextDirectory, createNewDirectoryManager } from './directories'
 import { ContextFile, createNewFileManager } from './files'
 import { createNewFileWatcher } from './watcher'
 
-export type ContextStateManager = ReturnType<typeof createNewFileManager> &
-    ReturnType<typeof createNewDirectoryManager> & {
-        dispose: () => void
-    }
+type FileManager = ReturnType<typeof createNewFileManager>
+type DirectoryManager = ReturnType<typeof createNewDirectoryManager>
+export type ContextStateManager = FileManager & DirectoryManager & { dispose: () => void }
 
 export async function createContextState(): Promise<ContextStateManager> {
     const { watcher, dispose } = createNewFileWatcher(await createIgnoredPathFilterer())
