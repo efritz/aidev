@@ -48,9 +48,11 @@ async function handle(context: ChatContext, message: string): Promise<void> {
             return
         }
     } else {
-        const prunedBranches = context.provider.conversationManager.pushUser({ type: 'text', content: message })
-        if (prunedBranches.length > 0) {
-            console.log(chalk.yellow(`${chalk.dim('𐌖')} Pruned branches: ${prunedBranches.join(', ')}`))
+        const branches = context.provider.conversationManager.branches()
+        context.provider.conversationManager.pushUser({ type: 'text', content: message })
+        const prunedBranches = new Set(branches).difference(new Set(context.provider.conversationManager.branches()))
+        if (prunedBranches.size > 0) {
+            console.log(chalk.yellow(`${chalk.dim('𐌖')} Pruned branches: ${[...prunedBranches].sort().join(', ')}`))
             console.log()
         }
     }

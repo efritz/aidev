@@ -38,7 +38,7 @@ async function handleRemove(context: ChatContext, args: string) {
     replayMessages(context)
 
     if (prunedBranches.length > 0) {
-        console.log(chalk.yellow(`${chalk.dim('𐌖')} Pruned branches "${prunedBranches.join(', ')}".`))
+        console.log(chalk.yellow(`${chalk.dim('𐌖')} Pruned branches "${prunedBranches.sort().join(', ')}".`))
         console.log()
     }
 }

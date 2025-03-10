@@ -1,6 +1,7 @@
 import { writeFile } from 'fs/promises'
 import chalk from 'chalk'
-import { ContextDirectory, ContextFile } from '../../context/state'
+import { ContextDirectory } from '../../context/directories'
+import { ContextFile } from '../../context/files'
 import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'

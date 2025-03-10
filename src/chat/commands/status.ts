@@ -1,5 +1,6 @@
 import chalk from 'chalk'
-import { Branch, shouldIncludeFile } from '../../conversation/conversation'
+import { shouldIncludeFile } from '../../conversation/conversation'
+import { Branch } from '../../conversation/manager'
 import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
