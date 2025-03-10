@@ -9,16 +9,16 @@ export type Branch = {
 }
 
 export function createBranchManager(
-    pushMeta: (message: MetaMessage) => void,
-    chatMessages: Message[] = [],
+    messages: () => Message[],
     setMessages: (messages: Message[]) => void,
+    pushMeta: (message: MetaMessage) => void,
     saveSnapshot: () => void,
 ) {
     const branchMetadata = (): Record<string, Branch> => {
         const branches: Record<string, Branch> = { main: { name: 'main', messages: [] } }
 
         let currentBranch = 'main'
-        for (const message of chatMessages) {
+        for (const message of messages()) {
             if (message.role === 'meta') {
                 switch (message.type) {
                     case 'branch':
@@ -53,8 +53,10 @@ export function createBranchManager(
     }
 
     const currentBranch = () => {
-        for (let i = chatMessages.length - 1; i >= 0; i--) {
-            const message = chatMessages[i]
+        const _messages = messages()
+
+        for (let i = _messages.length - 1; i >= 0; i--) {
+            const message = _messages[i]
 
             if (message.role === 'meta' && (message.type === 'branch' || message.type === 'switch')) {
                 return message.name
@@ -83,6 +85,8 @@ export function createBranchManager(
     }
 
     const renameBranch = (oldName: string, newName: string): boolean => {
+        const _messages = messages()
+
         if (!branches().includes(oldName) || branches().includes(newName)) {
             return false
         }
@@ -100,7 +104,7 @@ export function createBranchManager(
         }
 
         saveSnapshot()
-        setMessages(chatMessages.map(renameBranchMessage))
+        setMessages(_messages.map(renameBranchMessage))
         return true
     }
 
@@ -149,16 +153,18 @@ export function createBranchManager(
     }
 
     const removeBranchMessages = (name: string): void => {
+        const _messages = messages()
+
         const branch = branchMetadata()[name]
         if (branch) {
             const branchIds = branch.messages.map(m => m.id)
             const parentIds = branch.parent ? branchMetadata()[branch.parent].messages.map(m => m.id) : []
             const uniqueIds = branchIds.filter(id => !parentIds.includes(id))
 
-            const createMessage = chatMessages.find(m => m.role === 'meta' && m.type === 'branch' && m.name === name)
+            const createMessage = _messages.find(m => m.role === 'meta' && m.type === 'branch' && m.name === name)
             const idsToRemove = [...uniqueIds, ...(createMessage ? [createMessage.id] : [])]
 
-            setMessages(chatMessages.filter(m => !idsToRemove.includes(m.id)))
+            setMessages(_messages.filter(m => !idsToRemove.includes(m.id)))
         }
     }
 

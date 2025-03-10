@@ -4,13 +4,13 @@ import { Branch } from './branches'
 export type SavepointManager = ReturnType<typeof createSavepointManager>
 
 export function createSavepointManager(
+    messages: () => Message[],
     visibleMessages: () => Message[],
+    setMessages: (messages: Message[]) => void,
     pushMeta: (message: MetaMessage) => void,
+    saveSnapshot: () => void,
     branchMetadata: () => Record<string, Branch>,
     currentBranch: () => string,
-    saveSnapshot: () => void,
-    messages: () => Message[],
-    setMessages: (messages: Message[]) => void,
     removeBranches: (names: string[]) => string[],
 ) {
     const savepoints = (): string[] => {

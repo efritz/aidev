@@ -15,58 +15,37 @@ export type ConversationManager = BranchManager &
         visibleMessages(): Message[]
         setMessages(messages: Message[]): void
 
-        pushUser(message: UserMessage): string[]
+        pushUser(message: UserMessage): void
         pushAssistant(message: AssistantMessage): void
     }
 
 export function createConversationManager(): ConversationManager {
-    const chatMessages: Message[] = []
+    const _messages: Message[] = []
+    const messages = () => _messages
+    const setMessages = (messages: Message[]) => _messages.splice(0, _messages.length, ...messages)
 
-    const messages = () => chatMessages
-
-    const setMessages = (messages: Message[]) => {
-        chatMessages.splice(0, chatMessages.length, ...messages)
-    }
-
-    const isUndoTarget = (message: Message): boolean => {
-        switch (message.role) {
-            case 'meta':
-                return true
-
-            case 'user':
-                return message.type === 'text'
-        }
-
-        return false
-    }
-
-    const addMessage = (message: Message) => {
-        if (isUndoTarget(message)) {
+    const addMessage = (message: Message): void => {
+        if (message.role === 'meta' || (message.role === 'user' && message.type === 'text')) {
             saveSnapshot()
         }
 
-        setMessages([...chatMessages, message])
+        _messages.push(message)
+
+        if (message.role === 'user') {
+            removeBranches(childBranches(currentBranch()).map(({ name }) => name))
+        }
     }
 
-    const pushMeta = (message: MetaMessage) => {
-        addMessage({ ...message, id: uuidv4(), role: 'meta' })
-    }
-
-    const pushUser = (message: UserMessage): string[] => {
-        addMessage({ ...message, id: uuidv4(), role: 'user' })
-        return removeBranches(childBranches(currentBranch()).map(({ name }) => name))
-    }
-
-    const pushAssistant = (message: AssistantMessage) => {
-        addMessage({ ...message, id: uuidv4(), role: 'assistant' })
-    }
+    const pushMeta = (message: MetaMessage) => addMessage({ ...message, id: uuidv4(), role: 'meta' })
+    const pushUser = (message: UserMessage) => addMessage({ ...message, id: uuidv4(), role: 'user' })
+    const pushAssistant = (message: AssistantMessage) => addMessage({ ...message, id: uuidv4(), role: 'assistant' })
 
     const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
     const { branchMetadata, currentBranch, removeBranches, childBranches, ...branchManager } = createBranchManager(
-        pushMeta,
-        chatMessages,
+        messages,
         setMessages,
+        pushMeta,
         saveSnapshot,
     )
 
@@ -75,13 +54,13 @@ export function createConversationManager(): ConversationManager {
     }
 
     const savepointManager = createSavepointManager(
+        messages,
         visibleMessages,
+        setMessages,
         pushMeta,
+        saveSnapshot,
         branchMetadata,
         currentBranch,
-        saveSnapshot,
-        messages,
-        setMessages,
         removeBranches,
     )
 

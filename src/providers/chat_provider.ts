@@ -1,5 +1,5 @@
 import { ContextState } from '../context/state'
-import { ConversationManager } from '../conversation/conversation'
+import { ConversationManager } from '../conversation/manager'
 import { Response } from '../messages/messages'
 import { Limiter } from '../util/ratelimits/limiter'
 import { ChatModel } from './preferences'
