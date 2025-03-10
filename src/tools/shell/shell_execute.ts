@@ -19,13 +19,13 @@ type ShellResult = BaseShellResult & {
 
 export const shellExecute: Tool<ShellResult> = {
     name: 'shell_execute',
-    description: 'Execute a zsh command.',
+    description: 'Execute a shell command.',
     parameters: {
         type: JSONSchemaDataType.Object,
         properties: {
             command: {
                 type: JSONSchemaDataType.String,
-                description: 'The zsh command to execute.',
+                description: 'The shell command to execute.',
             },
         },
         required: ['command'],
