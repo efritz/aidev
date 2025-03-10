@@ -108,13 +108,15 @@ Remember:
 Begin your assistance by analyzing the user's query and providing an appropriate response.
 
 The current directory is {{cwd}}}.
+The user's preferred shell is {{shellCommand}}.
 
 {{custom instructions}}
 `
 
-async function buildSystemPrompt(): Promise<string> {
+async function buildSystemPrompt(preferences: Preferences): Promise<string> {
     return systemPromptTemplate
         .replace('{{cwd}}', process.cwd())
+        .replace('{{shellCommand}}', preferences.shellCommand ?? 'zsh')
         .replace('{{custom instructions}}', await buildProjectInstructions())
 }
 
@@ -141,7 +143,7 @@ async function chat(
     }
 
     const contextStateManager = await createContextState()
-    const system = await buildSystemPrompt()
+    const system = await buildSystemPrompt(preferences)
 
     let context: ChatContext
 

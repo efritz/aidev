@@ -98,7 +98,7 @@ Available LLM API providers:
 
 Tools available to the LLMs:
 
-- `shell_execute`: Execute a `zsh` command.
+- `shell_execute`: Execute a shell command command.
 - `read_directories`: Reads the contents of directories into the conversation.
 - `read_files`: Reads the contents of files into the conversation.
 - `write_file`: Writes contents to a file.

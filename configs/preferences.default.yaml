@@ -3,6 +3,7 @@ reprompterModel: haiku
 embeddingsModel: mxbai-embed-large
 summarizerModel: gpt-4o-mini
 webTranslatorModel: gpt-4o-mini
+shellCommand: zsh
 
 providers:
     Anthropic: { include: ./models/chat/anthropic.yaml }
