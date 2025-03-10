@@ -1,2 +1,6 @@
 dist
 node_modules
+
+# Import graph artifacts
+directory-imports.dot
+directory-imports.svg
