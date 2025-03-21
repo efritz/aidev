@@ -1,5 +1,5 @@
-(
-  (class_declaration
-    name: (type_identifier) @name
-  ) @class
-)
+;; Capture class definitions.
+
+(class_declaration
+  name: (type_identifier) @name
+) @class

@@ -1,0 +1,6 @@
+;; Capture arrow functions bound to an explicit name
+
+(variable_declarator
+  name: (identifier) @name
+  value: [(arrow_function) (function_expression)]
+) @function_expr
