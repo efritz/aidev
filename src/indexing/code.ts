@@ -1,9 +1,9 @@
 import Parser from 'tree-sitter'
 import { ChatContext } from '../chat/context'
 import { IndexingProgress } from '.'
-import { createParsers, LanguageConfiguration } from './languages'
+import { createParsers, extractCodeBlockFromMatch, extractCodeMatches, LanguageConfiguration } from './languages'
 import { EmbeddableContent, RawEmbeddableContent } from './store'
-import { CodeBlock, summarizeCodeBlocks, Summary } from './summarizer'
+import { HierarchicalCodeBlock, summarizeCodeBlocks, Summary } from './summarizer'
 
 export async function chunkCodeFileAndHydrate(
     context: ChatContext,
@@ -54,8 +54,8 @@ export async function chunkCodeFileAndHydrate(
 
 function blockToChunk(
     file: RawEmbeddableContent,
-    summariesByBlock: Map<CodeBlock, Summary>,
-    block: CodeBlock,
+    summariesByBlock: Map<HierarchicalCodeBlock, Summary>,
+    block: HierarchicalCodeBlock,
 ): EmbeddableContent {
     let content = block.content
     const header: string[] = []
@@ -109,16 +109,12 @@ function blockToChunk(
     }
 }
 
-async function splitSourceCode(content: string, language: LanguageConfiguration): Promise<CodeBlock[]> {
-    const tree = language.parser.parse(content)
-
-    const blocks: CodeBlock[] = []
-    for (const [queryType, query] of language.queries.entries()) {
-        for (const match of query.matches(tree.rootNode)) {
-            const block = convertMatchToCodeBlock(content, queryType, match)
-            if (block) {
-                blocks.push(block)
-            }
+async function splitSourceCode(content: string, language: LanguageConfiguration): Promise<HierarchicalCodeBlock[]> {
+    const blocks: HierarchicalCodeBlock[] = []
+    for (const { queryType, match } of extractCodeMatches(content, language)) {
+        const block = convertMatchToCodeBlock(content, queryType, match)
+        if (block) {
+            blocks.push(block)
         }
     }
 
@@ -153,21 +149,16 @@ async function splitSourceCode(content: string, language: LanguageConfiguration)
     return blocks
 }
 
-function convertMatchToCodeBlock(content: string, queryType: string, match: Parser.QueryMatch): CodeBlock | undefined {
-    const main = match.captures.find(c => c.name !== 'name')
-    const name = match.captures.find(c => c.name === 'name')
-    if (!main || !name) {
+function convertMatchToCodeBlock(
+    content: string,
+    queryType: string,
+    match: Parser.QueryMatch,
+): HierarchicalCodeBlock | undefined {
+    const block = extractCodeBlockFromMatch(content, queryType, match)
+    if (!block) {
         return undefined
     }
 
-    return {
-        name: name.node.text,
-        type: queryType,
-        startLine: main.node.startPosition.row + 1,
-        endLine: main.node.endPosition.row + 1,
-        content: content.slice(main.node.startIndex, main.node.endIndex),
-
-        parent: undefined, // populated after all blocks are constructed
-        children: [], // populated after all blocks are constructed
-    }
+    // additional fields populated after all blocks are constructed
+    return { ...block, parent: undefined, children: [] }
 }
