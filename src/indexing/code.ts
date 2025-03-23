@@ -66,6 +66,12 @@ function blockToChunk(
     header.push(``)
     header.push(`Filename: ${file.filename}`)
     header.push(`Type: ${block.type}`)
+
+    const scopePath = getScopePath(block)
+    if (scopePath) {
+        header.push(`Scope: ${scopePath}`)
+    }
+
     header.push(`Signature: ${blockSummary.signature}`)
     header.push(``)
     header.push(blockSummary.detailedSummary)
@@ -161,4 +167,17 @@ function convertMatchToCodeBlock(
 
     // additional fields populated after all blocks are constructed
     return { ...block, parent: undefined, children: [] }
+}
+
+export function getScopePath(block: HierarchicalCodeBlock): string | undefined {
+    if (!block.parent) {
+        return undefined
+    }
+
+    const prefix = getScopePath(block.parent)
+    if (prefix) {
+        return [prefix, block.parent.name].join('.')
+    }
+
+    return block.parent.name
 }

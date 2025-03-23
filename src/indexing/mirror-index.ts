@@ -2,6 +2,7 @@ import fs from 'fs/promises'
 import path from 'path'
 import { expandFilePatterns } from '../util/fs/glob'
 import { filterIgnoredPaths } from '../util/fs/ignore'
+import { getScopePath } from './code'
 import { createParsers, extractCodeBlockFromMatch, extractCodeMatches } from './languages'
 import { HierarchicalCodeBlock } from './summarizer'
 
@@ -111,9 +112,13 @@ export async function mirrorIndexedFiles(
             const startLine = block.startLine - 1
             const endLine = block.endLine
 
+            // Build the scope path showing all ancestors
+            const scopePath = getScopePath(block)
+            const scopeInfo = scopePath ? ` scope="${scopePath}"` : ''
+
             // Use a format that will naturally fold in VSCode
             // Using a comment format with opening/closing markers
-            const startMarker = `// #region CHUNK: ${block.type} ${block.name}`
+            const startMarker = `// #region CHUNK: ${block.type} ${block.name}${scopeInfo}`
             const endMarker = `// #endregion CHUNK: ${block.name}${scopeInfo}`
 
             if (!startMarkers.has(startLine)) {
