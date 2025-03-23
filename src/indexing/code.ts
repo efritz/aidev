@@ -115,7 +115,10 @@ function blockToChunk(
     }
 }
 
-async function splitSourceCode(content: string, language: LanguageConfiguration): Promise<HierarchicalCodeBlock[]> {
+export async function splitSourceCode(
+    content: string,
+    language: LanguageConfiguration,
+): Promise<HierarchicalCodeBlock[]> {
     const blocks: HierarchicalCodeBlock[] = []
     for (const { queryType, match } of extractCodeMatches(content, language)) {
         const block = convertMatchToCodeBlock(content, queryType, match)

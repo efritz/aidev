@@ -44,7 +44,7 @@
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest",
-        "mirror-index": "bun ./src/indexing/mirror-index.ts"
+        "mirror-index": "bun ./scripts/mirror-index.ts"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "0.37.0",
