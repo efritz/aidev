@@ -3,7 +3,7 @@ import { ChatContext } from '../chat/context'
 import { IndexingProgress } from '.'
 import { createParsers, extractCodeBlockFromMatch, extractCodeMatches, LanguageConfiguration } from './languages'
 import { EmbeddableContent, RawEmbeddableContent } from './store'
-import { HierarchicalCodeBlock, summarizeCodeBlocks, Summary } from './summarizer'
+import { HierarchicalCodeBlock, RelevantSummary, summarizeCodeBlocks, Summary } from './summarizer'
 
 export async function chunkCodeFileAndHydrate(
     context: ChatContext,
@@ -46,7 +46,7 @@ export async function chunkCodeFileAndHydrate(
             update()
         })
 
-        return blocks.map(block => blockToChunk(file, summariesByBlock, block))
+        return blocks.flatMap(block => blockToChunk(file, summariesByBlock, block) ?? [])
     }
 
     return undefined
@@ -56,43 +56,58 @@ function blockToChunk(
     file: RawEmbeddableContent,
     summariesByBlock: Map<HierarchicalCodeBlock, Summary>,
     block: HierarchicalCodeBlock,
-): EmbeddableContent {
+): EmbeddableContent | undefined {
+    const blockSummary = summariesByBlock.get(block)!
+
+    if (!blockSummary.relevant) {
+        return undefined
+    }
+
     let content = block.content
     const header: string[] = []
     const metadata: string[] = []
-    const blockSummary = summariesByBlock.get(block)!
+    const scopePath = getScopePath(block)
+    const relevantChildren = new Map<HierarchicalCodeBlock, RelevantSummary>()
+
+    const walkDescendants = (block: HierarchicalCodeBlock) => {
+        for (const child of block.children) {
+            const childSummary = summariesByBlock.get(child)!
+            if (childSummary.relevant) {
+                relevantChildren.set(child, childSummary)
+            } else {
+                walkDescendants(child)
+            }
+        }
+    }
+    walkDescendants(block)
 
     header.push(`# ${block.name}`)
     header.push(``)
     header.push(`Filename: ${file.filename}`)
     header.push(`Type: ${block.type}`)
-
-    const scopePath = getScopePath(block)
     if (scopePath) {
         header.push(`Scope: ${scopePath}`)
     }
 
-    header.push(`Signature: ${blockSummary.signature}`)
+    header.push(`Signature: ${blockSummary.details.signature}`)
     header.push(``)
-    header.push(blockSummary.detailedSummary)
+    header.push(blockSummary.details.detailedSummary)
 
-    if (block.children.length > 0) {
+    if (relevantChildren.size > 0) {
         metadata.push(`## Children`)
         metadata.push(``)
         metadata.push(
             `The following chunks are defined within this chunk of source code. Their full implementation have been elided from this chunk.`,
         )
 
-        for (const child of block.children) {
-            const childSummary = summariesByBlock.get(child)!
-
+        for (const [child, childSummary] of relevantChildren.entries()) {
             metadata.push(``)
             metadata.push(`### ${child.name}`)
             metadata.push(``)
             metadata.push(`Type: ${child.type}`)
-            metadata.push(`Signature: ${childSummary.signature}`)
+            metadata.push(`Signature: ${childSummary.details.signature}`)
             metadata.push(``)
-            metadata.push(childSummary.conciseSummary)
+            metadata.push(childSummary.details.conciseSummary)
 
             content = content.replace(child.content, `[...Implementation of ${child.name} omitted...]`)
         }

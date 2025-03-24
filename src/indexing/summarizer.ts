@@ -3,6 +3,7 @@ import { ChatContext } from '../chat/context'
 import { CancelError } from '../util/interrupts/interrupts'
 import { createXmlPattern } from '../util/xml/xml'
 import { CodeBlock } from './languages'
+import { checkCodeBlockRelevance } from './relevance'
 import { RawEmbeddableContent } from './store'
 
 export interface HierarchicalCodeBlock extends CodeBlock {
@@ -10,11 +11,20 @@ export interface HierarchicalCodeBlock extends CodeBlock {
     children: HierarchicalCodeBlock[]
 }
 
-export interface Summary {
-    signature: string
-    comment: string
-    detailedSummary: string
-    conciseSummary: string
+export type Summary = RelevantSummary | IrrelevantSummary
+
+export type RelevantSummary = {
+    relevant: true
+    details: {
+        signature: string
+        comment: string
+        detailedSummary: string
+        conciseSummary: string
+    }
+}
+
+export type IrrelevantSummary = {
+    relevant: false
 }
 
 export async function summarizeCodeBlocks(
@@ -25,7 +35,7 @@ export async function summarizeCodeBlocks(
     onFinish: () => void,
 ): Promise<Map<HierarchicalCodeBlock, Summary>> {
     // Keep a map of code blocks to summary promises
-    const memo = new Map<HierarchicalCodeBlock, Promise<{ result?: Summary; error: Error }>>()
+    const memo = new Map<HierarchicalCodeBlock, Promise<{ result?: Summary; error?: Error }>>()
 
     const populateSummaries = (block: HierarchicalCodeBlock) => {
         // Ensure we populate children promises into the memo map before we attempt
@@ -75,14 +85,14 @@ export async function summarizeCodeBlocks(
     return summariesByBlock
 }
 
-async function summarizeCodeBlock(
+function summarizeCodeBlock(
     context: ChatContext,
     file: RawEmbeddableContent,
     block: HierarchicalCodeBlock,
     summaryPromises: Map<HierarchicalCodeBlock, Promise<{ result?: Summary; error?: Error }>>,
     signal: AbortSignal,
     onFinish: () => void,
-): Promise<void> {
+): void {
     // We may call this method more than once per block; avoid duplicate summarization.
     if (summaryPromises.has(block)) {
         return
@@ -101,7 +111,8 @@ async function summarizeCodeBlock(
     // Pass map of children blocks to a promise resolving that child's summary to the
     // summarizer agent. We'll then store our own promise in the shared memoized map
     // so that any parent blocks can access this summary.
-    const promise = runAgent(context, summarizerAgent, { file, block, childSummaries }, signal)
+    const promise = makeSummaryPromise(context, file, block, childSummaries, signal)
+
     summaryPromises.set(
         block,
         promise
@@ -118,6 +129,24 @@ async function summarizeCodeBlock(
     )
 }
 
+async function makeSummaryPromise(
+    context: ChatContext,
+    file: RawEmbeddableContent,
+    block: HierarchicalCodeBlock,
+    childSummaries: Map<
+        string,
+        Promise<{
+            result?: Summary
+            error?: Error
+        }>
+    >,
+    signal: AbortSignal,
+): Promise<Summary> {
+    return (await checkCodeBlockRelevance(context, file, block, signal))
+        ? runAgent(context, summarizerAgent, { file, block, childSummaries }, signal)
+        : Promise.resolve<Summary>({ relevant: false })
+}
+
 const summarizerAgent: Agent<
     {
         file: RawEmbeddableContent
@@ -130,8 +159,11 @@ const summarizerAgent: Agent<
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { file, block, childSummaries }) => {
         const resolvedChildSummaries: string[] = []
-        for (const [name, summary] of childSummaries.entries()) {
-            resolvedChildSummaries.push(`- ${name}: ${(await summary)?.result?.conciseSummary ?? ''}`)
+        for (const [name, summaryPromise] of childSummaries.entries()) {
+            const summary = await summaryPromise
+            if (summary.result?.relevant) {
+                resolvedChildSummaries.push(`- ${name}: ${summary.result.details.conciseSummary}`)
+            }
         }
 
         return userMessageTemplate
@@ -161,10 +193,13 @@ const summarizerAgent: Agent<
         }
 
         return {
-            signature: signatureMatch[2].trim(),
-            comment: commentMatch[2].trim(),
-            detailedSummary: detailedMatch[2].trim(),
-            conciseSummary: conciseMatch[2].trim(),
+            relevant: true,
+            details: {
+                signature: signatureMatch[2].trim(),
+                comment: commentMatch[2].trim(),
+                detailedSummary: detailedMatch[2].trim(),
+                conciseSummary: conciseMatch[2].trim(),
+            },
         }
     },
 }
