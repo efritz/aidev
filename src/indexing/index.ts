@@ -146,7 +146,7 @@ async function handleFile(
     progress.stateByFile.set(file.filename, `Embedding ${batch.length} chunks...`)
     update()
 
-    await store.save(batch, signal)
+    await store.save(file, batch, signal)
     progress.numChunksEmbedded += batch.length
     progress.stateByFile.set(file.filename, 'Saved.')
     update()
