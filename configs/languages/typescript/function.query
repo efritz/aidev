@@ -1,19 +1,6 @@
-[
-  (function_declaration
-    name: (identifier) @name
-  ) @function
+;; Capture function definitions with an explicit name
+;; This captures definitions both at the package level and within functions
 
-  (lexical_declaration
-    (variable_declarator
-      name: (identifier) @name
-      value: [(arrow_function) (function_expression)]
-    ) @function_expr
-  )
-
-  (variable_declaration
-    (variable_declarator
-      name: (identifier) @name
-      value: [(arrow_function) (function_expression)]
-    ) @function_expr
-  )
-]
+(function_declaration
+  name: (identifier) @name
+) @function

@@ -2,37 +2,42 @@ import { Agent, runAgent } from '../agent/agent'
 import { ChatContext } from '../chat/context'
 import { CancelError } from '../util/interrupts/interrupts'
 import { createXmlPattern } from '../util/xml/xml'
+import { CodeBlock } from './languages'
+import { checkCodeBlockRelevance } from './relevance'
 import { RawEmbeddableContent } from './store'
 
-export interface CodeBlock {
-    name: string
-    type: string
-    startLine: number
-    endLine: number
-    content: string
-
-    parent?: CodeBlock
-    children: CodeBlock[]
+export interface HierarchicalCodeBlock extends CodeBlock {
+    parent?: HierarchicalCodeBlock
+    children: HierarchicalCodeBlock[]
 }
 
-export interface Summary {
-    signature: string
-    comment: string
-    detailedSummary: string
-    conciseSummary: string
+export type Summary = RelevantSummary | IrrelevantSummary
+
+export type RelevantSummary = {
+    relevant: true
+    details: {
+        signature: string
+        comment: string
+        detailedSummary: string
+        conciseSummary: string
+    }
+}
+
+export type IrrelevantSummary = {
+    relevant: false
 }
 
 export async function summarizeCodeBlocks(
     context: ChatContext,
     file: RawEmbeddableContent,
-    blocks: CodeBlock[],
+    blocks: HierarchicalCodeBlock[],
     signal: AbortSignal,
     onFinish: () => void,
-): Promise<Map<CodeBlock, Summary>> {
+): Promise<Map<HierarchicalCodeBlock, Summary>> {
     // Keep a map of code blocks to summary promises
-    const memo = new Map<CodeBlock, Promise<{ result?: Summary; error: Error }>>()
+    const memo = new Map<HierarchicalCodeBlock, Promise<{ result?: Summary; error?: Error }>>()
 
-    const populateSummaries = (block: CodeBlock) => {
+    const populateSummaries = (block: HierarchicalCodeBlock) => {
         // Ensure we populate children promises into the memo map before we attempt
         // to summarize the parent, which will expect the children promises to be
         // referenceable (but not necessarily resolved).
@@ -54,7 +59,7 @@ export async function summarizeCodeBlocks(
     }
 
     // Resolve each promise in the valuee of the memoized map
-    const summariesByBlock = new Map<CodeBlock, Summary>()
+    const summariesByBlock = new Map<HierarchicalCodeBlock, Summary>()
     await Promise.all([...memo.values()])
     for (const [block, promise] of memo.entries()) {
         const { result, error } = await promise
@@ -80,14 +85,14 @@ export async function summarizeCodeBlocks(
     return summariesByBlock
 }
 
-async function summarizeCodeBlock(
+function summarizeCodeBlock(
     context: ChatContext,
     file: RawEmbeddableContent,
-    block: CodeBlock,
-    summaryPromises: Map<CodeBlock, Promise<{ result?: Summary; error?: Error }>>,
+    block: HierarchicalCodeBlock,
+    summaryPromises: Map<HierarchicalCodeBlock, Promise<{ result?: Summary; error?: Error }>>,
     signal: AbortSignal,
     onFinish: () => void,
-): Promise<void> {
+): void {
     // We may call this method more than once per block; avoid duplicate summarization.
     if (summaryPromises.has(block)) {
         return
@@ -106,7 +111,8 @@ async function summarizeCodeBlock(
     // Pass map of children blocks to a promise resolving that child's summary to the
     // summarizer agent. We'll then store our own promise in the shared memoized map
     // so that any parent blocks can access this summary.
-    const promise = runAgent(context, summarizerAgent, { file, block, childSummaries }, signal)
+    const promise = makeSummaryPromise(context, file, block, childSummaries, signal)
+
     summaryPromises.set(
         block,
         promise
@@ -123,10 +129,28 @@ async function summarizeCodeBlock(
     )
 }
 
+async function makeSummaryPromise(
+    context: ChatContext,
+    file: RawEmbeddableContent,
+    block: HierarchicalCodeBlock,
+    childSummaries: Map<
+        string,
+        Promise<{
+            result?: Summary
+            error?: Error
+        }>
+    >,
+    signal: AbortSignal,
+): Promise<Summary> {
+    return (await checkCodeBlockRelevance(context, file, block, signal))
+        ? runAgent(context, summarizerAgent, { file, block, childSummaries }, signal)
+        : Promise.resolve<Summary>({ relevant: false })
+}
+
 const summarizerAgent: Agent<
     {
         file: RawEmbeddableContent
-        block: CodeBlock
+        block: HierarchicalCodeBlock
         childSummaries: Map<string, Promise<{ result?: Summary; error?: undefined }>>
     },
     Summary
@@ -135,8 +159,11 @@ const summarizerAgent: Agent<
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { file, block, childSummaries }) => {
         const resolvedChildSummaries: string[] = []
-        for (const [name, summary] of childSummaries.entries()) {
-            resolvedChildSummaries.push(`- ${name}: ${(await summary)?.result?.conciseSummary ?? ''}`)
+        for (const [name, summaryPromise] of childSummaries.entries()) {
+            const summary = await summaryPromise
+            if (summary.result?.relevant) {
+                resolvedChildSummaries.push(`- ${name}: ${summary.result.details.conciseSummary}`)
+            }
         }
 
         return userMessageTemplate
@@ -166,10 +193,13 @@ const summarizerAgent: Agent<
         }
 
         return {
-            signature: signatureMatch[2].trim(),
-            comment: commentMatch[2].trim(),
-            detailedSummary: detailedMatch[2].trim(),
-            conciseSummary: conciseMatch[2].trim(),
+            relevant: true,
+            details: {
+                signature: signatureMatch[2].trim(),
+                comment: commentMatch[2].trim(),
+                detailedSummary: detailedMatch[2].trim(),
+                conciseSummary: conciseMatch[2].trim(),
+            },
         }
     },
 }

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'bun:test'
 import { createXmlPartialClosingTagPattern, createXmlPartialOpeningTagPattern, createXmlPattern } from './xml'
 
 describe('createXmlPattern', () => {

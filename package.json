@@ -43,7 +43,8 @@
         "package": "bun run install-node && bun run build && bun run vsce-package",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
-        "test": "jest"
+        "test": "jest",
+        "mirror-index": "bun ./scripts/mirror-index.ts"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "0.37.0",

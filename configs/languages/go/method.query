@@ -1,6 +1,0 @@
-(
-  (method_declaration
-    receiver: (parameter_list)
-    name: (field_identifier) @name
-  ) @method
-)

@@ -41,6 +41,7 @@ const PreferencesSchema = z.object({
     reprompterModel: z.string(),
     embeddingsModel: z.string(),
     summarizerModel: z.string(),
+    relevanceModel: z.string(),
     webTranslatorModel: z.string(),
     providers: z.record(
         z.enum(chatProviderSpecFactories.map(f => f.name) as [string, ...string[]]),

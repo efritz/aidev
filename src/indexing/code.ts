@@ -1,9 +1,9 @@
 import Parser from 'tree-sitter'
 import { ChatContext } from '../chat/context'
 import { IndexingProgress } from '.'
-import { createParsers, LanguageConfiguration } from './languages'
+import { createParsers, extractCodeBlockFromMatch, extractCodeMatches, LanguageConfiguration } from './languages'
 import { EmbeddableContent, RawEmbeddableContent } from './store'
-import { CodeBlock, summarizeCodeBlocks, Summary } from './summarizer'
+import { HierarchicalCodeBlock, RelevantSummary, summarizeCodeBlocks, Summary } from './summarizer'
 
 export async function chunkCodeFileAndHydrate(
     context: ChatContext,
@@ -46,7 +46,7 @@ export async function chunkCodeFileAndHydrate(
             update()
         })
 
-        return blocks.map(block => blockToChunk(file, summariesByBlock, block))
+        return blocks.flatMap(block => blockToChunk(file, summariesByBlock, block) ?? [])
     }
 
     return undefined
@@ -54,39 +54,60 @@ export async function chunkCodeFileAndHydrate(
 
 function blockToChunk(
     file: RawEmbeddableContent,
-    summariesByBlock: Map<CodeBlock, Summary>,
-    block: CodeBlock,
-): EmbeddableContent {
+    summariesByBlock: Map<HierarchicalCodeBlock, Summary>,
+    block: HierarchicalCodeBlock,
+): EmbeddableContent | undefined {
+    const blockSummary = summariesByBlock.get(block)!
+
+    if (!blockSummary.relevant) {
+        return undefined
+    }
+
     let content = block.content
     const header: string[] = []
     const metadata: string[] = []
-    const blockSummary = summariesByBlock.get(block)!
+    const scopePath = getScopePath(block)
+    const relevantChildren = new Map<HierarchicalCodeBlock, RelevantSummary>()
+
+    const walkDescendants = (block: HierarchicalCodeBlock) => {
+        for (const child of block.children) {
+            const childSummary = summariesByBlock.get(child)!
+            if (childSummary.relevant) {
+                relevantChildren.set(child, childSummary)
+            } else {
+                walkDescendants(child)
+            }
+        }
+    }
+    walkDescendants(block)
 
     header.push(`# ${block.name}`)
     header.push(``)
     header.push(`Filename: ${file.filename}`)
     header.push(`Type: ${block.type}`)
-    header.push(`Signature: ${blockSummary.signature}`)
-    header.push(``)
-    header.push(blockSummary.detailedSummary)
+    if (scopePath) {
+        header.push(`Scope: ${scopePath}`)
+    }
 
-    if (block.children.length > 0) {
+    header.push(`Signature: ${blockSummary.details.signature}`)
+    header.push(``)
+    header.push(blockSummary.details.detailedSummary)
+
+    if (relevantChildren.size > 0) {
         metadata.push(`## Children`)
         metadata.push(``)
         metadata.push(
             `The following chunks are defined within this chunk of source code. Their full implementation have been elided from this chunk.`,
         )
 
-        for (const child of block.children) {
-            const childSummary = summariesByBlock.get(child)!
-
+        for (const [child, childSummary] of relevantChildren.entries()) {
             metadata.push(``)
             metadata.push(`### ${child.name}`)
             metadata.push(``)
             metadata.push(`Type: ${child.type}`)
-            metadata.push(`Signature: ${childSummary.signature}`)
+            metadata.push(`Signature: ${childSummary.details.signature}`)
             metadata.push(``)
-            metadata.push(childSummary.conciseSummary)
+            metadata.push(childSummary.details.conciseSummary)
 
             content = content.replace(child.content, `[...Implementation of ${child.name} omitted...]`)
         }
@@ -109,16 +130,15 @@ function blockToChunk(
     }
 }
 
-async function splitSourceCode(content: string, language: LanguageConfiguration): Promise<CodeBlock[]> {
-    const tree = language.parser.parse(content)
-
-    const blocks: CodeBlock[] = []
-    for (const [queryType, query] of language.queries.entries()) {
-        for (const match of query.matches(tree.rootNode)) {
-            const block = convertMatchToCodeBlock(content, queryType, match)
-            if (block) {
-                blocks.push(block)
-            }
+export async function splitSourceCode(
+    content: string,
+    language: LanguageConfiguration,
+): Promise<HierarchicalCodeBlock[]> {
+    const blocks: HierarchicalCodeBlock[] = []
+    for (const { queryType, match } of extractCodeMatches(content, language)) {
+        const block = convertMatchToCodeBlock(content, queryType, match)
+        if (block) {
+            blocks.push(block)
         }
     }
 
@@ -153,21 +173,29 @@ async function splitSourceCode(content: string, language: LanguageConfiguration)
     return blocks
 }
 
-function convertMatchToCodeBlock(content: string, queryType: string, match: Parser.QueryMatch): CodeBlock | undefined {
-    const main = match.captures.find(c => c.name !== 'name')
-    const name = match.captures.find(c => c.name === 'name')
-    if (!main || !name) {
+function convertMatchToCodeBlock(
+    content: string,
+    queryType: string,
+    match: Parser.QueryMatch,
+): HierarchicalCodeBlock | undefined {
+    const block = extractCodeBlockFromMatch(content, queryType, match)
+    if (!block) {
         return undefined
     }
 
-    return {
-        name: name.node.text,
-        type: queryType,
-        startLine: main.node.startPosition.row + 1,
-        endLine: main.node.endPosition.row + 1,
-        content: content.slice(main.node.startIndex, main.node.endIndex),
+    // additional fields populated after all blocks are constructed
+    return { ...block, parent: undefined, children: [] }
+}
 
-        parent: undefined, // populated after all blocks are constructed
-        children: [], // populated after all blocks are constructed
+export function getScopePath(block: HierarchicalCodeBlock): string | undefined {
+    if (!block.parent) {
+        return undefined
     }
+
+    const prefix = getScopePath(block.parent)
+    if (prefix) {
+        return [prefix, block.parent.name].join('.')
+    }
+
+    return block.parent.name
 }
