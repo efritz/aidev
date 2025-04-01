@@ -86,6 +86,12 @@ export async function runTools(context: ChatContext, toolUses: ToolUse[], signal
             // If a single tool explicitly cancels the reprompt, we cancel all of
             // the remaining tools and throw control directly back to the user so
             // we can get back on track.
+            //
+            // Note that we don't add new rules for with an explicit non-reprompt,
+            // as the only cases where a tool explicitly cancels a reprompt is when
+            // the user cancels the operation - nothing should have occurred for a
+            // rule to apply here.
+
             queue.forEach(toolUse => cancelTool(context, toolUse))
             return false
         }
