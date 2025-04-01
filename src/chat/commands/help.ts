@@ -9,7 +9,7 @@ export const helpCommand: CommandDescription = {
     handler: handleHelp,
 }
 
-async function handleHelp(context: ChatContext, args: string) {
+async function handleHelp(_context: ChatContext, args: string) {
     if (args !== '') {
         console.log(chalk.red.bold('Unexpected arguments supplied to :help.'))
         console.log()

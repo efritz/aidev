@@ -1,5 +1,5 @@
 import { Server as ModelContextProtocolServer, Server, ServerOptions } from '@modelcontextprotocol/sdk/server/index.js'
-import { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol'
+import { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js'
 import {
     CallToolRequest,
     CallToolRequestSchema,

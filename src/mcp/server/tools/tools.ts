@@ -1,4 +1,4 @@
-import { CallToolResult } from '@modelcontextprotocol/sdk/types'
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { errorToResult } from '../../tools/error'
 import { ExecutionContext } from './context'
 import { langServer } from './editor/langserver'

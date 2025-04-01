@@ -15,7 +15,7 @@ export class ExitError extends Error {
     }
 }
 
-async function handleExit(context: ChatContext, args: string) {
+async function handleExit(_context: ChatContext, args: string) {
     if (args !== '') {
         console.log(chalk.red.bold('Unexpected arguments supplied to :exit.'))
         console.log()

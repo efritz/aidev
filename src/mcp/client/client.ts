@@ -13,7 +13,8 @@ export async function createClient(port?: number): Promise<Client | undefined> {
     }
 
     const client = new Client({ name, version }, options)
-    const transport = new SSEClientTransport(new URL(`http://localhost:${port}/mcp`))
+    const transport = new SSEClientTransport(new URL(`http://localhost:${port}/mcp`) as any)
+
     await client.connect(transport)
 
     return client

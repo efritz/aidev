@@ -23,7 +23,7 @@ function f1() {
     }
 
     // Appease the linters
-    const _ = l1 + c1 + l2 + c2 + l3 + c3
+    console.log({ value: l1 + c1 + l2 + c2 + l3 + c3 })
     new C2()
     f3()
     cmp1(1, 2)
@@ -59,7 +59,7 @@ function f3() {
     const v2: t3 = { q: 42 }
 
     // Appease the linters
-    const _ = v1.w + v2.q
+    console.log({ value: v1.w + v2.q })
 }
 
 export class C1 {

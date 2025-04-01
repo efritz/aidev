@@ -1,6 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol'
-import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types'
+import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol.js'
+import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types.js'
 import chalk from 'chalk'
 import { ChatContext } from '../../../chat/context'
 import { Arguments, ExecutionResult, ParametersSchema, Tool, ToolResult } from '../../../tools/tool'
@@ -110,6 +110,7 @@ export function createToolFactory(client: Client): Factory {
             name,
             description: description || '',
             parameters: inputSchema as ParametersSchema,
+            enabled: true,
             replay: (args, result) => replay(name, args, result),
             execute: (context, _, args) => execute(context, name, args),
             serialize,

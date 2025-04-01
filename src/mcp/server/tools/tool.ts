@@ -1,4 +1,4 @@
-import { CallToolResult } from '@modelcontextprotocol/sdk/types'
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { ParametersSchema } from '../../../tools/tool'
 import { ExecutionContext } from './context'
 

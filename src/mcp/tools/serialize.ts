@@ -1,4 +1,4 @@
-import { CallToolResult } from '@modelcontextprotocol/sdk/types'
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import chalk from 'chalk'
 import { parseError } from './error'
 import { parseProgress } from './progress'

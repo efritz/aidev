@@ -41,6 +41,6 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
     console.log('')
 }
 
-function completeLoaddir(context: ChatContext, args: string): Promise<CompleterResult> {
+function completeLoaddir(_context: ChatContext, args: string): Promise<CompleterResult> {
     return completeDirectoryPaths(args)
 }
