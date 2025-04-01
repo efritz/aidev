@@ -44,6 +44,7 @@
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest",
+        "typecheck": "tsc --noEmit",
         "mirror-index": "bun ./scripts/mirror-index.ts"
     },
     "dependencies": {
@@ -80,6 +81,7 @@
     },
     "devDependencies": {
         "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
+        "@types/bun": "^1.2.5",
         "@types/copy-paste": "^1.1.33",
         "@types/eventsource": "^3.0.0",
         "@types/jest": "^29.5.14",

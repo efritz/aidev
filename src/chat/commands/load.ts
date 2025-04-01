@@ -41,6 +41,6 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
     console.log('')
 }
 
-function completeLoad(context: ChatContext, args: string): Promise<CompleterResult> {
+function completeLoad(_context: ChatContext, args: string): Promise<CompleterResult> {
     return completeFilePaths(args)
 }

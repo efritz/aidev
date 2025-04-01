@@ -56,7 +56,7 @@ export const searchWeb: Tool<SearchResult> = {
         displayMatches(result?.matches ?? [])
     },
     execute: async (
-        context: ChatContext,
+        _context: ChatContext,
         toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<SearchResult>> => {

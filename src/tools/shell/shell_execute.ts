@@ -45,7 +45,7 @@ export const shellExecute: Tool<ShellResult> = {
     },
     execute: async (
         context: ChatContext,
-        toolUseId: string,
+        _toolUseId: string,
         args: Arguments,
     ): Promise<ExecutionResult<ShellResult>> => {
         const { command } = args as { command: string }

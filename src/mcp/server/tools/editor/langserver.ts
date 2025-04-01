@@ -53,7 +53,7 @@ export const langServer: Tool = {
         },
         required: ['sourceSymbolName', 'sourceFilePath'],
     },
-    execute: async (context: ExecutionContext, args: any): Promise<CallToolResult> => {
+    execute: async (_context: ExecutionContext, args: any): Promise<CallToolResult> => {
         const {
             sourceSymbolName,
             sourceFilePath,

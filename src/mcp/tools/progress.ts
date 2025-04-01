@@ -1,4 +1,4 @@
-import { CallToolResult, Progress } from '@modelcontextprotocol/sdk/types'
+import { CallToolResult, Progress } from '@modelcontextprotocol/sdk/types.js'
 import { createResource, parseResource } from './resource'
 
 export const progressResultURI = 'aidev://progress/'

@@ -30,7 +30,7 @@ export const readDirectories: Tool<string[]> = {
         required: ['paths'],
     },
     enabled: true,
-    replay: (args: Arguments, { result }: ToolResult<string[]>) => {
+    replay: (_args: Arguments, { result }: ToolResult<string[]>) => {
         console.log(
             (result ?? [])
                 .map(path => `${chalk.dim('ℹ')} Added directory "${chalk.red(path)}" into context.`)

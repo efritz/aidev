@@ -45,11 +45,11 @@ export type SaveFilePayload = {
     contextDirectories: Record<string, ContextDirectory>
 }
 
-function replacer(key: string, value: any): any {
+function replacer(_key: string, value: any): any {
     return value instanceof Error ? { type: 'ErrorMessage', message: value.message } : value
 }
 
-export function reviver(key: string, value: any): any {
+export function reviver(_key: string, value: any): any {
     if (value && value.type === 'ErrorMessage') {
         return new Error(value.message)
     }

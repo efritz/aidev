@@ -1,4 +1,4 @@
-import { CallToolResult, EmbeddedResource } from '@modelcontextprotocol/sdk/types'
+import { CallToolResult, EmbeddedResource } from '@modelcontextprotocol/sdk/types.js'
 
 export function createResource<T>(uri: string, mimeType: string, content: T): EmbeddedResource {
     return {

@@ -50,6 +50,6 @@ export async function handleUnloadPatterns(context: ChatContext, patterns: strin
     }
 }
 
-function completeUnload(context: ChatContext, args: string): Promise<CompleterResult> {
+function completeUnload(_context: ChatContext, args: string): Promise<CompleterResult> {
     return completeFileAndDirectoryPaths(args)
 }

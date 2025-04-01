@@ -1,4 +1,4 @@
-import { CallToolResult } from '@modelcontextprotocol/sdk/types'
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { createResource, parseResource } from './resource'
 
 export const errorResourceURI = 'aidev://error/'

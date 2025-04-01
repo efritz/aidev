@@ -49,7 +49,7 @@ export const readWeb: Tool<WebResult[]> = {
         required: ['urls'],
     },
     enabled: true,
-    replay: (args: Arguments, { result }: ToolResult<WebResult[]>) => {
+    replay: (_args: Arguments, { result }: ToolResult<WebResult[]>) => {
         console.log(`${chalk.green('✔')} Read ${result?.length ?? 0} pages.`)
         console.log()
         console.log(

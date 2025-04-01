@@ -44,7 +44,7 @@ export function activate(context: ExtensionContext) {
             {
                 method: 'GET',
                 path: '/mcp',
-                handler: safe(async (req, res) => {
+                handler: safe(async (_req, res) => {
                     if (transport) {
                         throw new Error('MCP server already running')
                     }

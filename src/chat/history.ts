@@ -69,10 +69,9 @@ function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
             console.log()
             break
 
+        // @ts-expect-error: intentional fallthrough
         case 'stash':
-            if (message.fromStash) {
-                // fallthrough
-            } else {
+            if (!message.fromStash) {
                 // skip; replayed via tool_result message
                 break
             }
