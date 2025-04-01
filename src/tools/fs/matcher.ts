@@ -18,7 +18,7 @@ export const writeFileOperationMatcher: RuleMatcherFactory = {
                 }
 
                 const { path } = JSON.parse(tool.parameters) as { path: string }
-                return minimatch(path, patterns)
+                return minimatch(path, patterns, { dot: true, matchBase: true })
             },
         }
     },
