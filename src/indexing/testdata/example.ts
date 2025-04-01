@@ -90,3 +90,19 @@ class C2 {
         return 42
     }
 }
+
+export function f4() {
+    return {
+        k1: ({ name, value }: { name: string; value: number }) => ({
+            name,
+            value,
+            k2: () => value * 2,
+            k3: function (multiplier: number) {
+                return value * multiplier
+            },
+            m4(prefix: string) {
+                return `${prefix}: ${name} = ${value}`
+            },
+        }),
+    }
+}
