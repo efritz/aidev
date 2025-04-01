@@ -1,5 +1,6 @@
 import { Dirent } from 'fs'
 import { readdir } from 'fs/promises'
+import { dirname } from 'path'
 import { FSWatcher } from 'chokidar'
 import { InclusionReason, updateInclusionReasons } from './reason'
 import { replaceMap } from './util'
@@ -36,7 +37,9 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
         }
     }
 
-    watcher.on('all', async (_event: string, path: string) => updateDirectory(path))
+    watcher.on('all', async (event: string, path: string) =>
+        updateDirectory(['addDir', 'unlinkDir'].includes(event) ? path : dirname(path)),
+    )
 
     const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
         const newPaths: string[] = []
