@@ -12,7 +12,7 @@ export const DeepSeekChatProviderFactory = {
     create: createDeepSeekChatProviderSpec,
 }
 
-export async function createDeepSeekChatProviderSpec(
+async function createDeepSeekChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,

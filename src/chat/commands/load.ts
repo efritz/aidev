@@ -18,7 +18,7 @@ async function handleLoad(context: ChatContext, args: string): Promise<void> {
     return handleLoadPatterns(context, parseArgsWithEscapedSpaces(args))
 }
 
-export async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :load.'))
         console.log()

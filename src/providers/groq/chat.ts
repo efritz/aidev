@@ -18,7 +18,7 @@ export const GroqChatProviderFactory = {
     create: createGroqChatProviderSpec,
 }
 
-export async function createGroqChatProviderSpec(
+async function createGroqChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,

@@ -18,7 +18,7 @@ async function handleUnstash(context: ChatContext, args: string): Promise<void> 
     )
 }
 
-export async function handleUnstashPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+async function handleUnstashPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     const stashedFiles = context.provider.conversationManager.stashedFiles()
     const mismatchedPaths = patterns.filter(p => !stashedFiles.has(p))
     if (mismatchedPaths.length > 0) {

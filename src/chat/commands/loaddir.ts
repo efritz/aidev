@@ -18,7 +18,7 @@ async function handleLoaddir(context: ChatContext, args: string): Promise<void> 
     return handleLoaddirPatterns(context, parseArgsWithEscapedSpaces(args))
 }
 
-export async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :loaddir.'))
         console.log()

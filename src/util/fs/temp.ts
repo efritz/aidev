@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile } from 'fs/promises'
 import path from 'path'
 import { generateRandomName } from '../random/random'
 
-export async function withTempDir<T>(f: (dirPath: string) => Promise<T>): Promise<T> {
+async function withTempDir<T>(f: (dirPath: string) => Promise<T>): Promise<T> {
     const tempDir = `.aidev-${generateRandomName()}`
     await mkdir(tempDir, { recursive: true })
 
@@ -13,7 +13,7 @@ export async function withTempDir<T>(f: (dirPath: string) => Promise<T>): Promis
     }
 }
 
-export async function withTempFile<T>(f: (filePath: string) => Promise<T>, referencePath: string = ''): Promise<T> {
+async function withTempFile<T>(f: (filePath: string) => Promise<T>, referencePath: string = ''): Promise<T> {
     if (referencePath === '') {
         return withTempDir(tempDir => f(path.join(tempDir, generateRandomName())))
     }

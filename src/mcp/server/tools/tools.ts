@@ -6,7 +6,7 @@ import { Tool } from './tool'
 
 export const tools: Tool[] = [langServer]
 
-export function findTool(name: string): Tool {
+function findTool(name: string): Tool {
     const tool = tools.find(tool => tool.name === name)
     if (!tool) {
         throw new Error(`Tool not found: ${name}`)

@@ -24,7 +24,7 @@ export const OpenAIChatProviderFactory = {
     create: createOpenAIChatProviderSpec,
 }
 
-export async function createOpenAIChatProviderSpec(
+async function createOpenAIChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,

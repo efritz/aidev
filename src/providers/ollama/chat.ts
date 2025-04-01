@@ -22,7 +22,7 @@ export const OllamaChatProviderFactory = {
     create: createOllamaChatProviderSpec,
 }
 
-export async function createOllamaChatProviderSpec(
+async function createOllamaChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
 ): Promise<ChatProviderSpec> {

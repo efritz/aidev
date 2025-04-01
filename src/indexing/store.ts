@@ -36,7 +36,7 @@ const charactersPerToken = 4
 const tokenBudgetMinimum = 128
 const tokenOverlapPercentage = 0.2
 
-export function chunkMetadata(metadata: Metadata, maxInput: number): string[] {
+function chunkMetadata(metadata: Metadata, maxInput: number): string[] {
     const tokenBudget = maxInput - metadata.header.length / charactersPerToken - tokenBudgetMinimum
     if (tokenBudget <= 0) {
         throw new Error('Chunk header is too large to embed')

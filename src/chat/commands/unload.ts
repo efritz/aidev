@@ -21,7 +21,7 @@ async function handleUnload(context: ChatContext, args: string): Promise<void> {
     )
 }
 
-export async function handleUnloadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+async function handleUnloadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     const matchedPaths =
         patterns.length > 0
             ? await filterIgnoredPaths(await expandFileAndDirectoryPatterns(patterns))

@@ -188,7 +188,7 @@ export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]):
     return shouldInclude(file.inclusionReasons, visibleToolUses)
 }
 
-export function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
+function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
     return shouldInclude(directory.inclusionReasons, visibleToolUses)
 }
 
