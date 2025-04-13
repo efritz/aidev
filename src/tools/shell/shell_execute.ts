@@ -17,6 +17,8 @@ type ShellResult = BaseShellResult & {
     userEditedCommand?: string
 }
 
+const allowedCommands: Set<string> = new Set()
+
 export const shellExecute: Tool<ShellResult> = {
     name: 'shell_execute',
     description: 'Execute a shell command.',
@@ -100,11 +102,17 @@ export const shellExecute: Tool<ShellResult> = {
 }
 
 async function confirmCommand(context: ChatContext, command: string): Promise<string | undefined> {
+    if (allowedCommands.has(command)) {
+        console.log(`${chalk.dim('ℹ')} Command automatically approved (based on previous "always" selection)`)
+        return command
+    }
+
     while (true) {
         const choice = await context.prompter.choice('Execute this command', [
             { name: 'y', description: 'execute the command as-is' },
             { name: 'n', description: 'skip execution and continue conversation', isDefault: true },
             { name: 'e', description: 'edit this command in vscode' },
+            { name: 'a', description: 'always execute this command for this session' },
         ])
 
         switch (choice) {
@@ -112,7 +120,10 @@ async function confirmCommand(context: ChatContext, command: string): Promise<st
                 return command
             case 'n':
                 return undefined
-
+            case 'a':
+                allowedCommands.add(command)
+                console.log(`${chalk.green('✓')} Command added to allow list for this session`)
+                return command
             case 'e':
                 try {
                     command = await withContentEditor(context.interruptHandler, command)
