@@ -52,5 +52,5 @@ export const readFiles: Tool<string[]> = {
 
         return { result: filePaths, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<string[]>) => JSON.stringify({ paths: result ?? [] }),
+    serialize: ({ result }: ToolResult<string[]>) => ({ paths: result ?? [] }),
 }

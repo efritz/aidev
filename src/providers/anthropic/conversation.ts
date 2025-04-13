@@ -63,7 +63,7 @@ function userMessageToParam(message: UserMessage): UserParam {
                     {
                         type: 'tool_result',
                         tool_use_id: message.toolUse.id,
-                        content: serializeToolResult(message.toolUse.name, message),
+                        content: JSON.stringify(serializeToolResult(message.toolUse.name, message)),
                         is_error: !!message.error,
                     },
                 ],

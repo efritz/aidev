@@ -108,7 +108,7 @@ export const searchWeb: Tool<SearchResult> = {
 
         return { result: { matches }, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<SearchResult>) => JSON.stringify(result),
+    serialize: ({ result }: ToolResult<SearchResult>) => result,
 }
 
 function displayMatches(matches: Match[]) {

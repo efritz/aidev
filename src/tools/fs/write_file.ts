@@ -55,13 +55,12 @@ export const writeFile: Tool<WriteResult> = {
         await context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseClass: 'write', toolUseId })
         return writeExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, error, canceled }: ToolResult<WriteResult>) =>
-        JSON.stringify({
-            error,
-            canceled,
-            stashed: result?.stashed ?? false,
-            userEditedContents: result?.userEditedContents,
-        }),
+    serialize: ({ result, error, canceled }: ToolResult<WriteResult>) => ({
+        error,
+        canceled,
+        stashed: result?.stashed ?? false,
+        userEditedContents: result?.userEditedContents,
+    }),
     ruleMatcherFactory: writeFileOperationMatcher,
 }
 

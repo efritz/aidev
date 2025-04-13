@@ -136,7 +136,7 @@ export const readWeb: Tool<WebResult[]> = {
             reprompt: true,
         }
     },
-    serialize: ({ result }: ToolResult<WebResult[]>) => JSON.stringify(result),
+    serialize: ({ result }: ToolResult<WebResult[]>) => result,
 }
 
 async function readUrl(url: string, signal?: AbortSignal): Promise<Errorable<ResponseAndContent>> {

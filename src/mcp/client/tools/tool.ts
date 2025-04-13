@@ -97,13 +97,11 @@ export function createToolFactory(client: Client): Factory {
         }
     }
 
-    const serialize = ({ result, error, canceled }: ToolResult<Result>) => {
-        return JSON.stringify({
-            error,
-            canceled,
-            result,
-        })
-    }
+    const serialize = ({ result, error, canceled }: ToolResult<Result>) => ({
+        error,
+        canceled,
+        result,
+    })
 
     return {
         create: ({ name, description, inputSchema }) => ({

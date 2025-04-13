@@ -32,7 +32,7 @@ function userMessageToParam(message: UserMessage): OllamaMessage {
         case 'tool_result': {
             return {
                 role: 'user',
-                content: serializeToolResult(message.toolUse.name, message),
+                content: JSON.stringify(serializeToolResult(message.toolUse.name, message)),
             }
         }
     }

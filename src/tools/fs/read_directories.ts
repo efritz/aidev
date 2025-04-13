@@ -60,5 +60,5 @@ export const readDirectories: Tool<string[]> = {
 
         return { result: directoryPaths, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<string[]>) => JSON.stringify({ paths: result ?? [] }),
+    serialize: ({ result }: ToolResult<string[]>) => ({ paths: result ?? [] }),
 }

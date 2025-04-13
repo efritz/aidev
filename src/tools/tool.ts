@@ -17,7 +17,7 @@ export type Arguments = Record<string, unknown>
 export type ToolResult<T> = { result?: T; error?: Error; canceled?: boolean }
 export type ExecutionResult<T> = ToolResult<T> & { reprompt?: boolean }
 export type Replayer<T> = (args: Arguments, result: ToolResult<T>) => void
-export type Serializer<T> = (result: ToolResult<T>) => string
+export type Serializer<T> = (result: ToolResult<T>) => any
 
 export enum JSONSchemaDataType {
     Object = 'object',

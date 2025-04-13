@@ -30,6 +30,6 @@ export function findTool(name: string): Tool<any> {
     return tool
 }
 
-export function serializeToolResult(name: string, message: ToolResult<any>): string {
+export function serializeToolResult(name: string, message: ToolResult<any>): any {
     return findTool(name).serialize(message)
 }

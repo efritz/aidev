@@ -22,10 +22,7 @@ export const OllamaChatProviderFactory = {
     create: createOllamaChatProviderSpec,
 }
 
-async function createOllamaChatProviderSpec(
-    preferences: Preferences,
-    limiter: Limiter,
-): Promise<ChatProviderSpec> {
+async function createOllamaChatProviderSpec(preferences: Preferences, limiter: Limiter): Promise<ChatProviderSpec> {
     const models = preferences.providers[providerName] ?? []
     models.forEach(model => registerModelLimits(limiter, model))
 
