@@ -13,32 +13,49 @@ export function createConversation(contextState: ContextState, system: string): 
     })
 }
 
-function systemMessageToParam(system: string): OllamaMessage {
-    return {
-        role: 'system',
-        content: system,
-    }
+function systemMessageToParam(system: string): OllamaMessage[] {
+    return [
+        {
+            role: 'system',
+            content: system,
+        },
+    ]
 }
 
-function userMessageToParam(message: UserMessage): OllamaMessage {
+function userMessageToParam(message: UserMessage): OllamaMessage[] {
     switch (message.type) {
         case 'text': {
-            return {
-                role: 'user',
-                content: message.content,
-            }
+            return [
+                {
+                    role: 'user',
+                    content: message.content,
+                },
+            ]
         }
 
         case 'tool_result': {
-            return {
-                role: 'user',
-                content: JSON.stringify(serializeToolResult(message.toolUse.name, message)),
+            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
+
+            const messages: OllamaMessage[] = [
+                {
+                    role: 'user',
+                    content: JSON.stringify(result),
+                },
+            ]
+
+            if (suggestions) {
+                messages.push({
+                    role: 'user',
+                    content: suggestions,
+                })
             }
+
+            return messages
         }
     }
 }
 
-function assistantMessagesToParam(messages: AssistantMessage[]): OllamaMessage {
+function assistantMessagesToParam(messages: AssistantMessage[]): OllamaMessage[] {
     const content: string[] = []
     const toolCalls: ToolCall[] = []
 
@@ -64,9 +81,11 @@ function assistantMessagesToParam(messages: AssistantMessage[]): OllamaMessage {
         }
     }
 
-    return {
-        role: 'assistant',
-        content: content.join('\n'),
-        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-    }
+    return [
+        {
+            role: 'assistant',
+            content: content.join('\n'),
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+        },
+    ]
 }

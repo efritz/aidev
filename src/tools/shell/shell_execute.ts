@@ -69,10 +69,12 @@ export const shellExecute: Tool<ShellResult> = {
         return { result, error, canceled, reprompt }
     },
     serialize: ({ result, error, canceled }: ToolResult<ShellResult>) => ({
-        error,
-        canceled,
-        userEditedCommand: result?.userEditedCommand ?? false,
-        output: serializeOutput(result?.output),
+        result: {
+            error,
+            canceled,
+            userEditedCommand: result?.userEditedCommand ?? false,
+            output: serializeOutput(result?.output),
+        },
     }),
     ruleMatcherFactory: {
         parseMatchConfig: (config: Record<string, any>): RuleMatcher => {

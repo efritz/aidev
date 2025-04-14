@@ -90,7 +90,7 @@ export const searchWorkspace: Tool<SearchResult> = {
 
         return { result: { matches }, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<SearchResult>) => ({ paths: result ?? [] }),
+    serialize: ({ result }: ToolResult<SearchResult>) => ({ result: { paths: result ?? [] } }),
 }
 
 function displayMatches(matches: Match[]) {

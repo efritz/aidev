@@ -13,9 +13,9 @@ export type Conversation<T> = ConversationManager & {
 
 type ConversationOptions<T> = {
     contextState: ContextState
-    userMessageToParam: (message: UserMessage) => T
-    assistantMessagesToParam: (messages: AssistantMessage[]) => T
-    initialMessage?: T
+    userMessageToParam: (message: UserMessage) => T[]
+    assistantMessagesToParam: (messages: AssistantMessage[]) => T[]
+    initialMessage?: T[]
     postPush?: (MessageChannel: T[]) => void
 }
 
@@ -30,27 +30,32 @@ export function createConversation<T>({
 
     const providerMessages = (): T[] => {
         const providerMessages: T[] = []
+
+        const addMessages = (messages: T[]) => {
+            messages.forEach(message => {
+                providerMessages.push(message)
+                postPush?.(providerMessages)
+            })
+        }
+
         if (initialMessage) {
-            providerMessages.push(initialMessage)
-            postPush?.(providerMessages)
+            addMessages(initialMessage)
         }
 
         for (const message of injectContextMessages(contextState, visibleMessages())) {
             switch (message.role) {
                 case 'user':
-                    providerMessages.push(userMessageToParam(message))
-                    postPush?.(providerMessages)
+                    addMessages(userMessageToParam(message))
                     break
 
                 case 'assistant':
-                    providerMessages.push(assistantMessagesToParam([message]))
-                    postPush?.(providerMessages)
+                    addMessages(assistantMessagesToParam([message]))
                     break
 
                 case 'meta':
                     switch (message.type) {
                         case 'rule':
-                            providerMessages.push(userMessageToParam(createRuleMessage(message.rules)))
+                            addMessages(userMessageToParam(createRuleMessage(message.rules)))
                             break
                     }
             }
@@ -72,6 +77,8 @@ export function createConversation<T>({
 type FilesAndDirectories = { files: ContextFile[]; directories: ContextDirectory[] }
 const empty: FilesAndDirectories = { files: [], directories: [] }
 
+// TODO - I think we need to consider applied stashed files as well
+
 function injectContextMessages(contextState: ContextState, messages: Message[]): Message[] {
     // Determine the set of file and directories that we want to include in the context for
     // the set of visible messages. There might be other branches that include resources that
@@ -82,39 +89,28 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
         shouldIncludeDirectory(d, visibleToolUseIds),
     )
 
-    // A map from target index int he message list to the set of files and directories that should
+    // A map from target index in the message list to the set of files and directories that should
     // be included at that index. We'll build this up by iterating the messages, then interlace the
     // context messages with the user messages to create a new visible message list.
     const contextByIndex = new Map<number, FilesAndDirectories>()
 
     // Iterate the visible messages from back to front. For each message, we'll determine if
-    // it references a relevant file or directory and stash that resource to be inserted before
-    // the next user message. Once we stash a resource we remove it from the list of candidates
-    // so that it's only included once.
-    //
-    // Loop invariants:
-    //   - i is the index of the current message
-    //   - j is the index of the most recent user message we've seen
-    for (let i = messages.length - 1, j = messages.length; i >= 0; i--) {
+    // it references a relevant file or directory and stash that resource to be inserted directly
+    // after the linked tool result message. Once we stash a resource we remove it from the list
+    // of candidates so that it's only included once.
+    for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i]
 
         // Update the index of the "closest" user message for subsequent iterations.
-        if (message.role === 'user' && message.type === 'text') {
-            j = i
-        }
+        if (message.role === 'user' && message.type === 'tool_result') {
+            const newFiles = extract(files, f => includedByToolUse(f.inclusionReasons, [message.toolUse.id]))
+            const newDirectories = extract(directories, d =>
+                includedByToolUse(d.inclusionReasons, [message.toolUse.id]),
+            )
 
-        // Determine the set of files and directories that are referenced by this tool use.
-        // Remove them from the list of candidates, and insert them into the index mapping
-        // with the index of the most recently seen user message.
-        if (message.role === 'assistant' && message.type === 'tool_use') {
-            const ids = message.tools.map(({ id }) => id)
-            const { files: oldFiles, directories: oldDirectories } = contextByIndex.get(j) ?? empty
-            const newFiles = extract(files, f => includedByToolUse(f.inclusionReasons, ids))
-            const newDirectories = extract(directories, d => includedByToolUse(d.inclusionReasons, ids))
-
-            contextByIndex.set(j, {
-                files: [...oldFiles, ...newFiles],
-                directories: [...oldDirectories, ...newDirectories],
+            contextByIndex.set(i + 1, {
+                files: newFiles,
+                directories: newDirectories,
             })
         }
     }

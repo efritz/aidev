@@ -42,59 +42,81 @@ export function createConversation(contextState: ContextState): Conversation<Mes
     })
 }
 
-function userMessageToParam(message: UserMessage): UserParam {
+function userMessageToParam(message: UserMessage): UserParam[] {
     switch (message.type) {
         case 'text': {
-            return {
-                role: 'user',
-                content: [
-                    {
-                        type: 'text',
-                        text: message.content,
-                    },
-                ],
-            }
-        }
-
-        case 'tool_result': {
-            return {
-                role: 'user',
-                content: [
-                    {
-                        type: 'tool_result',
-                        tool_use_id: message.toolUse.id,
-                        content: JSON.stringify(serializeToolResult(message.toolUse.name, message)),
-                        is_error: !!message.error,
-                    },
-                ],
-            }
-        }
-    }
-}
-
-function assistantMessagesToParam(messages: AssistantMessage[]): AssistantParam {
-    return {
-        role: 'assistant',
-        content: messages.flatMap((message): AssistantContent[] => {
-            switch (message.type) {
-                case 'text': {
-                    return [
+            return [
+                {
+                    role: 'user',
+                    content: [
                         {
                             type: 'text',
                             text: message.content,
                         },
-                    ]
-                }
+                    ],
+                },
+            ]
+        }
 
-                case 'tool_use': {
-                    return message.tools.map(({ id, name, parameters }) => ({
-                        type: 'tool_use',
-                        id,
-                        name,
-                        input: parameters ? JSON.parse(parameters) : {},
-                    }))
-                }
+        case 'tool_result': {
+            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
+
+            const messages: UserParam[] = [
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'tool_result',
+                            tool_use_id: message.toolUse.id,
+                            content: JSON.stringify(result),
+                            is_error: !!message.error,
+                        },
+                    ],
+                },
+            ]
+
+            if (suggestions) {
+                messages.push({
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: suggestions,
+                        },
+                    ],
+                })
             }
-        }),
+
+            return messages
+        }
     }
+}
+
+function assistantMessagesToParam(messages: AssistantMessage[]): AssistantParam[] {
+    return [
+        {
+            role: 'assistant',
+            content: messages.flatMap((message): AssistantContent[] => {
+                switch (message.type) {
+                    case 'text': {
+                        return [
+                            {
+                                type: 'text',
+                                text: message.content,
+                            },
+                        ]
+                    }
+
+                    case 'tool_use': {
+                        return message.tools.map(({ id, name, parameters }) => ({
+                            type: 'tool_use',
+                            id,
+                            name,
+                            input: parameters ? JSON.parse(parameters) : {},
+                        }))
+                    }
+                }
+            }),
+        },
+    ]
 }

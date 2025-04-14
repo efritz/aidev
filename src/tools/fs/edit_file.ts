@@ -14,7 +14,7 @@ export const editFile: Tool<EditResult> = {
     description: [
         'Edit the contents of an existing file.',
         'The user may choose to modify the edit before writing it to disk. The tool result will include the user-supplied edits, if any.',
-        'If the conversation context already contains the target path, the conversation will be updated to include the edited contents.',
+        'The edited file will be automatically added to the conversation context and will be included in the next interaction.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -77,10 +77,36 @@ export const editFile: Tool<EditResult> = {
         return editExecutionResultFromWriteResult(result)
     },
     serialize: ({ result, error, canceled }: ToolResult<EditResult>) => ({
-        error,
-        canceled,
-        stashed: result?.stashed ?? false,
-        userEdits: result?.userEdits,
+        result: {
+            error,
+            canceled,
+            stashed: result?.stashed ?? false,
+            userEdits: result?.userEdits,
+        },
+        suggestions: (result?.stashed
+            ? [
+                  'The user stashed but has not applied the new version of the file.',
+                  'No files were modified by this tool invocation.',
+                  'The current, unchanged content of the file remains available in the subsequent context.',
+              ]
+            : canceled
+              ? [
+                    'The user canceled the file edit.',
+                    'No files were modified by this tool invocation.',
+                    'The current, unchanged content of the file remains available in the subsequent context.',
+                ]
+              : error
+                ? [
+                      'There was an error applying edits to the file.',
+                      'No files were modified by this tool invocation.',
+                      'The current, unchanged content of the file remains available in the subsequent context.',
+                      'Please check the error message in the tool result and try again.',
+                  ]
+                : [
+                      'The file has been successfully edited.',
+                      'The updated content of the file is available in the subsequent context.',
+                  ]
+        ).join('\n'),
     }),
     ruleMatcherFactory: writeFileOperationMatcher,
 }

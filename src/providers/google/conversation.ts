@@ -12,32 +12,48 @@ export function createConversation(contextState: ContextState): Conversation<Con
     })
 }
 
-function userMessageToParam(message: UserMessage): Content {
+function userMessageToParam(message: UserMessage): Content[] {
     switch (message.type) {
         case 'text': {
-            return {
-                role: 'user',
-                parts: [{ text: message.content }],
-            }
+            return [
+                {
+                    role: 'user',
+                    parts: [{ text: message.content }],
+                },
+            ]
         }
 
         case 'tool_result': {
-            return {
-                role: 'function',
-                parts: [
-                    {
-                        functionResponse: {
-                            name: message.toolUse.name,
-                            response: serializeToolResult(message.toolUse.name, message),
+            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
+            // TODO
+
+            const messages: Content[] = [
+                {
+                    role: 'function',
+                    parts: [
+                        {
+                            functionResponse: {
+                                name: message.toolUse.name,
+                                response: result,
+                            },
                         },
-                    },
-                ],
+                    ],
+                },
+            ]
+
+            if (suggestions) {
+                messages.push({
+                    role: 'user',
+                    parts: [{ text: suggestions }],
+                })
             }
+
+            return messages
         }
     }
 }
 
-function assistantMessagesToParam(messages: AssistantMessage[]): Content {
+function assistantMessagesToParam(messages: AssistantMessage[]): Content[] {
     const parts: Part[] = []
     for (const message of messages) {
         switch (message.type) {
@@ -60,5 +76,5 @@ function assistantMessagesToParam(messages: AssistantMessage[]): Content {
         }
     }
 
-    return { role: 'model', parts }
+    return [{ role: 'model', parts }]
 }

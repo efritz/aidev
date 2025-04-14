@@ -26,33 +26,51 @@ export function createConversation(
     })
 }
 
-function systemMessageToParam(system: string): ChatCompletionSystemMessageParam {
-    return {
-        role: 'system',
-        content: system,
-    }
+function systemMessageToParam(system: string): ChatCompletionSystemMessageParam[] {
+    return [
+        {
+            role: 'system',
+            content: system,
+        },
+    ]
 }
 
-function userMessageToParam(message: UserMessage): UserParam {
+function userMessageToParam(message: UserMessage): UserParam[] {
     switch (message.type) {
         case 'text': {
-            return {
-                role: 'user',
-                content: message.content,
-            }
+            return [
+                {
+                    role: 'user',
+                    content: message.content,
+                },
+            ]
         }
 
         case 'tool_result': {
-            return {
-                role: 'tool',
-                tool_call_id: message.toolUse.id,
-                content: JSON.stringify(serializeToolResult(message.toolUse.name, message)),
+            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
+            // TODO
+
+            const messages: UserParam[] = [
+                {
+                    role: 'tool',
+                    tool_call_id: message.toolUse.id,
+                    content: JSON.stringify(result),
+                },
+            ]
+
+            if (suggestions) {
+                messages.push({
+                    role: 'user',
+                    content: suggestions,
+                })
             }
+
+            return messages
         }
     }
 }
 
-function assistantMessagesToParam(messages: AssistantMessage[]): AssistantParam {
+function assistantMessagesToParam(messages: AssistantMessage[]): AssistantParam[] {
     const content: string[] = []
     const toolCalls: ChatCompletionMessageToolCall[] = []
 
@@ -82,9 +100,11 @@ function assistantMessagesToParam(messages: AssistantMessage[]): AssistantParam 
         }
     }
 
-    return {
-        role: 'assistant',
-        content: content.join('\n'),
-        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-    }
+    return [
+        {
+            role: 'assistant',
+            content: content.join('\n'),
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+        },
+    ]
 }

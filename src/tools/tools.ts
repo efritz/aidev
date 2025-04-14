@@ -3,7 +3,7 @@ import { readDirectories } from './fs/read_directories'
 import { readFiles } from './fs/read_files'
 import { writeFile } from './fs/write_file'
 import { shellExecute } from './shell/shell_execute'
-import { Tool, ToolResult } from './tool'
+import { SerializedToolResult, Tool, ToolResult } from './tool'
 import { readWeb } from './web/read'
 import { searchWeb } from './web/search'
 import { searchWorkspace } from './workspace/search'
@@ -30,6 +30,6 @@ export function findTool(name: string): Tool<any> {
     return tool
 }
 
-export function serializeToolResult(name: string, message: ToolResult<any>): any {
+export function serializeToolResult(name: string, message: ToolResult<any>): SerializedToolResult {
     return findTool(name).serialize(message)
 }

@@ -97,12 +97,6 @@ export function createToolFactory(client: Client): Factory {
         }
     }
 
-    const serialize = ({ result, error, canceled }: ToolResult<Result>) => ({
-        error,
-        canceled,
-        result,
-    })
-
     return {
         create: ({ name, description, inputSchema }) => ({
             name,
@@ -111,7 +105,7 @@ export function createToolFactory(client: Client): Factory {
             enabled: true,
             replay: (args, result) => replay(name, args, result),
             execute: (context, _, args) => execute(context, name, args),
-            serialize,
+            serialize: result => ({ result }),
         }),
     }
 }
