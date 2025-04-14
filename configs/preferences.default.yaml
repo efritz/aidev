@@ -13,6 +13,7 @@ providers:
     Groq: { include: ./models/chat/groq.yaml }
     Ollama: { include: ./models/chat/ollama.yaml }
     OpenAI: { include: ./models/chat/openai.yaml }
+    OpenRouter: { include: ./models/chat/openrouter.yaml }
 
 embeddings:
     Ollama: { include: ./models/embedding/ollama.yaml }

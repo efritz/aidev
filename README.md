@@ -88,11 +88,12 @@ In VSCode, select `Extensions: Install from VSIX` from the command palette and s
 Available LLM API providers:
 
 - Anthropic
-- OpenAI
-- Google
 - DeepSeek
+- Google
 - Groq
 - Ollama
+- OpenAI
+- OpenRouter
 
 ### Available Tools
 
