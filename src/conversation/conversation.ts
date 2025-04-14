@@ -3,7 +3,7 @@ import { ContextDirectory } from '../context/directories'
 import { ContextFile } from '../context/files'
 import { InclusionReason } from '../context/reason'
 import { ContextState } from '../context/state'
-import { AssistantMessage, Message, Rule as SerializableRule, UserMessage } from '../messages/messages'
+import { ApplyStashMessage, AssistantMessage, Message, RuleMessage, UserMessage } from '../messages/messages'
 import { extract } from '../util/lists/lists'
 import { ConversationManager, createConversationManager } from './manager'
 
@@ -55,8 +55,11 @@ export function createConversation<T>({
                 case 'meta':
                     switch (message.type) {
                         case 'rule':
-                            addMessages(userMessageToParam(createRuleMessage(message.rules)))
+                            addMessages(userMessageToParam(createRuleMessage(message)))
                             break
+
+                        case 'applyStash':
+                            addMessages(userMessageToParam(createStashAppliedMessage(message)))
                     }
             }
         }
@@ -76,8 +79,6 @@ export function createConversation<T>({
 
 type FilesAndDirectories = { files: ContextFile[]; directories: ContextDirectory[] }
 const empty: FilesAndDirectories = { files: [], directories: [] }
-
-// TODO - I think we need to consider applied stashed files as well
 
 function injectContextMessages(contextState: ContextState, messages: Message[]): Message[] {
     // Determine the set of file and directories that we want to include in the context for
@@ -101,16 +102,17 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i]
 
-        // Update the index of the "closest" user message for subsequent iterations.
         if (message.role === 'user' && message.type === 'tool_result') {
-            const newFiles = extract(files, f => includedByToolUse(f.inclusionReasons, [message.toolUse.id]))
-            const newDirectories = extract(directories, d =>
-                includedByToolUse(d.inclusionReasons, [message.toolUse.id]),
-            )
-
             contextByIndex.set(i + 1, {
-                files: newFiles,
-                directories: newDirectories,
+                files: extract(files, f => includedByToolUse(f.inclusionReasons, message.toolUse.id)),
+                directories: extract(directories, d => includedByToolUse(d.inclusionReasons, message.toolUse.id)),
+            })
+        }
+
+        if (message.role === 'meta' && message.type === 'applyStash') {
+            contextByIndex.set(i + 1, {
+                files: extract(files, f => includedByAppliedStash(f.inclusionReasons, message.id)),
+                directories: [],
             })
         }
     }
@@ -176,8 +178,12 @@ function sortPayloadsByPath<T>(payloads: { path: string; payload: T }[]): [strin
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 }
 
-function includedByToolUse(inclusionReasons: InclusionReason[], toolUseIds: string[]): boolean {
-    return inclusionReasons.some(reason => reason.type === 'tool_use' && toolUseIds.includes(reason.toolUseId))
+function includedByToolUse(inclusionReasons: InclusionReason[], toolUseId: string): boolean {
+    return inclusionReasons.some(reason => reason.type === 'tool_use' && reason.toolUseId === toolUseId)
+}
+
+function includedByAppliedStash(inclusionReasons: InclusionReason[], metaMessageId: string): boolean {
+    return inclusionReasons.some(reason => reason.type === 'stash_applied' && reason.metaMessageId === metaMessageId)
 }
 
 export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
@@ -192,6 +198,7 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
     for (const reason of reasons) {
         switch (reason.type) {
             case 'explicit':
+            case 'stash_applied':
                 return true
 
             case 'tool_use':
@@ -220,7 +227,7 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
 //
 //
 
-function createRuleMessage(rules: SerializableRule[]): UserMessage {
+function createRuleMessage({ rules }: RuleMessage): UserMessage {
     const payloads: string[] = []
     for (const rule of rules) {
         const activation = `Activated ${rule.timing === 'pre' ? 'before' : 'after'} the use of ${rule.tool} when ${rule.condition}`
@@ -230,5 +237,12 @@ function createRuleMessage(rules: SerializableRule[]): UserMessage {
     return {
         type: 'text',
         content: 'Active rules have been updated.\n\n' + payloads.join('\n'),
+    }
+}
+
+function createStashAppliedMessage({ path }: ApplyStashMessage): UserMessage {
+    return {
+        type: 'text',
+        content: `Wrote a stashed version of "${path}" to disk.`,
     }
 }

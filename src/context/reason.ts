@@ -2,6 +2,7 @@ export type InclusionReason =
     | { type: 'explicit' }
     | { type: 'tool_use'; toolUseClass: 'read' | 'write'; toolUseId: string }
     | { type: 'editor'; currentlyOpen: boolean }
+    | { type: 'stash_applied'; metaMessageId: string }
 
 export function updateInclusionReasons(reasons: InclusionReason[], reason: InclusionReason) {
     if (

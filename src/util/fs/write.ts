@@ -2,6 +2,7 @@ import { writeFile as _writeFile, mkdir } from 'fs/promises'
 import { dirname } from 'path'
 import chalk from 'chalk'
 import { diffLines } from 'diff'
+import { ContextStateManager } from '../../context/state'
 import { ChatProvider } from '../../providers/chat_provider'
 import { CancelError, InterruptHandler } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
@@ -18,6 +19,7 @@ export async function executeWriteFile({
     provider,
     prompter,
     interruptHandler,
+    contextStateManager,
     path,
     contents,
     originalContents,
@@ -26,6 +28,7 @@ export async function executeWriteFile({
     provider: ChatProvider
     prompter: Prompter
     interruptHandler: InterruptHandler
+    contextStateManager: ContextStateManager
     path: string
     contents: string
     originalContents: string
@@ -49,7 +52,10 @@ export async function executeWriteFile({
         await _writeFile(path, editedContents)
 
         if (fromStash) {
-            provider.conversationManager.applyStashedFile(path, editedContents, originalContents)
+            await contextStateManager.addFiles(path, {
+                type: 'stash_applied',
+                metaMessageId: provider.conversationManager.applyStashedFile(path, editedContents, originalContents),
+            })
         }
     }
 

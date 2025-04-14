@@ -2,7 +2,7 @@ import { Message, MetaMessage } from '../messages/messages'
 
 export type StashManager = ReturnType<typeof createStashManager>
 
-export function createStashManager(visibleMessages: () => Message[], pushMeta: (message: MetaMessage) => void) {
+export function createStashManager(visibleMessages: () => Message[], pushMeta: (message: MetaMessage) => string) {
     const stashedFiles = (): Map<string, string> => {
         const stash = new Map<string, string>()
         for (const message of visibleMessages()) {
@@ -31,13 +31,12 @@ export function createStashManager(visibleMessages: () => Message[], pushMeta: (
         return true
     }
 
-    const applyStashedFile = (path: string, content: string, originalContent: string): boolean => {
+    const applyStashedFile = (path: string, content: string, originalContent: string): string => {
         if (!stashedFiles().has(path)) {
-            return false
+            throw new Error(`No stashed file found for path: ${path}`)
         }
 
-        pushMeta({ type: 'applyStash', path, content, originalContent })
-        return true
+        return pushMeta({ type: 'applyStash', path, content, originalContent })
     }
 
     return {

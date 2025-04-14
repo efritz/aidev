@@ -24,7 +24,7 @@ export function createConversationManager(): ConversationManager {
     const messages = () => _messages
     const setMessages = (messages: Message[]) => _messages.splice(0, _messages.length, ...messages)
 
-    const addMessage = (message: Message): void => {
+    const addMessage = (message: Message): string => {
         if (message.role === 'meta' || (message.role === 'user' && message.type === 'text')) {
             saveSnapshot()
         }
@@ -34,6 +34,8 @@ export function createConversationManager(): ConversationManager {
         if (message.role === 'user') {
             removeBranches(childBranches(currentBranch()).map(({ name }) => name))
         }
+
+        return message.id
     }
 
     const pushMeta = (message: MetaMessage) => addMessage({ ...message, id: uuidv4(), role: 'meta' })
