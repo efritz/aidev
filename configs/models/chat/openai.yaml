@@ -7,9 +7,6 @@
 - name: gpt-4.1-nano
   model: gpt-4.1-nano
 
-- name: gpt-4.5
-  model: gpt-4.5-preview-2025-02-27
-
 - name: gpt-4o
   model: gpt-4o-2024-08-06
 
