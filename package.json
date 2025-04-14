@@ -45,7 +45,8 @@
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest",
         "typecheck": "tsc --noEmit",
-        "mirror-index": "bun ./scripts/mirror-index.ts"
+        "mirror-index": "bun ./scripts/mirror-index.ts",
+        "convert-transcript": "bun ./scripts/convert-transcript.ts"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "0.37.0",
