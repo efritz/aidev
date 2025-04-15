@@ -43,6 +43,11 @@ async function handle(context: ChatContext, message: string): Promise<void> {
         return
     }
 
+    if (message === 'exit' || message === 'quit') {
+        await handleCommand(context, ':exit')
+        return
+    }
+
     if (message.startsWith(':')) {
         if (!(await handleCommand(context, message))) {
             return
