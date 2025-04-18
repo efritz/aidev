@@ -1,9 +1,9 @@
 defaultModel: sonnet
 reprompterModel: haiku
 embeddingsModel: mxbai-embed-large
-summarizerModel: gpt-4o-mini
-relevanceModel: gpt-4o-mini
-webTranslatorModel: gpt-4o-mini
+summarizerModel: gpt-4.1-mini
+relevanceModel: gpt-4.1-mini
+webTranslatorModel: gpt-4.1-mini
 shellCommand: zsh
 
 providers:
