@@ -14,7 +14,7 @@ export const editFile: Tool<EditResult> = {
     description: [
         'Edit the contents of an existing file.',
         'The user may choose to modify the edit before writing it to disk. The tool result will include the user-supplied edits, if any.',
-        'The edited file will be automatically added to the conversation context and will be included in the next interaction.',
+        'The file will be added to the subsequent conversation context.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -105,6 +105,7 @@ export const editFile: Tool<EditResult> = {
                 : [
                       'The file has been successfully edited.',
                       'The updated content of the file is available in the subsequent context.',
+                      'Carefully review the new state of the file before continuing.',
                   ]
         ).join('\n'),
     }),

@@ -16,7 +16,7 @@ export const writeFile: Tool<WriteResult> = {
     description: [
         'Write file contents to disk, creating intermediate directories if necessary.',
         'The user may choose to modify the file content before writing it to disk. The tool result will include the user-supplied content, if any.',
-        'The written file will be automatically added to the conversation context and will be included in the next interaction.',
+        'The file will be added to the subsequent conversation context.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -70,20 +70,21 @@ export const writeFile: Tool<WriteResult> = {
               ]
             : canceled
               ? [
-                    'The user canceled the file edit.',
+                    'The user canceled the file write.',
                     'No files were modified by this tool invocation.',
                     'The current, unchanged content of the file remains available in the subsequent context.',
                 ]
               : error
                 ? [
-                      'There was an error applying edits to the file.',
+                      'There was an error writing the file.',
                       'No files were modified by this tool invocation.',
                       'The current, unchanged content of the file remains available in the subsequent context.',
                       'Please check the error message in the tool result and try again.',
                   ]
                 : [
-                      'The file has been successfully edited.',
+                      'The file has been successfully written.',
                       'The updated content of the file is available in the subsequent context.',
+                      'Carefully review the new state of the file before continuing.',
                   ]
         ).join('\n'),
     }),

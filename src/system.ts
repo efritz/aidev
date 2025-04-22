@@ -11,9 +11,14 @@ Always use best practices when coding. Respect and use existing conventions, lib
 
 The conversation may include the contents of files and directories from the project.
 The user may explicitly add/remove files or directories into/from the conversation.
+
+When using tools that modify the contents of files or directories, always review the updated project context.
+Do not assume the contents of files or directories based on previous context or based on suggested edits.
+Tool invocations may fail, or be canceled or modified by the user.
+The user may also be making concurrent edits outside of the conversation.
+
 The contents of files and directories will be included in the conversation only once, directly after their most recent reference.
 The contents of files and directories will be supplied by the user in a message starting with "Project context has been updated.".
-The contents of files and directories will always reflect the current state on-disk (including changes made outside of the conversation).
 Always base your understanding and responses on the most recent project context update for any given file.
 
 # Rules
