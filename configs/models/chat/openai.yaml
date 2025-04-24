@@ -11,6 +11,7 @@
   model: o3-2025-04-16
   options:
       minimumTemperature: 1.0
+      maxTokens: 100000
 
 - name: o3-mini
   model: o3-mini-2025-01-31

@@ -62,7 +62,7 @@ export function createOpenAICompatibleChatProvider(
         model: { name: modelName, model, options },
         system,
         temperature = 0.0,
-        maxTokens = 4096,
+        maxTokens = options?.maxTokens || 4096,
         disableTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new OpenAI({ apiKey, baseURL })
