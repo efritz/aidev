@@ -72,7 +72,7 @@ export function createOpenAICompatibleChatProvider(
             client,
             limiter,
             model,
-            temperature: Math.max(temperature, options?.minimumTempature ?? 0),
+            temperature: Math.max(temperature, options?.minimumTemperature ?? 0),
             maxTokens,
             supportsTools: (options?.supportsTools ?? true) && !disableTools,
             supportsStreaming: options?.supportsStreaming ?? true,

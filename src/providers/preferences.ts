@@ -19,7 +19,7 @@ const ChatModelSchema = z.object({
             // OpenAI only
             supportsTools: z.boolean().optional(),
             supportsStreaming: z.boolean().optional(),
-            minimumTempature: z.number().optional(),
+            minimumTemperature: z.number().optional(),
             systemMessageRole: z.enum(['developer', 'system', 'user']).optional(),
         })
         .optional(),
