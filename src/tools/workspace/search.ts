@@ -4,6 +4,8 @@ import { indexWorkspace, isIndexUpToDate } from '../../indexing'
 import { queryWorkspace } from '../../indexing/query'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
+let alwaysRefreshWorkspaceIndex = false
+
 type SearchResult = {
     matches: Match[]
 }
@@ -51,18 +53,28 @@ export const searchWorkspace: Tool<SearchResult> = {
         console.log()
 
         if (!(await isIndexUpToDate(context))) {
-            console.log(chalk.red.bold('Workspace index is stale.'))
-
-            const choice = await context.prompter.choice(`Update workspace index?`, [
-                { name: 'y', description: 'yes' },
-                { name: 'n', description: 'no', isDefault: true },
-            ])
-
-            if (choice === 'y') {
+            if (alwaysRefreshWorkspaceIndex) {
                 await indexWorkspace(context)
-            }
+            } else {
+                console.log(chalk.red.bold('Workspace index is stale.'))
 
-            console.log()
+                const choice = await context.prompter.choice(`Update workspace index?`, [
+                    { name: 'y', description: 'yes' },
+                    { name: 'n', description: 'no', isDefault: true },
+                    { name: 'a', description: 'automatically refresh workspace index when stale for this session' },
+                ])
+
+                switch (choice) {
+                    // @ts-expect-error: intentional fallthrough
+                    case 'a':
+                        alwaysRefreshWorkspaceIndex = true
+                        console.log(`${chalk.green('✓')} Automatic index refreshes enabled for this session`)
+
+                    case 'y':
+                        await indexWorkspace(context)
+                        break
+                }
+            }
         }
 
         const protoMatches: {
