@@ -19,6 +19,7 @@ export type ChatProvider = {
     modelName: string
     system: string
     conversationManager: ConversationManager
+    providerMessages: () => any[]
     prompt: (progress?: ProgressFunction, signal?: AbortSignal) => Promise<Response>
 }
 

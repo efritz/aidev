@@ -31,6 +31,7 @@ export function createChatProvider<T, M>({
         modelName,
         system,
         conversationManager,
+        providerMessages,
         prompt: async (progress?: ProgressFunction, signal?: AbortSignal) => {
             const response = await reduceStream({
                 iterator: await createStream(providerMessages(), signal),
