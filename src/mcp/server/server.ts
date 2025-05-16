@@ -46,7 +46,7 @@ function createListToolsHandler(): () => Promise<{ tools: McpTool[] }> {
 function createCallToolHandler(
     server: Server,
     outputChannel: OutputChannel,
-): (req: CallToolRequest, extra: RequestHandlerExtra) => Promise<CallToolResult> {
+): (req: CallToolRequest, extra: RequestHandlerExtra<any, any>) => Promise<CallToolResult> {
     const log = (...args: any): void => {
         outputChannel.appendLine(args.join(' '))
     }

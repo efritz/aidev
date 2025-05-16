@@ -8,7 +8,7 @@
   ) @declaration
 )
 
-;; ...and with an explicit export
+;; ...and with an export
 
 (program
   (export_statement
