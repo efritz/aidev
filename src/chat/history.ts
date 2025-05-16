@@ -14,8 +14,12 @@ export async function loadHistory(context: ChatContext, historyFilename: string)
 
     await swapProvider(context, model)
     context.provider.conversationManager.setMessages(messages)
-    context.contextStateManager.setFiles(new Map(Object.entries(contextFiles)))
-    context.contextStateManager.setDirectories(new Map(Object.entries(contextDirectories)))
+    contextFiles.forEach(({ path, inclusionReasons }) =>
+        inclusionReasons.forEach(reason => context.contextStateManager.addFiles(path, reason)),
+    )
+    contextDirectories.forEach(({ path, inclusionReasons }) =>
+        inclusionReasons.forEach(reason => context.contextStateManager.addDirectories(path, reason)),
+    )
 
     replayMessages(context)
 }
