@@ -8,7 +8,7 @@ import { extract } from '../util/lists/lists'
 import { ConversationManager, createConversationManager } from './manager'
 
 export type Conversation<T> = ConversationManager & {
-    providerMessages: () => T[]
+    providerMessages: () => Promise<T[]>
 }
 
 type ConversationOptions<T> = {
@@ -28,7 +28,7 @@ export function createConversation<T>({
 }: ConversationOptions<T>): Conversation<T> {
     const { visibleMessages, ...conversationManager } = createConversationManager()
 
-    const providerMessages = (): T[] => {
+    const providerMessages = async (): Promise<T[]> => {
         const providerMessages: T[] = []
 
         const addMessages = (messages: T[]) => {
@@ -42,7 +42,7 @@ export function createConversation<T>({
             addMessages(initialMessage)
         }
 
-        for (const message of injectContextMessages(contextState, visibleMessages())) {
+        for (const message of await injectContextMessages(contextState, visibleMessages())) {
             switch (message.role) {
                 case 'user':
                     addMessages(userMessageToParam(message))
@@ -78,9 +78,8 @@ export function createConversation<T>({
 //
 
 type FilesAndDirectories = { files: ContextFile[]; directories: ContextDirectory[] }
-const empty: FilesAndDirectories = { files: [], directories: [] }
 
-function injectContextMessages(contextState: ContextState, messages: Message[]): Message[] {
+async function injectContextMessages(contextState: ContextState, messages: Message[]): Promise<Message[]> {
     // Determine the set of file and directories that we want to include in the context for
     // the set of visible messages. There might be other branches that include resources that
     // aren't relevant on this branch. We'll ignore those.
@@ -128,21 +127,35 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     // the resulting list. We need to pad the initial list with a trailing undefined message so that
     // a context message after the last message has a place to be inserted. Lastly, undefined values
     // are filtered from the flattened result.
-    return [...messages, undefined]
-        .flatMap((message, index) => [createContextMessage(contextByIndex.get(index) ?? empty), message])
+    return (
+        await Promise.all(
+            [...messages, undefined].map(async (message, index) => [
+                await createContextMessage(contextByIndex.get(index) ?? {}),
+                message,
+            ]),
+        )
+    )
+        .flat()
         .filter(message => !!message)
 }
 
 const fence = '```'
 
-function createContextMessage({ files, directories }: FilesAndDirectories): Message | undefined {
+async function createContextMessage({
+    files = [],
+    directories = [],
+}: Partial<FilesAndDirectories>): Promise<Message | undefined> {
     if (files.length === 0 && directories.length === 0) {
         return undefined
     }
 
     const payloads: string[] = []
-    const normalizedFiles = files.map(({ path, content: payload }) => ({ path, payload }))
-    const normalizedDirectories = directories.map(({ path, entries: payload }) => ({ path, payload }))
+    const normalizedFiles = await Promise.all(
+        files.map(async ({ path, content: payload }) => ({ path, payload: await payload })),
+    )
+    const normalizedDirectories = await Promise.all(
+        directories.map(async ({ path, entries: payload }) => ({ path, payload: await payload })),
+    )
 
     for (const [path, content] of sortPayloadsByPath(normalizedFiles)) {
         if (typeof content === 'string') {

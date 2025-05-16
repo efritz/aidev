@@ -45,15 +45,19 @@ async function convertHistoryToProviderMessages(inFilename: string, providerName
     }
 
     const contextState = await createContextState()
-    contextState.setFiles(new Map(Object.entries(contextFiles)))
-    contextState.setDirectories(new Map(Object.entries(contextDirectories)))
+    contextFiles.forEach(({ path, inclusionReasons }) =>
+        inclusionReasons.forEach(reason => contextState.addFiles(path, reason)),
+    )
+    contextDirectories.forEach(({ path, inclusionReasons }) =>
+        inclusionReasons.forEach(reason => contextState.addDirectories(path, reason)),
+    )
 
     const preferences = await getPreferences()
     const system = await buildSystemPrompt(preferences)
 
     const conversation = createConversation(contextState, system)
     conversation.setMessages(messages)
-    return JSON.stringify(conversation.providerMessages(), null, '\t')
+    return JSON.stringify(await conversation.providerMessages(), null, '\t')
 }
 
 main()

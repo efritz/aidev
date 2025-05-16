@@ -16,7 +16,7 @@ async function handleSaveProvider(context: ChatContext, args: string) {
         return
     }
 
-    const contents = context.provider.providerMessages()
+    const contents = await context.provider.providerMessages()
 
     const filename = `provider-messages-${Math.floor(Date.now() / 1000)}.json`
     await writeFile(filename, JSON.stringify(contents, null, '\t'))

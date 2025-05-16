@@ -58,7 +58,7 @@ export async function executeWriteFile({
         await _writeFile(path, editedContents)
 
         if (fromStash) {
-            await contextStateManager.addFiles(path, {
+            contextStateManager.addFiles(path, {
                 type: 'stash_applied',
                 metaMessageId: provider.conversationManager.applyStashedFile(path, editedContents, originalContents),
             })

@@ -8,7 +8,7 @@ import { replaceMap } from './util'
 export type ContextDirectory = {
     path: string
     inclusionReasons: InclusionReason[]
-    entries: DirectoryEntry[] | { error: string }
+    entries: Promise<DirectoryEntry[] | { error: string }>
 }
 
 export type DirectoryEntry = {
@@ -20,48 +20,49 @@ export type DirectoryEntry = {
 export function createNewDirectoryManager(watcher: FSWatcher) {
     const _directories = new Map<string, ContextDirectory>()
 
-    const updateDirectory = async (path: string) => {
+    const directoryContents = async (path: string): ContextDirectory['entries'] => {
+        try {
+            return (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
+                name: entry.name,
+                isFile: entry.isFile(),
+                isDirectory: entry.isDirectory(),
+            }))
+        } catch (err: any) {
+            return { error: `Error reading directory: ${err.message}` }
+        }
+    }
+
+    const updateDirectory = (path: string) => {
         const directory = _directories.get(path)
         if (!directory) {
             return
         }
 
-        try {
-            directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
-                name: entry.name,
-                isFile: entry.isFile(),
-                isDirectory: entry.isDirectory(),
-            }))
-        } catch (error: any) {
-            directory.entries = { error: `Error reading directory: ${error.message}` }
-        }
+        directory.entries = directoryContents(path)
     }
 
     watcher.on('all', async (event: string, path: string) =>
         updateDirectory(['addDir', 'unlinkDir'].includes(event) ? path : dirname(path)),
     )
 
-    const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
+    const getOrCreateDirectory = (paths: string | string[]): ContextDirectory[] => {
         const newPaths: string[] = []
-        const ps = await Promise.all(
-            (Array.isArray(paths) ? paths : [paths]).map(async path => {
-                const directory = _directories.get(path)
-                if (directory) {
-                    return directory
-                }
+        const ps = (Array.isArray(paths) ? paths : [paths]).map(path => {
+            const directory = _directories.get(path)
+            if (directory) {
+                return directory
+            }
 
-                const newDirectory: ContextDirectory = {
-                    path,
-                    inclusionReasons: [],
-                    entries: { error: 'Directory not yet read' },
-                }
+            const newDirectory: ContextDirectory = {
+                path,
+                inclusionReasons: [],
+                entries: directoryContents(path),
+            }
 
-                _directories.set(path, newDirectory)
-                await updateDirectory(path)
-                newPaths.push(path)
-                return newDirectory
-            }),
-        )
+            _directories.set(path, newDirectory)
+            newPaths.push(path)
+            return newDirectory
+        })
 
         watcher.add(newPaths)
         return ps
@@ -70,8 +71,8 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
     const directories = () => new Map(_directories)
     const setDirectories = (newDirectories: Map<string, ContextDirectory>) => replaceMap(_directories, newDirectories)
 
-    const addDirectories = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
-        for (const directory of await getOrCreateDirectory(paths)) {
+    const addDirectories = (paths: string | string[], reason: InclusionReason): void => {
+        for (const directory of getOrCreateDirectory(paths)) {
             const { inclusionReasons } = directory
             updateInclusionReasons(inclusionReasons, reason)
         }

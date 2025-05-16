@@ -22,8 +22,18 @@ async function handleSave(context: ChatContext, args: string) {
     const contents: SaveFilePayload = {
         model: context.provider.modelName,
         messages: context.provider.conversationManager.messages(),
-        contextFiles: mapToRecord(context.contextStateManager.files()),
-        contextDirectories: mapToRecord(context.contextStateManager.directories()),
+        contextFiles: [
+            ...context.contextStateManager
+                .files()
+                .values()
+                .map(({ content: _, ...v }) => v),
+        ],
+        contextDirectories: [
+            ...context.contextStateManager
+                .directories()
+                .values()
+                .map(({ entries: _, ...v }) => v),
+        ],
     }
 
     const filename = `chat-${Math.floor(Date.now() / 1000)}.json`
@@ -31,18 +41,11 @@ async function handleSave(context: ChatContext, args: string) {
     console.log(`Chat history saved to ${filename}\n`)
 }
 
-function mapToRecord<K extends string | number | symbol, V>(map: Map<K, V>): Record<K, V> {
-    return Array.from(map).reduce((obj: any, [key, value]) => {
-        obj[key] = value
-        return obj
-    }, {})
-}
-
 export type SaveFilePayload = {
     model: string
     messages: Message[]
-    contextFiles: Record<string, ContextFile>
-    contextDirectories: Record<string, ContextDirectory>
+    contextFiles: Omit<ContextFile, 'content'>[]
+    contextDirectories: Omit<ContextDirectory, 'entries'>[]
 }
 
 function replacer(_key: string, value: any): any {
