@@ -3,7 +3,6 @@ import { readdir } from 'fs/promises'
 import { dirname } from 'path'
 import { FSWatcher } from 'chokidar'
 import { InclusionReason, updateInclusionReasons } from './reason'
-import { replaceMap } from './util'
 
 export type ContextDirectory = {
     path: string
@@ -69,7 +68,6 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
     }
 
     const directories = () => new Map(_directories)
-    const setDirectories = (newDirectories: Map<string, ContextDirectory>) => replaceMap(_directories, newDirectories)
 
     const addDirectories = (paths: string | string[], reason: InclusionReason): void => {
         for (const directory of getOrCreateDirectory(paths)) {
@@ -91,7 +89,6 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
 
     return {
         directories,
-        setDirectories,
         addDirectories,
         removeDirectory,
     }

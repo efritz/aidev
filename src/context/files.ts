@@ -1,7 +1,6 @@
 import { readFile } from 'fs/promises'
 import { FSWatcher } from 'chokidar'
 import { InclusionReason, updateInclusionReasons } from './reason'
-import { replaceMap } from './util'
 
 export type ContextFile = {
     path: string
@@ -55,7 +54,6 @@ export function createNewFileManager(watcher: FSWatcher) {
     }
 
     const files = () => new Map(_files)
-    const setFiles = (newFiles: Map<string, ContextFile>) => replaceMap(_files, newFiles)
 
     const addFiles = (paths: string | string[], reason: InclusionReason): void => {
         for (const file of getOrCreateFiles(paths)) {
@@ -77,7 +75,6 @@ export function createNewFileManager(watcher: FSWatcher) {
 
     return {
         files,
-        setFiles,
         addFiles,
         removeFile,
     }
