@@ -21,7 +21,7 @@ export type ConversationManager = BranchManager &
 
 export function createConversationManager(): ConversationManager {
     const _messages: Message[] = []
-    const messages = () => _messages
+    const messages = () => [..._messages]
     const setMessages = (messages: Message[]) => _messages.splice(0, _messages.length, ...messages)
 
     const addMessage = (message: Message): string => {
