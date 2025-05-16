@@ -19,7 +19,7 @@ export function createNewFileManager(watcher: FSWatcher) {
         }
     }
 
-    const updateFile = async (path: string) => {
+    const updateFile = (path: string) => {
         const file = _files.get(path)
         if (!file) {
             return
@@ -28,7 +28,7 @@ export function createNewFileManager(watcher: FSWatcher) {
         file.content = fileContents(path)
     }
 
-    watcher.on('all', async (_event: string, path: string) => updateFile(path))
+    watcher.on('all', (_event: string, path: string) => updateFile(path))
 
     const getOrCreateFiles = (paths: string | string[]): ContextFile[] => {
         const newPaths: string[] = []

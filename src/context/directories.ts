@@ -40,7 +40,7 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
         directory.entries = directoryContents(path)
     }
 
-    watcher.on('all', async (event: string, path: string) =>
+    watcher.on('all', (event: string, path: string) =>
         updateDirectory(['addDir', 'unlinkDir'].includes(event) ? path : dirname(path)),
     )
 
