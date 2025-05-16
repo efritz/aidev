@@ -31,7 +31,7 @@ export function parseResource<T>(
     return undefined
 }
 
-export function encodeBase64(content: string): string {
+function encodeBase64(content: string): string {
     return Buffer.from(content).toString('base64')
 }
 

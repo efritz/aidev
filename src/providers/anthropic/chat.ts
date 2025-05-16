@@ -23,7 +23,7 @@ export const AnthropicChatProviderFactory = {
     create: createAnthropicChatProviderSpec,
 }
 
-export async function createAnthropicChatProviderSpec(
+async function createAnthropicChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,

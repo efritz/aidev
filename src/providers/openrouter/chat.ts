@@ -5,14 +5,14 @@ import { getKey } from '../keys'
 import { createOpenAICompatibleChatProvider } from '../openai/chat'
 import { Preferences } from '../preferences'
 
-const providerName = 'DeepSeek'
+const providerName = 'OpenRouter'
 
-export const DeepSeekChatProviderFactory = {
+export const OpenRouterChatProviderFactory = {
     name: providerName,
-    create: createDeepSeekChatProviderSpec,
+    create: createOpenRouterChatProviderSpec,
 }
 
-async function createDeepSeekChatProviderSpec(
+async function createOpenRouterChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
@@ -23,13 +23,13 @@ async function createDeepSeekChatProviderSpec(
         providerName,
         models: preferences.providers[providerName] ?? [],
         needsAPIKey: !apiKey,
-        factory: createDeepSeekChatProvider(providerName, apiKey ?? '', limiter, tracker),
+        factory: createOpenRouterChatProvider(providerName, apiKey ?? '', limiter, tracker),
     }
 }
 
-const baseURL = 'https://api.deepseek.com/v1'
+const baseURL = 'https://openrouter.ai/api/v1'
 
-function createDeepSeekChatProvider(
+function createOpenRouterChatProvider(
     providerName: string,
     apiKey: string,
     limiter: Limiter,

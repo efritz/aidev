@@ -1,7 +1,8 @@
 import { writeFile as _writeFile, mkdir } from 'fs/promises'
-import { dirname } from 'path'
+import { dirname, relative, resolve } from 'path'
 import chalk from 'chalk'
 import { diffLines } from 'diff'
+import { ContextStateManager } from '../../context/state'
 import { ChatProvider } from '../../providers/chat_provider'
 import { CancelError, InterruptHandler } from '../../util/interrupts/interrupts'
 import { withContentEditor, withDiffEditor } from '../../util/vscode/edit'
@@ -14,10 +15,17 @@ export type WriteResult = {
     canceled?: boolean
 }
 
+let allowWorkspaceWrites = false
+
+function isPathInWorkspace(path: string): boolean {
+    return !relative(process.cwd(), resolve(path)).startsWith('..')
+}
+
 export async function executeWriteFile({
     provider,
     prompter,
     interruptHandler,
+    contextStateManager,
     path,
     contents,
     originalContents,
@@ -26,6 +34,7 @@ export async function executeWriteFile({
     provider: ChatProvider
     prompter: Prompter
     interruptHandler: InterruptHandler
+    contextStateManager: ContextStateManager
     path: string
     contents: string
     originalContents: string
@@ -49,7 +58,10 @@ export async function executeWriteFile({
         await _writeFile(path, editedContents)
 
         if (fromStash) {
-            provider.conversationManager.applyStashedFile(path, editedContents, originalContents)
+            contextStateManager.addFiles(path, {
+                type: 'stash_applied',
+                metaMessageId: provider.conversationManager.applyStashedFile(path, editedContents, originalContents),
+            })
         }
     }
 
@@ -134,15 +146,26 @@ async function confirmWrite({
     contents: string
     originalContents: string
 }): Promise<{ contents: string; stash: boolean } | undefined> {
+    if (allowWorkspaceWrites && isPathInWorkspace(path)) {
+        console.log(`${chalk.dim('ℹ')} File write automatically approved (based on previous "always" selection)`)
+        return { contents, stash: false }
+    }
+
     while (true) {
-        const choice = await prompter.choice(`Write contents to "${path}"`, [
+        const choices = [
             { name: 'y', description: 'write file to disk' },
             { name: 'n', description: 'skip write and continue conversation', isDefault: true },
             originalContents === ''
                 ? { name: 'e', description: 'edit file contents in vscode' }
                 : { name: 'd', description: 'edit file contents in vscode (diff mode)' },
             { name: 's', description: 'stash file contents' },
-        ])
+        ]
+
+        if (isPathInWorkspace(path)) {
+            choices.push({ name: 'a', description: 'always allow writes to workspace files for this session' })
+        }
+
+        const choice = await prompter.choice(`Write contents to "${path}"`, choices)
 
         try {
             switch (choice) {
@@ -152,6 +175,13 @@ async function confirmWrite({
                     return undefined
                 case 's':
                     return { contents, stash: true }
+                case 'a':
+                    if (isPathInWorkspace(path)) {
+                        allowWorkspaceWrites = true
+                        console.log(`${chalk.green('✓')} File path added to allow list for this session`)
+                        return { contents, stash: false }
+                    }
+                    break
 
                 case 'd': {
                     const newContents = await withDiffEditor(interruptHandler, path, contents)

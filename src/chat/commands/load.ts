@@ -18,7 +18,7 @@ async function handleLoad(context: ChatContext, args: string): Promise<void> {
     return handleLoadPatterns(context, parseArgsWithEscapedSpaces(args))
 }
 
-export async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :load.'))
         console.log()
@@ -33,7 +33,8 @@ export async function handleLoadPatterns(context: ChatContext, patterns: string[
         return
     }
 
-    await context.contextStateManager.addFiles(paths, { type: 'explicit' })
+    const id = context.provider.conversationManager.recordLoad(paths)
+    context.contextStateManager.addFiles(paths, { type: 'explicit', metaMessageId: id })
 
     paths.sort()
     const message = paths.map(path => `${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`).join('\n')

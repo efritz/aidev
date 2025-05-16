@@ -45,11 +45,7 @@ export const readDirectories: Tool<string[]> = {
         const { paths: patterns } = args as { paths: string[] }
         const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
 
-        await context.contextStateManager.addDirectories(directoryPaths, {
-            type: 'tool_use',
-            toolUseClass: 'read',
-            toolUseId,
-        })
+        context.contextStateManager.addDirectories(directoryPaths, { type: 'tool_use', toolUseId })
 
         console.log(
             directoryPaths
@@ -60,5 +56,7 @@ export const readDirectories: Tool<string[]> = {
 
         return { result: directoryPaths, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<string[]>) => JSON.stringify({ paths: result ?? [] }),
+    serialize: ({ result }: ToolResult<string[]>) => ({
+        result: { paths: result ?? [] },
+    }),
 }

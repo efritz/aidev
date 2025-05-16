@@ -1,8 +1,8 @@
 import { CallToolResult, Progress } from '@modelcontextprotocol/sdk/types.js'
 import { createResource, parseResource } from './resource'
 
-export const progressResultURI = 'aidev://progress/'
-export const progressResultMimeType = 'aidev/progress'
+const progressResultURI = 'aidev://progress/'
+const progressResultMimeType = 'aidev/progress'
 
 export function progressToResult(progress: Progress): CallToolResult {
     return {

@@ -1,6 +1,6 @@
 import chalk from 'chalk'
+import { getActiveFiles } from '../../context/conversation'
 import { Branch } from '../../conversation/branches'
-import { shouldIncludeFile } from '../../conversation/conversation'
 import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
@@ -91,13 +91,7 @@ function printBranch(
 }
 
 function printContextFiles(context: ChatContext) {
-    const visibleToolUseIds = context.provider.conversationManager
-        .visibleMessages()
-        .flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
-
-    const files = Array.from(context.contextStateManager.files().values()).filter(file =>
-        shouldIncludeFile(file, visibleToolUseIds),
-    )
+    const files = getActiveFiles(context.provider.conversationManager, context.contextStateManager)
 
     if (files.length === 0) {
         console.log(chalk.yellow('No files in context.'))
@@ -108,11 +102,12 @@ function printContextFiles(context: ChatContext) {
         const reasons = file.inclusionReasons.map(reason => {
             switch (reason.type) {
                 case 'explicit':
-                    return chalk.blue('explicit')
+                    // TODO - deduplicate?
+                    return chalk.blue('added by user')
                 case 'tool_use':
-                    return chalk.magenta('tool_use')
+                    return chalk.magenta('added by tool use')
                 case 'editor':
-                    return chalk.green('editor')
+                    return chalk.green('open in editor')
             }
         })
 

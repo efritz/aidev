@@ -17,7 +17,7 @@ export const OpenAIEmbeddingsProviderFactory = {
     create: createOpenAIEmbeddingsProviderSpec,
 }
 
-export async function createOpenAIEmbeddingsProviderSpec(
+async function createOpenAIEmbeddingsProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,

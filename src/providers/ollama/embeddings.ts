@@ -15,7 +15,7 @@ export const OllamaEmbeddingsProviderFactory = {
     create: createOllamaEmbeddingsProviderSpec,
 }
 
-export async function createOllamaEmbeddingsProviderSpec(
+async function createOllamaEmbeddingsProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
 ): Promise<EmbeddingsProviderSpec> {

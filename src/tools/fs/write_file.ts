@@ -16,7 +16,7 @@ export const writeFile: Tool<WriteResult> = {
     description: [
         'Write file contents to disk, creating intermediate directories if necessary.',
         'The user may choose to modify the file content before writing it to disk. The tool result will include the user-supplied content, if any.',
-        'If the conversation context already contains the target path, the conversation will be updated to include the new contents.',
+        'The file will be added to the subsequent conversation context.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -52,16 +52,42 @@ export const writeFile: Tool<WriteResult> = {
         const { path, contents } = args as { path: string; contents: string }
         const originalContents = await safeReadFile(path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents })
-        await context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseClass: 'write', toolUseId })
+        context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseId })
         return writeExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, error, canceled }: ToolResult<WriteResult>) =>
-        JSON.stringify({
+    serialize: ({ result, error, canceled }: ToolResult<WriteResult>) => ({
+        result: {
             error,
             canceled,
             stashed: result?.stashed ?? false,
             userEditedContents: result?.userEditedContents,
-        }),
+        },
+        suggestions: (result?.stashed
+            ? [
+                  'The user stashed but has not applied the new version of the file.',
+                  'No files were modified by this tool invocation.',
+                  'The current, unchanged content of the file remains available in the subsequent context.',
+              ]
+            : canceled
+              ? [
+                    'The user canceled the file write.',
+                    'No files were modified by this tool invocation.',
+                    'The current, unchanged content of the file remains available in the subsequent context.',
+                ]
+              : error
+                ? [
+                      'There was an error writing the file.',
+                      'No files were modified by this tool invocation.',
+                      'The current, unchanged content of the file remains available in the subsequent context.',
+                      'Please check the error message in the tool result and try again.',
+                  ]
+                : [
+                      'The file has been successfully written.',
+                      'The updated content of the file is available in the subsequent context.',
+                      'Carefully review the new state of the file before continuing.',
+                  ]
+        ).join('\n'),
+    }),
     ruleMatcherFactory: writeFileOperationMatcher,
 }
 

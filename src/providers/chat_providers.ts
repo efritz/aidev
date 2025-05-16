@@ -7,6 +7,7 @@ import { GoogleChatProviderFactory } from './google/chat'
 import { GroqChatProviderFactory } from './groq/chat'
 import { OllamaChatProviderFactory } from './ollama/chat'
 import { OpenAIChatProviderFactory } from './openai/chat'
+import { OpenRouterChatProviderFactory } from './openrouter/chat'
 import { Preferences } from './preferences'
 
 export type ChatProviders = {
@@ -27,11 +28,12 @@ export type ChatProviderSpecFactory = {
 
 export const chatProviderSpecFactories: ChatProviderSpecFactory[] = [
     AnthropicChatProviderFactory,
+    DeepSeekChatProviderFactory,
     GoogleChatProviderFactory,
     GroqChatProviderFactory,
     OllamaChatProviderFactory,
     OpenAIChatProviderFactory,
-    DeepSeekChatProviderFactory,
+    OpenRouterChatProviderFactory,
 ]
 
 export const initChatProviders = async (

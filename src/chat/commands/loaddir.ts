@@ -18,7 +18,7 @@ async function handleLoaddir(context: ChatContext, args: string): Promise<void> 
     return handleLoaddirPatterns(context, parseArgsWithEscapedSpaces(args))
 }
 
-export async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): Promise<void> {
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :loaddir.'))
         console.log()
@@ -33,7 +33,8 @@ export async function handleLoaddirPatterns(context: ChatContext, patterns: stri
         return
     }
 
-    await context.contextStateManager.addDirectories(paths, { type: 'explicit' })
+    const id = context.provider.conversationManager.recordLoadDir(paths)
+    context.contextStateManager.addDirectories(paths, { type: 'explicit', metaMessageId: id })
 
     paths.sort()
     const message = paths.map(path => `${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`).join('\n')

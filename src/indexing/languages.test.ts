@@ -32,11 +32,18 @@ describe('extractCodeMatches', async () => {
             { name: 'f1', type: 'function', content: match('function f1() {...}') },
             { name: 'f2', type: 'function', content: match('function f2() {...}') },
             { name: 'f3', type: 'function', content: match('function f3() {...}') },
+            { name: 'f4', type: 'function', content: match('function f4() {...}') },
 
             // Captures named functions within other functions
             { name: 'cmp1', type: 'named-arrow-function', content: match('cmp1 = (...) => ...') },
             { name: 'cmp2', type: 'named-arrow-function', content: match('cmp2 = (...) => ...') },
             { name: 'cmp3', type: 'function', content: match('function cmp3(...) {...}') },
+
+            // Captures functions attached to constructed object literals
+            { name: 'k1', type: 'named-arrow-function', content: match('k1: (...) => ...') },
+            { name: 'k2', type: 'named-arrow-function', content: match('k2: () => ...') },
+            { name: 'k3', type: 'named-arrow-function', content: match('k3: function (...) {...}') },
+            { name: 'm4', type: 'method', content: match('m4(...) {...}') },
         ])
     })
 

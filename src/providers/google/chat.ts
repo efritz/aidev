@@ -27,7 +27,7 @@ export const GoogleChatProviderFactory = {
     create: createGoogleChatProviderSpec,
 }
 
-export async function createGoogleChatProviderSpec(
+async function createGoogleChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,

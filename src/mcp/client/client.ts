@@ -36,9 +36,9 @@ function createUpdateEditorContextHandler(context: ChatContext, client: Client):
     return async () => {
         const { resources } = await client.listResources()
 
-        await context.contextStateManager.addFiles([...loaded], { type: 'editor', currentlyOpen: false })
+        context.contextStateManager.addFiles([...loaded], { type: 'editor', currentlyOpen: false })
         loaded = new Set(resources.map(({ name }) => name))
-        await context.contextStateManager.addFiles([...loaded], { type: 'editor', currentlyOpen: true })
+        context.contextStateManager.addFiles([...loaded], { type: 'editor', currentlyOpen: true })
 
         context.events.emit('open-files-changed')
     }

@@ -24,7 +24,7 @@ export const OpenAIChatProviderFactory = {
     create: createOpenAIChatProviderSpec,
 }
 
-export async function createOpenAIChatProviderSpec(
+async function createOpenAIChatProviderSpec(
     preferences: Preferences,
     limiter: Limiter,
     tracker: UsageTracker,
@@ -62,7 +62,7 @@ export function createOpenAICompatibleChatProvider(
         model: { name: modelName, model, options },
         system,
         temperature = 0.0,
-        maxTokens = 4096,
+        maxTokens = options?.maxTokens || 4096,
         disableTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new OpenAI({ apiKey, baseURL })
@@ -72,7 +72,7 @@ export function createOpenAICompatibleChatProvider(
             client,
             limiter,
             model,
-            temperature: Math.max(temperature, options?.minimumTempature ?? 0),
+            temperature: Math.max(temperature, options?.minimumTemperature ?? 0),
             maxTokens,
             supportsTools: (options?.supportsTools ?? true) && !disableTools,
             supportsStreaming: options?.supportsStreaming ?? true,

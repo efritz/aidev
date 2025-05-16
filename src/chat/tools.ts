@@ -75,7 +75,7 @@ function canonicalizeTool(toolUse: ToolUse): ToolUse {
     return toolUse
 }
 
-export async function runTools(context: ChatContext, toolUses: ToolUse[], signal?: AbortSignal): Promise<boolean> {
+async function runTools(context: ChatContext, toolUses: ToolUse[], signal?: AbortSignal): Promise<boolean> {
     let repromptAny: boolean | undefined
 
     const queue = [...toolUses]

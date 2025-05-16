@@ -6,18 +6,18 @@ languages:
           - .ts
           - .jsx
       queries:
-          type: { include: ./languages/typescript/type.query }
-          var: { include: ./languages/typescript/var.query }
-          class: { include: ./languages/typescript/class.query }
-          method: { include: ./languages/typescript/method.query }
-          function: { include: ./languages/typescript/function.query }
-          named-arrow-function: { include: ./languages/typescript/named-arrow-function.query }
+          type: { include: ./languages/typescript/type.scm }
+          var: { include: ./languages/typescript/var.scm }
+          class: { include: ./languages/typescript/class.scm }
+          method: { include: ./languages/typescript/method.scm }
+          function: { include: ./languages/typescript/function.scm }
+          named-arrow-function: { include: ./languages/typescript/named-arrow-function.scm }
 
     - name: go
       extensions:
           - .go
       queries:
-          type: { include: ./languages/go/type.query }
-          var: { include: ./languages/go/var.query }
-          func: { include: ./languages/go/func.query }
-          named-func-expr: { include: ./languages/go/named-func-expr.query }
+          type: { include: ./languages/go/type.scm }
+          var: { include: ./languages/go/var.scm }
+          func: { include: ./languages/go/func.scm }
+          named-func-expr: { include: ./languages/go/named-func-expr.scm }
