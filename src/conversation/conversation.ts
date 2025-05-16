@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
+import { getActiveDirectories, getActiveFiles } from '../context/conversation'
 import { ContextDirectory } from '../context/directories'
 import { ContextFile } from '../context/files'
 import { InclusionReason } from '../context/reason'
 import { ContextState } from '../context/state'
 import { ApplyStashMessage, AssistantMessage, Message, RuleMessage, UserMessage } from '../messages/messages'
-import { extract } from '../util/lists/lists'
 import { ConversationManager, createConversationManager } from './manager'
 
 export type Conversation<T> = ConversationManager & {
@@ -26,7 +26,7 @@ export function createConversation<T>({
     initialMessage,
     postPush,
 }: ConversationOptions<T>): Conversation<T> {
-    const { visibleMessages, ...conversationManager } = createConversationManager()
+    const conversationManager = createConversationManager()
 
     const providerMessages = async (): Promise<T[]> => {
         const providerMessages: T[] = []
@@ -42,7 +42,7 @@ export function createConversation<T>({
             addMessages(initialMessage)
         }
 
-        for (const message of await injectContextMessages(contextState, visibleMessages())) {
+        for (const message of await injectContextMessages(conversationManager, contextState)) {
             switch (message.role) {
                 case 'user':
                     addMessages(userMessageToParam(message))
@@ -68,7 +68,6 @@ export function createConversation<T>({
     }
 
     return {
-        visibleMessages,
         ...conversationManager,
         providerMessages,
     }
@@ -77,49 +76,87 @@ export function createConversation<T>({
 //
 //
 
-type FilesAndDirectories = { files: ContextFile[]; directories: ContextDirectory[] }
+type FilesAndDirectories = {
+    files: ContextFile[]
+    directories: ContextDirectory[]
+}
 
-async function injectContextMessages(contextState: ContextState, messages: Message[]): Promise<Message[]> {
+async function injectContextMessages(
+    conversationManager: ConversationManager,
+    contextState: ContextState,
+): Promise<Message[]> {
     // Determine the set of file and directories that we want to include in the context for
     // the set of visible messages. There might be other branches that include resources that
     // aren't relevant on this branch. We'll ignore those.
-    const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
-    const files = [...contextState.files().values()].filter(f => shouldIncludeFile(f, visibleToolUseIds))
-    const directories = [...contextState.directories().values()].filter(d =>
-        shouldIncludeDirectory(d, visibleToolUseIds),
-    )
+    const messages = conversationManager.visibleMessages()
+    const files = getActiveFiles(conversationManager, contextState)
+    const directories = getActiveDirectories(conversationManager, contextState)
 
-    // A map from target index in the message list to the set of files and directories that should
-    // be included at that index. We'll build this up by iterating the messages, then interlace the
-    // context messages with the user messages to create a new visible message list.
+    // This is a map from target position in the message list to the set of files and directories
+    // that should be included (or mentioned) at that index. We'll build this up by iterating the
+    // messages, then interlace the context messages with the user messages to create a new visible
+    // message list.
     const contextByIndex = new Map<number, FilesAndDirectories>()
 
-    // Iterate the visible messages from back to front. For each message, we'll determine if
-    // it references a relevant file or directory and stash that resource to be inserted directly
-    // after the linked tool result message. Once we stash a resource we remove it from the list
-    // of candidates so that it's only included once.
+    const seenFile = new Set<string>()
+    const seenDirectory = new Set<string>()
+
+    // Iterate the visible messages from back to front. For each message, we'll determine if it
+    // references a relevant file or directory and stash that resource to be inserted directly
+    // after the linked tool result message. Once we stash a resource we mark it as included so
+    // we only include the full content once.
     for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i]
 
-        if (message.role === 'user' && message.type === 'tool_result') {
-            contextByIndex.set(i + 1, {
-                files: extract(files, f => includedByToolUse(f.inclusionReasons, message.toolUse.id)),
-                directories: extract(directories, d => includedByToolUse(d.inclusionReasons, message.toolUse.id)),
-            })
+        const references: FilesAndDirectories = {
+            files: [],
+            directories: [],
         }
 
-        if (message.role === 'meta' && message.type === 'applyStash') {
-            contextByIndex.set(i + 1, {
-                files: extract(files, f => includedByAppliedStash(f.inclusionReasons, message.id)),
-                directories: [],
-            })
+        const addFile = (f: ContextFile) => {
+            if (!seenFile.has(f.path)) {
+                seenFile.add(f.path)
+                references.files.push(f)
+            }
         }
+
+        const addDirectory = (d: ContextDirectory) => {
+            if (!seenDirectory.has(d.path)) {
+                seenDirectory.add(d.path)
+                references.directories.push(d)
+            }
+        }
+
+        if (message.role === 'user' && message.type === 'tool_result') {
+            const shouldInclude = ({ inclusionReasons }: { inclusionReasons: InclusionReason[] }) => {
+                return includedByToolUse(inclusionReasons, message.toolUse.id)
+            }
+
+            files.filter(shouldInclude).forEach(addFile)
+            directories.filter(shouldInclude).forEach(addDirectory)
+        }
+
+        if (message.role === 'meta') {
+            if (message.type === 'applyStash') {
+                files.filter(f => includedByAppliedStash(f.inclusionReasons, message.id)).forEach(addFile)
+            }
+
+            if (message.type === 'load') {
+                files.filter(f => message.paths.includes(f.path)).forEach(addFile)
+            }
+
+            if (message.type === 'loaddir') {
+                directories.filter(d => message.paths.includes(d.path)).forEach(addDirectory)
+            }
+        }
+
+        contextByIndex.set(i + 1, references)
     }
 
     // Include any remaining relevant files and directories at the beginning of the conversation.
     contextByIndex.set(0, {
-        files: files.filter(f => shouldIncludeFile(f, [])),
-        directories: directories.filter(d => shouldIncludeDirectory(d, [])),
+        files: files.filter(f => !seenFile.has(f.path)),
+        directories: directories.filter(d => !seenDirectory.has(d.path)),
     })
 
     // Build context messages and inject them in the correct location in the message list. We do
@@ -197,40 +234,6 @@ function includedByToolUse(inclusionReasons: InclusionReason[], toolUseId: strin
 
 function includedByAppliedStash(inclusionReasons: InclusionReason[], metaMessageId: string): boolean {
     return inclusionReasons.some(reason => reason.type === 'stash_applied' && reason.metaMessageId === metaMessageId)
-}
-
-export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
-    return shouldInclude(file.inclusionReasons, visibleToolUses)
-}
-
-function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
-    return shouldInclude(directory.inclusionReasons, visibleToolUses)
-}
-
-function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): boolean {
-    for (const reason of reasons) {
-        switch (reason.type) {
-            case 'explicit':
-            case 'stash_applied':
-                return true
-
-            case 'tool_use':
-                if (visibleToolUses.includes(reason.toolUseId)) {
-                    return true
-                }
-
-                break
-
-            case 'editor':
-                if (reason.currentlyOpen) {
-                    return true
-                }
-
-                break
-        }
-    }
-
-    return false
 }
 
 //

@@ -14,9 +14,12 @@ export type ConversationManager = BranchManager &
         messages(): Message[]
         visibleMessages(): Message[]
         setMessages(messages: Message[]): void
-
         pushUser(message: UserMessage): void
         pushAssistant(message: AssistantMessage): void
+
+        recordLoad(paths: string[]): string
+        recordLoadDir(paths: string[]): string
+        recordUnload(paths: string[]): string
     }
 
 export function createConversationManager(): ConversationManager {
@@ -41,6 +44,10 @@ export function createConversationManager(): ConversationManager {
     const pushMeta = (message: MetaMessage) => addMessage({ ...message, id: uuidv4(), role: 'meta' })
     const pushUser = (message: UserMessage) => addMessage({ ...message, id: uuidv4(), role: 'user' })
     const pushAssistant = (message: AssistantMessage) => addMessage({ ...message, id: uuidv4(), role: 'assistant' })
+
+    const recordLoad = (paths: string[]) => pushMeta({ type: 'load', paths })
+    const recordLoadDir = (paths: string[]) => pushMeta({ type: 'loaddir', paths })
+    const recordUnload = (paths: string[]) => pushMeta({ type: 'unload', paths })
 
     const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
@@ -72,6 +79,10 @@ export function createConversationManager(): ConversationManager {
         setMessages,
         pushUser,
         pushAssistant,
+
+        recordLoad,
+        recordLoadDir,
+        recordUnload,
 
         branchMetadata,
         currentBranch,

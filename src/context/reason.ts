@@ -1,14 +1,14 @@
 export type InclusionReason =
-    | { type: 'explicit' }
+    | { type: 'explicit'; metaMessageId: string }
     | { type: 'tool_use'; toolUseId: string }
     | { type: 'editor'; currentlyOpen: boolean }
     | { type: 'stash_applied'; metaMessageId: string }
 
 export function updateInclusionReasons(reasons: InclusionReason[], reason: InclusionReason) {
-    if (
-        (reason.type === 'explicit' && reasons.some(r => r.type === 'explicit')) ||
-        (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.toolUseId === reason.toolUseId))
-    ) {
+    if (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.toolUseId === reason.toolUseId)) {
+        if (true) {
+            throw new Error("HUH This souldn't happen?")
+        }
         // Already exists
         return
     }
