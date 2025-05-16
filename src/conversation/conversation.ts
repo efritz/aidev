@@ -79,6 +79,8 @@ export function createConversation<T>({
 type FilesAndDirectories = {
     files: ContextFile[]
     directories: ContextDirectory[]
+    teaserFilePaths: ContextFile[]
+    teaserDirectoryPaths: ContextDirectory[]
 }
 
 async function injectContextMessages(
@@ -96,7 +98,7 @@ async function injectContextMessages(
     // that should be included (or mentioned) at that index. We'll build this up by iterating the
     // messages, then interlace the context messages with the user messages to create a new visible
     // message list.
-    const contextByIndex = new Map<number, FilesAndDirectories>()
+    const contextByIndex = new Map<number, Partial<FilesAndDirectories>>()
 
     const seenFile = new Set<string>()
     const seenDirectory = new Set<string>()
@@ -104,24 +106,31 @@ async function injectContextMessages(
     // Iterate the visible messages from back to front. For each message, we'll determine if it
     // references a relevant file or directory and stash that resource to be inserted directly
     // after the linked tool result message. Once we stash a resource we mark it as included so
-    // we only include the full content once.
+    // we only include the full content once. For all subsequent references to the same resource
+    // we include a teaser message that indicates the resource path but not is full contents.
     for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i]
 
         const references: FilesAndDirectories = {
             files: [],
             directories: [],
+            teaserFilePaths: [],
+            teaserDirectoryPaths: [],
         }
 
         const addFile = (f: ContextFile) => {
-            if (!seenFile.has(f.path)) {
+            if (seenFile.has(f.path)) {
+                references.teaserFilePaths.push(f)
+            } else {
                 seenFile.add(f.path)
                 references.files.push(f)
             }
         }
 
         const addDirectory = (d: ContextDirectory) => {
-            if (!seenDirectory.has(d.path)) {
+            if (seenDirectory.has(d.path)) {
+                references.teaserDirectoryPaths.push(d)
+            } else {
                 seenDirectory.add(d.path)
                 references.directories.push(d)
             }
@@ -176,17 +185,21 @@ async function injectContextMessages(
         .filter(message => !!message)
 }
 
-const fence = '```'
-
 async function createContextMessage({
     files = [],
     directories = [],
+    teaserFilePaths = [],
+    teaserDirectoryPaths = [],
 }: Partial<FilesAndDirectories>): Promise<Message | undefined> {
-    if (files.length === 0 && directories.length === 0) {
+    if (
+        files.length === 0 &&
+        directories.length === 0 &&
+        teaserFilePaths.length === 0 &&
+        teaserDirectoryPaths.length === 0
+    ) {
         return undefined
     }
 
-    const payloads: string[] = []
     const normalizedFiles = await Promise.all(
         files.map(async ({ path, content: payload }) => ({ path, payload: await payload })),
     )
@@ -194,9 +207,11 @@ async function createContextMessage({
         directories.map(async ({ path, entries: payload }) => ({ path, payload: await payload })),
     )
 
+    const payloads: string[] = []
+
     for (const [path, content] of sortPayloadsByPath(normalizedFiles)) {
         if (typeof content === 'string') {
-            payloads.push(`Current contents of file "${path}":\n${fence}\n${content}\n${fence}`)
+            payloads.push(`<file path="${path}">${content}</file>`)
         } else {
             payloads.push(`Failed to load the contents of file "${path}": ${content.error}`)
         }
@@ -204,12 +219,36 @@ async function createContextMessage({
 
     for (const [path, entries] of sortPayloadsByPath(normalizedDirectories)) {
         if (!('error' in entries)) {
-            const serialized = JSON.stringify(entries, null, 2)
-            payloads.push(`Current entries of directory "${path}":\n${serialized}`)
+            payloads.push(
+                `<directory path="${path}">\n${entries
+                    .map(
+                        entry =>
+                            `  <entry name="${entry.name}" type="${entry.isFile ? 'file' : entry.isDirectory ? 'directory' : 'unknown'} />`,
+                    )
+                    .join('\n')}\n</directory>`,
+            )
         } else {
             payloads.push(`Failed to load the entries of directory "${path}": ${entries.error}`)
         }
     }
+
+    teaserFilePaths
+        .map(f => f.path)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(p => {
+            payloads.push(
+                `The contents of file "${p}" has been omitted from this message. The current contents of the file will occur in full later.`,
+            )
+        })
+
+    teaserDirectoryPaths
+        .map(d => d.path)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(p => {
+            payloads.push(
+                `The entries of directory "${p}" have been omitted from this message. The current entries of the directory will occur in full later.`,
+            )
+        })
 
     return {
         id: uuidv4(),
