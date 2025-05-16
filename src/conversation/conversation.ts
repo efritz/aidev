@@ -215,11 +215,7 @@ function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): b
                 return true
 
             case 'tool_use':
-                // If we ONLY write to a file we don't need to include it. We only want to include
-                // a file if it's explicitly read by a tool. We keep the 'write' tool use class to
-                // ensure that we always include the file contents after the last modification so
-                // the assistant doesn't get confused about the current state of the contents.
-                if (reason.toolUseClass === 'read' && visibleToolUses.includes(reason.toolUseId)) {
+                if (visibleToolUses.includes(reason.toolUseId)) {
                     return true
                 }
 

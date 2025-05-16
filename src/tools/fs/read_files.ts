@@ -43,7 +43,7 @@ export const readFiles: Tool<string[]> = {
         const { paths: patterns } = args as { paths: string[] }
         const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
 
-        context.contextStateManager.addFiles(filePaths, { type: 'tool_use', toolUseClass: 'read', toolUseId })
+        context.contextStateManager.addFiles(filePaths, { type: 'tool_use', toolUseId })
 
         console.log(
             filePaths.map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),
