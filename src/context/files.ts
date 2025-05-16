@@ -32,7 +32,7 @@ export function createNewFileManager(watcher: FSWatcher) {
 
     const getOrCreateFiles = (paths: string | string[]): ContextFile[] => {
         const newPaths: string[] = []
-        const ps = (Array.isArray(paths) ? paths : [paths]).map(path => {
+        const files = (Array.isArray(paths) ? paths : [paths]).map(path => {
             const file = _files.get(path)
             if (file) {
                 return file
@@ -50,7 +50,7 @@ export function createNewFileManager(watcher: FSWatcher) {
         })
 
         watcher.add(newPaths)
-        return ps
+        return files
     }
 
     const files = () => new Map(_files)

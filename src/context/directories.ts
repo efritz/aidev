@@ -46,7 +46,7 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
 
     const getOrCreateDirectory = (paths: string | string[]): ContextDirectory[] => {
         const newPaths: string[] = []
-        const ps = (Array.isArray(paths) ? paths : [paths]).map(path => {
+        const directories = (Array.isArray(paths) ? paths : [paths]).map(path => {
             const directory = _directories.get(path)
             if (directory) {
                 return directory
@@ -64,7 +64,7 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
         })
 
         watcher.add(newPaths)
-        return ps
+        return directories
     }
 
     const directories = () => new Map(_directories)
