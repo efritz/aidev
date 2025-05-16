@@ -45,7 +45,7 @@ export const readDirectories: Tool<string[]> = {
         const { paths: patterns } = args as { paths: string[] }
         const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
 
-        await context.contextStateManager.addDirectories(directoryPaths, {
+        context.contextStateManager.addDirectories(directoryPaths, {
             type: 'tool_use',
             toolUseClass: 'read',
             toolUseId,

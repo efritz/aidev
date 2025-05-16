@@ -53,7 +53,7 @@ async function convertHistoryToProviderMessages(inFilename: string, providerName
 
     const conversation = createConversation(contextState, system)
     conversation.setMessages(messages)
-    return JSON.stringify(conversation.providerMessages(), null, '\t')
+    return JSON.stringify(await conversation.providerMessages(), null, '\t')
 }
 
 main()

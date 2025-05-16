@@ -34,7 +34,7 @@ export function createChatProvider<T, M>({
         providerMessages,
         prompt: async (progress?: ProgressFunction, signal?: AbortSignal) => {
             const response = await reduceStream({
-                iterator: await createStream(providerMessages(), signal),
+                iterator: await createStream(await providerMessages(), signal),
                 reducer: createStreamReducer(),
                 progress,
             })
