@@ -1,5 +1,6 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
+import { getActiveDirectories, getActiveFiles } from '../../context/conversation'
 import { completeFileAndDirectoryPaths } from '../../util/fs/completion'
 import { expandFileAndDirectoryPatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
@@ -25,11 +26,20 @@ async function handleUnloadPatterns(context: ChatContext, patterns: string[]): P
     const matchedPaths =
         patterns.length > 0
             ? await filterIgnoredPaths(await expandFileAndDirectoryPatterns(patterns))
-            : [...context.contextStateManager.files().keys(), ...context.contextStateManager.directories().keys()]
+            : [
+                  ...getActiveFiles(context.provider.conversationManager, context.contextStateManager).map(f => f.path),
+                  ...getActiveDirectories(context.provider.conversationManager, context.contextStateManager).map(
+                      d => d.path,
+                  ),
+              ]
 
     const paths: string[] = []
+    const set = new Set([
+        ...context.contextStateManager.files().keys(),
+        ...context.contextStateManager.directories().keys(),
+    ])
     for (const path of matchedPaths) {
-        if (context.contextStateManager.removeFile(path) || context.contextStateManager.removeDirectory(path)) {
+        if (set.has(path)) {
             paths.push(path)
         }
     }
@@ -39,6 +49,8 @@ async function handleUnloadPatterns(context: ChatContext, patterns: string[]): P
         console.log('')
         return
     }
+
+    context.provider.conversationManager.recordUnload(paths)
 
     if (patterns.length === 0) {
         console.log(`${chalk.dim('ℹ')} Removed all entries from context.`)

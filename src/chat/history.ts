@@ -25,25 +25,6 @@ export async function loadHistory(context: ChatContext, historyFilename: string)
 }
 
 export function replayMessages(context: ChatContext): void {
-    let emitNewline = false
-    for (const [path, file] of context.contextStateManager.files().entries()) {
-        if (file.inclusionReasons.some(r => r.type === 'explicit')) {
-            emitNewline = true
-            console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
-        }
-    }
-
-    for (const [path, dir] of context.contextStateManager.directories().entries()) {
-        if (dir.inclusionReasons.some(r => r.type === 'explicit')) {
-            emitNewline = true
-            console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
-        }
-    }
-
-    if (emitNewline) {
-        console.log()
-    }
-
     for (const message of context.provider.conversationManager.visibleMessages()) {
         switch (message.role) {
             case 'meta':
@@ -105,6 +86,27 @@ function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
                 }
             }
 
+            console.log()
+            break
+
+        case 'load':
+            for (const path of message.paths) {
+                console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
+            }
+            console.log()
+            break
+
+        case 'loaddir':
+            for (const path of message.paths) {
+                console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
+            }
+            console.log()
+            break
+
+        case 'unload':
+            for (const path of message.paths) {
+                console.log(`${chalk.dim('ℹ')} Removed "${chalk.red(path)}" from context.`)
+            }
             console.log()
             break
     }
