@@ -11,7 +11,11 @@ export interface Questioner {
     ) => Promise<string>
 }
 
-export function createQuestioner(rl: readline.Interface, interruptHandler: InterruptHandler): Questioner {
+export function createQuestioner(
+    rl: readline.Interface,
+    interruptHandler: InterruptHandler,
+    attention: () => void,
+): Questioner {
     let buffer = ''
 
     return {
@@ -23,6 +27,7 @@ export function createQuestioner(rl: readline.Interface, interruptHandler: Inter
         ): Promise<string> => {
             rl.setPrompt(prompt)
             setCompleterType(completerType)
+            attention()
 
             if (!restoreState) {
                 buffer = ''

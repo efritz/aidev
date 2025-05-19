@@ -1,4 +1,6 @@
+import { exec } from 'child_process'
 import EventEmitter from 'events'
+import { stdin, stdout } from 'process'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
 import { EventSource } from 'eventsource'
@@ -97,7 +99,11 @@ async function chat(
     try {
         const interruptHandler = createInterruptHandler(rl)
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
-        const prompter = createPrompter(rl, interruptHandler)
+        const prompter = createPrompter(
+            rl,
+            interruptHandler,
+            attentionGetter(preferences.attentionCommand ?? defaultAttentionCommand),
+        )
 
         const provider = await providers.createProvider({
             contextState: contextStateManager,
@@ -158,6 +164,44 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
         permanent: true,
         throwOnCancel: false,
         onAbort,
+    }
+}
+
+const xtermFocusIn = '\x1b[I'
+const xtermFocusOut = '\x1b[O'
+const xtermEnableFocusReporting = '\x1b[?1004h'
+const xtermDisableFocusReporting = '\x1b[?1004l'
+const defaultAttentionCommand = 'afplay /System/Library/Sounds/Submarine.aiff'
+
+function attentionGetter(command: string): () => void {
+    let focused = true
+    readline.emitKeypressEvents(stdin)
+    stdin.setRawMode(true)
+
+    stdin.on('keypress', (_str, key) => {
+        switch (key.sequence) {
+            case xtermFocusIn:
+                focused = true
+                break
+
+            case xtermFocusOut:
+                focused = false
+                break
+        }
+    })
+
+    // Enable focus reporting for this process. This will send key sequence
+    // events when the terminal running this process is focused or defocused,
+    // which we can use to toggle the focus flag. We'll only exec the command
+    // when the user is not focused on the process.
+
+    stdout.write(xtermEnableFocusReporting)
+    process.on('exit', () => stdout.write(xtermDisableFocusReporting))
+
+    return () => {
+        if (!focused) {
+            exec(command)
+        }
     }
 }
 
