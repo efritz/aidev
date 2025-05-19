@@ -46,6 +46,9 @@ export function createQuestioner(
                             const abortInternal = () => {
                                 dispose()
                                 buffer = rl.line
+                                rl.write(null, { ctrl: true, name: 'a' })
+                                rl.write(null, { ctrl: true, name: 'k' })
+                                process.stdout.write('<canceled>')
                                 resolve('')
                             }
 
