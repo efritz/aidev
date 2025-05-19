@@ -6,7 +6,8 @@ import { shellExecute } from './shell/shell_execute'
 import { SerializedToolResult, Tool, ToolResult } from './tool'
 import { readWeb } from './web/read'
 import { searchWeb } from './web/search'
-import { searchWorkspace } from './workspace/search'
+import { searchWorkspaceEmbeddings } from './workspace/search_embeddings'
+import { searchWorkspaceRipgrep } from './workspace/search_ripgrep'
 
 const allTools: Tool<any>[] = [
     shellExecute,
@@ -14,7 +15,8 @@ const allTools: Tool<any>[] = [
     readFiles,
     writeFile,
     editFile,
-    searchWorkspace,
+    searchWorkspaceEmbeddings,
+    searchWorkspaceRipgrep,
     searchWeb,
     readWeb,
 ]
