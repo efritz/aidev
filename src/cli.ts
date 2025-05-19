@@ -73,14 +73,11 @@ async function chat(
     historyFilename?: string,
     port?: number,
 ) {
+    let context: ChatContext
+
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
-
-    const contextStateManager = await createContextState()
-    const system = await buildSystemPrompt(preferences)
-
-    let context: ChatContext
 
     readline.emitKeypressEvents(process.stdin)
     process.stdin.setRawMode(true)
@@ -103,6 +100,8 @@ async function chat(
     })
 
     const client = await createClient(port)
+    const system = await buildSystemPrompt(preferences)
+    const contextStateManager = await createContextState()
     await registerTools(client)
 
     try {
@@ -144,6 +143,8 @@ async function chat(
 
         await interruptHandler.withInterruptHandler(() => handler(context), interruptInputOptions)
     } finally {
+        process.stdin.unpipe(filter)
+        filter.destroy()
         rl.close()
         contextStateManager.dispose()
         client?.close()
@@ -176,7 +177,7 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
-const ShiftEnter = '\x1b[27;2;13~'
+const shiftEnter = '\x1b[27;2;13~'
 const xtermFocusIn = '\x1b[I'
 const xtermFocusOut = '\x1b[O'
 const xtermEnableFocusReporting = '\x1b[?1004h'
@@ -188,18 +189,17 @@ export class ShiftEnterFilter extends Transform {
 
     _transform(chunk: any, _enc: BufferEncoding, cb: TransformCallback) {
         this.#buf += chunk.toString('binary')
-        console.log('ok...')
 
         while (this.#buf.length) {
             // Full match; swallow and emit signal
-            if (this.#buf.startsWith(ShiftEnter)) {
+            if (this.#buf.startsWith(shiftEnter)) {
                 this.emit('shiftenter')
-                this.#buf = this.#buf.slice(ShiftEnter.length)
+                this.#buf = this.#buf.slice(shiftEnter.length)
                 continue
             }
 
             // Wait for more bytes
-            if (ShiftEnter.startsWith(this.#buf)) {
+            if (shiftEnter.startsWith(this.#buf)) {
                 console.log('waiting...')
                 break
             }
