@@ -5,7 +5,11 @@ import { createQuestioner, Questioner } from './questions'
 
 export interface Prompter extends Questioner, Optioner {}
 
-export function createPrompter(rl: readline.Interface, interruptHandler: InterruptHandler): Prompter {
-    const questioner = createQuestioner(rl, interruptHandler)
+export function createPrompter(
+    rl: readline.Interface,
+    interruptHandler: InterruptHandler,
+    attention: () => void,
+): Prompter {
+    const questioner = createQuestioner(rl, interruptHandler, attention)
     return { ...questioner, ...createOptioner(questioner) }
 }

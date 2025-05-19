@@ -54,6 +54,7 @@ const PreferencesSchema = z.object({
         z.array(EmbeddingModelSchema),
     ),
     shellCommand: z.enum(['bash', 'zsh', 'fish']).optional(),
+    attentionCommand: z.string().optional(),
 })
 
 export type ChatModel = z.infer<typeof ChatModelSchema>
