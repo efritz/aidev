@@ -30,7 +30,7 @@ async function handleDump(context: ChatContext, args: string) {
         useClipboard = true
     }
 
-    const output = serialize(context)
+    const output = await serialize(context)
 
     if (useClipboard) {
         await new Promise<void>((resolve, reject) => {
@@ -52,11 +52,11 @@ async function handleDump(context: ChatContext, args: string) {
     console.log(`Context contents dumped to ${filename}\n`)
 }
 
-function serialize(context: ChatContext): string {
+async function serialize(context: ChatContext): Promise<string> {
     let output = '<files>\n'
 
     for (const file of getActiveFiles(context.provider.conversationManager, context.contextStateManager)) {
-        output += `<file path="${file.path}">\n${file.content}</file>\n\n`
+        output += `<file path="${file.path}">\n${await file.content}</file>\n\n`
     }
 
     output += '</files>\n'
