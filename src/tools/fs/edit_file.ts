@@ -6,7 +6,7 @@ import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile }
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 import { writeFileOperationMatcher } from './matcher'
 
-type Edit = { search: string; replacement: string }
+type Edit = { search: string; replacement: string; isRegex?: boolean }
 type EditResult = { stashed: boolean; originalContents: string; userEdits?: Edit[] }
 
 export const editFile: Tool<EditResult> = {
@@ -37,6 +37,14 @@ export const editFile: Tool<EditResult> = {
                                 'This string MUST end with a newline character.',
                                 'Additional newline characters may separate lines in the search string.',
                                 'Sufficient context MUST be provided to guarantee that this is a unique occurrence in the original file.',
+                            ].join(' '),
+                        },
+                        isRegex: {
+                            type: JSONSchemaDataType.Boolean,
+                            description: [
+                                'Whether to interpret the search string as a regular expression.',
+                                'If true, the search string will be treated as a JavaScript regular expression pattern.',
+                                'Default is false.',
                             ].join(' '),
                         },
                         replacement: {
@@ -130,33 +138,72 @@ function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): E
 
 function applyEdits(content: string, edits: Edit[], path: string): string {
     for (const edit of edits) {
-        const occurrences = countOccurrences(content, edit.search)
+        if (edit.isRegex) {
+            try {
+                // Create a RegExp object from the search string
+                // Remove the trailing newline for regex pattern if it exists
+                const searchPattern = edit.search.endsWith('\n') ? edit.search.slice(0, -1) : edit.search
+                const regex = new RegExp(searchPattern, 'g')
 
-        if (occurrences === 0) {
-            throw new Error(
-                `The search string was not found in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
-                    'Suggestions:\n' +
-                    '- Check the latest version of the file to ensure the search string still exists.\n' +
-                    '- Ensure the search string is correct and try again.',
-            )
+                // Check if the regex matches anything in the content
+                if (!regex.test(content)) {
+                    throw new Error(
+                        `The regex pattern was not found in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
+                            'Suggestions:\n' +
+                            '- Check the latest version of the file to ensure the pattern can match.\n' +
+                            '- Ensure the regex pattern is correct and try again.',
+                    )
+                }
+
+                // Reset regex lastIndex
+                regex.lastIndex = 0
+
+                // Apply the replacement
+                content = content.replace(regex, edit.replacement)
+            } catch (error) {
+                if (error instanceof SyntaxError) {
+                    throw new Error(
+                        `Invalid regex pattern in the search string for file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
+                            `Error: ${error.message}\n` +
+                            'Suggestions:\n' +
+                            '- Ensure the regex pattern is valid JavaScript regular expression syntax.\n' +
+                            '- Escape special characters if needed.',
+                    )
+                }
+                throw error
+            }
+        } else {
+            const occurrences = countOccurrences(content, edit.search)
+
+            if (occurrences === 0) {
+                throw new Error(
+                    `The search string was not found in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
+                        'Suggestions:\n' +
+                        '- Check the latest version of the file to ensure the search string still exists.\n' +
+                        '- Ensure the search string is correct and try again.\n' +
+                        '- Consider using regex mode for more flexible matching.',
+                )
+            }
+
+            if (occurrences > 1) {
+                throw new Error(
+                    `The search string appears ${occurrences} times in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
+                        'Suggestions:\n' +
+                        '- Ensure the search string is unique within the file.\n' +
+                        '- Expand the amount of text being replaced to make it unique.\n' +
+                        '- Consider using regex mode with specific anchors or boundaries.',
+                )
+            }
+
+            content = content.replace(edit.search, edit.replacement)
         }
-
-        if (occurrences > 1) {
-            throw new Error(
-                `The search string appears ${occurrences} times in the file "${path}":\n${formatCodeFence(edit.search)}\n\n` +
-                    'Suggestions:\n' +
-                    '- Ensure the search string is unique within the file.\n' +
-                    '- Expand the amount of text being replaced to make it unique.',
-            )
-        }
-
-        content = content.replace(edit.search, edit.replacement)
     }
 
     return content
 }
 
 function editsFromDiff(original: string, modified: string): Edit[] {
+    // Note: edits created from diff will never use regex mode
     const edits: Edit[] = []
     const originalLines = original.split('\n')
     const modifiedLines = modified.split('\n')
@@ -203,7 +250,7 @@ function editsFromDiff(original: string, modified: string): Edit[] {
             throw new Error(`Warning: Unable to create a unique edit for hunk at line ${oldStart}`)
         }
 
-        edits.push({ search: extractSearch(), replacement: extractReplacement() })
+        edits.push({ search: extractSearch(), replacement: extractReplacement(), isRegex: false })
     }
 
     return edits
