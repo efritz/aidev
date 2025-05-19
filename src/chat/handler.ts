@@ -7,24 +7,11 @@ import { promptWithPrefixes } from './output'
 import { runToolsInResponse } from './tools'
 
 export async function handler(context: ChatContext) {
-    let restoreState = false
-
     while (true) {
-        const controller = new AbortController()
-        const previousRestoreState = restoreState
-        restoreState = false
-
-        const listener = () => {
-            controller.abort()
-            restoreState = true
-        }
-
-        context.events.addListener('open-files-changed', listener)
-
         try {
             const currentBranch = context.provider.conversationManager.currentBranch()
             const prompt = `[${currentBranch}] $ `
-            const message = await context.prompter.question(prompt, 'meta', controller.signal, previousRestoreState)
+            const message = await context.prompter.question(prompt, 'meta')
             await handle(context, message.trim())
         } catch (error: any) {
             if (error instanceof ExitError) {
@@ -32,8 +19,6 @@ export async function handler(context: ChatContext) {
             }
 
             throw error
-        } finally {
-            context.events.removeListener('open-files-changed', listener)
         }
     }
 }

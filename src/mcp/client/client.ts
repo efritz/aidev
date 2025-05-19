@@ -39,7 +39,5 @@ function createUpdateEditorContextHandler(context: ChatContext, client: Client):
         context.contextStateManager.addFiles([...loaded], { type: 'editor', currentlyOpen: false })
         loaded = new Set(resources.map(({ name }) => name))
         context.contextStateManager.addFiles([...loaded], { type: 'editor', currentlyOpen: true })
-
-        context.events.emit('open-files-changed')
     }
 }
