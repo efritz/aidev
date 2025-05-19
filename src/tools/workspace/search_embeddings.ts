@@ -15,8 +15,8 @@ type Match = {
     names?: string[]
 }
 
-export const searchWorkspace: Tool<SearchResult> = {
-    name: 'search_workspace',
+export const searchWorkspaceEmbeddings: Tool<SearchResult> = {
+    name: 'search_workspace_embeddings',
     description: [
         'Use an embeddings index of the current workspace to find matching content against an input query.',
         'The tool result will contain a set of filenames matching the input query.',
@@ -35,7 +35,7 @@ export const searchWorkspace: Tool<SearchResult> = {
     enabled: true,
     replay: (args: Arguments, { result }: ToolResult<SearchResult>) => {
         const { query } = args as { query: string }
-        console.log(`${chalk.dim('ℹ')} Queried workspace index for "${query}".`)
+        console.log(`${chalk.dim('ℹ')} Queried workspace embeddings index for "${query}".`)
         console.log()
         displayMatches(result?.matches ?? [])
     },
@@ -49,7 +49,7 @@ export const searchWorkspace: Tool<SearchResult> = {
         }
 
         const { query } = args as { query: string }
-        console.log(`${chalk.dim('ℹ')} Querying workspace index for "${query}"...`)
+        console.log(`${chalk.dim('ℹ')} Querying workspace embeddings index for "${query}"...`)
         console.log()
 
         if (!(await isIndexUpToDate(context))) {
