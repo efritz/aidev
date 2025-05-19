@@ -1,6 +1,6 @@
 import { exec } from 'child_process'
 import EventEmitter from 'events'
-import { stdin, stdout } from 'process'
+import { Transform, TransformCallback } from 'node:stream'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
 import { EventSource } from 'eventsource'
@@ -82,8 +82,13 @@ async function chat(
 
     let context: ChatContext
 
+    readline.emitKeypressEvents(process.stdin)
+    process.stdin.setRawMode(true)
+    const filter = new ShiftEnterFilter()
+    process.stdin.pipe(filter)
+
     const rl = readline.createInterface({
-        input: process.stdin,
+        input: filter,
         output: process.stdout,
         terminal: true,
         completer: (line: string, callback: (err?: null | Error, result?: CompleterResult) => void): void => {
@@ -91,6 +96,10 @@ async function chat(
                 completer(context, line).then(result => callback(undefined, result))
             }
         },
+    })
+
+    filter.on('shiftenter', () => {
+        ;(rl as unknown as { _insertString: (s: string) => void })._insertString('\n')
     })
 
     const client = await createClient(port)
@@ -167,18 +176,54 @@ function rootInterruptHandlerOptions(rl: readline.Interface): InterruptHandlerOp
     }
 }
 
+const ShiftEnter = '\x1b[27;2;13~'
 const xtermFocusIn = '\x1b[I'
 const xtermFocusOut = '\x1b[O'
 const xtermEnableFocusReporting = '\x1b[?1004h'
 const xtermDisableFocusReporting = '\x1b[?1004l'
 const defaultAttentionCommand = 'afplay /System/Library/Sounds/Submarine.aiff'
 
+export class ShiftEnterFilter extends Transform {
+    #buf = ''
+
+    _transform(chunk: any, _enc: BufferEncoding, cb: TransformCallback) {
+        this.#buf += chunk.toString('binary')
+        console.log('ok...')
+
+        while (this.#buf.length) {
+            // Full match; swallow and emit signal
+            if (this.#buf.startsWith(ShiftEnter)) {
+                this.emit('shiftenter')
+                this.#buf = this.#buf.slice(ShiftEnter.length)
+                continue
+            }
+
+            // Wait for more bytes
+            if (ShiftEnter.startsWith(this.#buf)) {
+                console.log('waiting...')
+                break
+            }
+
+            // Pass through
+            this.push(this.#buf[0])
+            this.#buf = this.#buf.slice(1)
+        }
+        cb()
+    }
+
+    _flush(cb: TransformCallback) {
+        if (this.#buf) {
+            this.push(this.#buf)
+        }
+
+        cb()
+    }
+}
+
 function attentionGetter(command: string): () => void {
     let focused = true
-    readline.emitKeypressEvents(stdin)
-    stdin.setRawMode(true)
 
-    stdin.on('keypress', (_str, key) => {
+    process.stdin.on('keypress', (_str, key) => {
         switch (key.sequence) {
             case xtermFocusIn:
                 focused = true
@@ -195,8 +240,8 @@ function attentionGetter(command: string): () => void {
     // which we can use to toggle the focus flag. We'll only exec the command
     // when the user is not focused on the process.
 
-    stdout.write(xtermEnableFocusReporting)
-    process.on('exit', () => stdout.write(xtermDisableFocusReporting))
+    process.stdout.write(xtermEnableFocusReporting)
+    process.on('exit', () => process.stdout.write(xtermDisableFocusReporting))
 
     return () => {
         if (!focused) {
