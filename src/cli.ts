@@ -6,8 +6,9 @@ import { program } from 'commander'
 import { EventSource } from 'eventsource'
 import { completer } from './chat/completer'
 import { ChatContext } from './chat/context'
-import { handler } from './chat/handler'
+import { handle, handler } from './chat/handler'
 import { loadHistory } from './chat/history'
+import { runToolsInResponse } from './chat/tools'
 import { createContextState } from './context/state'
 import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
@@ -50,6 +51,9 @@ async function main() {
     const cwdFlags = '--cwd <string>'
     const cwdDescription = 'Working directory for the AI assistant.'
 
+    const oneShotFlags = '--one-shot <string>'
+    const oneShotDescription = 'Run a single prompt and exit after the assistant responds. Intended for automated use.'
+
     const yoloFlags = '--yolo'
     const yoloDescription =
         'Skip user confirmation for potentially dangerous operations like file writing and shell execution.'
@@ -59,11 +63,23 @@ async function main() {
         .option(portFlags, portDescription)
         .option(cwdFlags, cwdDescription)
         .option(yoloFlags, yoloDescription)
+        .option(oneShotFlags, oneShotDescription)
         .action(options => {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, rules, providers, embeddingsClients, tracker, options.history, options.port, options.yolo)
+
+            chat(
+                preferences,
+                rules,
+                providers,
+                embeddingsClients,
+                tracker,
+                options.history,
+                options.port,
+                options.oneShot,
+                options.yolo,
+            )
         })
 
     program.parse(process.argv)
@@ -77,6 +93,7 @@ async function chat(
     tracker: UsageTracker,
     historyFilename?: string,
     port?: number,
+    oneShot?: string,
     yolo: boolean = false,
 ) {
     let context: ChatContext
@@ -148,7 +165,10 @@ async function chat(
         const modelName = `${context.provider.modelName} (${context.provider.providerName})`
         console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${modelName}...\n`)
 
-        await interruptHandler.withInterruptHandler(() => handler(context), interruptInputOptions)
+        await interruptHandler.withInterruptHandler(
+            () => (oneShot ? handle(context, oneShot) : handler(context)),
+            interruptInputOptions,
+        )
     } finally {
         process.stdin.unpipe(filter)
         filter.destroy()
