@@ -30,6 +30,7 @@ export async function executeWriteFile({
     contents,
     originalContents,
     fromStash = false,
+    yolo = false,
 }: {
     provider: ChatProvider
     prompter: Prompter
@@ -39,10 +40,11 @@ export async function executeWriteFile({
     contents: string
     originalContents: string
     fromStash?: boolean
+    yolo?: boolean
 }): Promise<WriteResult> {
     console.log(formatDiff(contents, originalContents))
 
-    const result = await confirmWrite({ prompter, interruptHandler, path, contents, originalContents })
+    const result = await confirmWrite({ prompter, interruptHandler, path, contents, originalContents, yolo })
     if (!result) {
         console.log(`${chalk.dim('ℹ')} No file was written.`)
         console.log()
@@ -139,13 +141,19 @@ async function confirmWrite({
     path,
     contents,
     originalContents,
+    yolo = false,
 }: {
     prompter: Prompter
     interruptHandler: InterruptHandler
     path: string
     contents: string
     originalContents: string
+    yolo?: boolean
 }): Promise<{ contents: string; stash: boolean } | undefined> {
+    if (yolo) {
+        return { contents, stash: false }
+    }
+
     if (allowWorkspaceWrites && isPathInWorkspace(path)) {
         console.log(`${chalk.dim('ℹ')} File write automatically approved (based on previous "always" selection)`)
         return { contents, stash: false }

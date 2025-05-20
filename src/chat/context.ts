@@ -21,6 +21,7 @@ export type ChatContext = {
     provider: ChatProvider
     events: EventEmitter
     contextStateManager: ContextStateManager
+    yolo: boolean
 }
 
 export async function swapProvider(context: ChatContext, modelName: string): Promise<void> {
