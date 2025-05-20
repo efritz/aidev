@@ -80,7 +80,7 @@ export const editFile: Tool<EditResult> = {
         const { path, edits } = safeInterpretParameters(args)
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits, path)
-        const result = await executeWriteFile({ ...context, path, contents, originalContents })
+        const result = await executeWriteFile({ ...context, path, contents, originalContents, yolo: context.yolo })
         context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseId })
         return editExecutionResultFromWriteResult(result)
     },

@@ -104,6 +104,10 @@ export const shellExecute: Tool<ShellResult> = {
 }
 
 async function confirmCommand(context: ChatContext, command: string): Promise<string | undefined> {
+    if (context.yolo) {
+        return command
+    }
+
     if (allowedCommands.has(command)) {
         console.log(`${chalk.dim('ℹ')} Command automatically approved (based on previous "always" selection)`)
         return command

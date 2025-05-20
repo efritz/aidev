@@ -51,7 +51,7 @@ export const writeFile: Tool<WriteResult> = {
     ): Promise<ExecutionResult<WriteResult>> => {
         const { path, contents } = args as { path: string; contents: string }
         const originalContents = await safeReadFile(path)
-        const result = await executeWriteFile({ ...context, path, contents, originalContents })
+        const result = await executeWriteFile({ ...context, path, contents, originalContents, yolo: context.yolo })
         context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseId })
         return writeExecutionResultFromWriteResult(result)
     },

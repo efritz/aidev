@@ -50,15 +50,20 @@ async function main() {
     const cwdFlags = '--cwd <string>'
     const cwdDescription = 'Working directory for the AI assistant.'
 
+    const yoloFlags = '--yolo'
+    const yoloDescription =
+        'Skip user confirmation for potentially dangerous operations like file writing and shell execution.'
+
     program
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
         .option(cwdFlags, cwdDescription)
+        .option(yoloFlags, yoloDescription)
         .action(options => {
             if (options.cwd) {
                 process.chdir(options.cwd)
             }
-            chat(preferences, rules, providers, embeddingsClients, tracker, options.history, options.port)
+            chat(preferences, rules, providers, embeddingsClients, tracker, options.history, options.port, options.yolo)
         })
 
     program.parse(process.argv)
@@ -72,6 +77,7 @@ async function chat(
     tracker: UsageTracker,
     historyFilename?: string,
     port?: number,
+    yolo: boolean = false,
 ) {
     let context: ChatContext
 
@@ -130,6 +136,7 @@ async function chat(
             provider,
             events: new EventEmitter(),
             contextStateManager,
+            yolo,
         }
 
         await registerContextListeners(context, client)
