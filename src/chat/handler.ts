@@ -23,7 +23,7 @@ export async function handler(context: ChatContext) {
     }
 }
 
-async function handle(context: ChatContext, message: string): Promise<void> {
+export async function handle(context: ChatContext, message: string): Promise<void> {
     if (message === '') {
         return
     }
