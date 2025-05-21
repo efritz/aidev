@@ -13,7 +13,8 @@ import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { ChatProviders, initChatProviders } from './providers/chat_providers'
 import { EmbeddingsProviders, initEmbeddingsProviders } from './providers/embeddings_providers'
-import { getPreferences, Preferences } from './providers/preferences'
+import { keyDir } from './providers/keys'
+import { getPreferences, Preferences, preferencesDir } from './providers/preferences'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
@@ -315,6 +316,14 @@ function runInDocker(options: any) {
     dockerArgs.push('-v', `${aidevRootDir}/configs:/aidev/configs:ro`)
     dockerArgs.push('-v', `${aidevRootDir}/scripts:/aidev/scripts:ro`) // Include scripts directory
 
+    // Mount API keys directory as read-only
+
+    dockerArgs.push('-v', `${keyDir()}:/root/.config/aidev/keys:ro`)
+    dockerArgs.push('-v', `${preferencesDir()}:/root/.config/aidev/preferences:ro`)
+
+    dockerArgs.push('-e', 'AIDEV_KEY_DIR=/root/.config/aidev/keys')
+    dockerArgs.push('-e', 'AIDEV_PREFERENCES_DIR=/root/.config/aidev/preferences')
+
     // Set the working directory inside the container
     dockerArgs.push('-w', containerWorkDir)
 
@@ -330,6 +339,7 @@ function runInDocker(options: any) {
     console.log(`Starting aidev in Docker container using image ${dockerImage}...`)
     console.log(`Mounting target directory ${targetDir} to ${containerWorkDir}`)
     console.log(`Mounting aidev source code from ${aidevRootDir}/src to /aidev/src (read-only)`)
+    console.log(`Mounting API keys from ${keyDir} to /root/.config/aidev/keys (read-only)`)
 
     // Execute the Docker command
     const dockerProcess = spawn('docker', dockerArgs.concat(dockerImage, ...cliArgs), {

@@ -78,7 +78,7 @@ async function preferencesPath(): Promise<string> {
     return defaultPreferencesPath
 }
 
-function preferencesDir(): string {
+export function preferencesDir(): string {
     return process.env['AIDEV_PREFERENCES_DIR'] || configDir()
 }
 
