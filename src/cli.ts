@@ -226,7 +226,6 @@ export class ShiftEnterFilter extends Transform {
 
             // Wait for more bytes
             if (shiftEnter.startsWith(this.#buf)) {
-                console.log('waiting...')
                 break
             }
 
