@@ -51,7 +51,7 @@ Remember:
 
 Begin your assistance by analyzing the user's query and providing an appropriate response.
 
-The current directory is {{cwd}}}.
+The current directory is {{cwd}}.
 The user's preferred shell is {{shellCommand}}.
 
 {{custom instructions}}
