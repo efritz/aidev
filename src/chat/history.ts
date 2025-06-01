@@ -126,7 +126,15 @@ function replayUserMessage(message: UserMessage): void {
                 throw new Error(`Tool not found: ${message.toolUse.name}`)
             }
 
-            const args = message.toolUse.parameters ? JSON.parse(message.toolUse.parameters) : {}
+            let args = {};
+            if (message.toolUse.parameters) {
+                try {
+                    args = JSON.parse(message.toolUse.parameters);
+                } catch (error) {
+                    console.error(`Error parsing tool parameters: ${error.message}`);
+                    console.error(`Invalid JSON: ${message.toolUse.parameters}`);
+                }
+            }
             tool.replay(args, message)
             console.log()
             break
