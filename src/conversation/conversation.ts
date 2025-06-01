@@ -60,7 +60,10 @@ export function createConversation<T>({
 
                         case 'applyStash':
                             addMessages(userMessageToParam(createStashAppliedMessage(message)))
+                            break
                     }
+
+                    break
             }
         }
 
