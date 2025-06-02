@@ -117,8 +117,10 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:clear`: Clear all messages in the conversation.
 - `:continue`: Re-prompt the model without a user message.
 - `:cost`: Show token counts of calls to remote LLM APIs in this conversation.
+- `:dump`: Dump all context file contents to disk.
 - `:exit`: Exit the conversation.
 - `:help`: Display available commands.
+- `:index`: Update the semantic index for the current workspace.
 - `:load <patterns, ...>`: Load file contents into the conversation.
 - `:loaddir <patterns, ...>`: Load directory entries into the conversation.
 - `:model <model>`: Change the model backing the assistant.
