@@ -1,13 +1,19 @@
 import { EnhancedGenerateContentResponse, FunctionCall } from '@google/generative-ai'
 import { AssistantMessage } from '../../messages/messages'
+import { createEventLogger } from '../../util/log/event_logger'
 import { ModelTracker } from '../../util/usage/tracker'
 import { Reducer } from '../reducer'
+
+const eventLogger = createEventLogger('GOOGLE_EVENT_LOG_FILE')
 
 export function createStreamReducer(tracker: ModelTracker): Reducer<EnhancedGenerateContentResponse> {
     const messages: AssistantMessage[] = []
     const functionCalls: FunctionCall[] = []
+    eventLogger.logEvent({ type: 'stream_created' })
 
     const handleEvent = (part: EnhancedGenerateContentResponse) => {
+        eventLogger.logEvent(part)
+
         const usage = part.usageMetadata
         if (usage) {
             tracker.add({

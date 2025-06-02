@@ -1,9 +1,13 @@
 import { ChatResponse, ToolCall } from 'ollama'
 import { AssistantMessage } from '../../messages/messages'
+import { createEventLogger } from '../../util/log/event_logger'
 import { Reducer } from '../reducer'
+
+const eventLogger = createEventLogger('OLLAMA_EVENT_LOG_FILE')
 
 export function createStreamReducer(): Reducer<ChatResponse> {
     const messages: AssistantMessage[] = []
+    eventLogger.logEvent({ type: 'stream_created' })
 
     const handleTextChunk = (content: string) => {
         const last = messages[messages.length - 1]
@@ -25,12 +29,14 @@ export function createStreamReducer(): Reducer<ChatResponse> {
         })
     }
 
-    const handleEvent = ({ message: { content, tool_calls: toolCalls } }: ChatResponse) => {
-        if (content !== '') {
-            handleTextChunk(content)
+    const handleEvent = (message: ChatResponse) => {
+        eventLogger.logEvent(message)
+
+        if (message.message.content !== '') {
+            handleTextChunk(message.message.content)
         }
-        if (toolCalls) {
-            handleToolCallChunk(toolCalls)
+        if (message.message.tool_calls) {
+            handleToolCallChunk(message.message.tool_calls)
         }
     }
 

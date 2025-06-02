@@ -5,7 +5,10 @@ import { ContextFile } from '../context/files'
 import { InclusionReason } from '../context/reason'
 import { ContextState } from '../context/state'
 import { ApplyStashMessage, AssistantMessage, Message, RuleMessage, UserMessage } from '../messages/messages'
+import { createEventLogger } from '../util/log/event_logger'
 import { ConversationManager, createConversationManager } from './manager'
+
+const eventLogger = createEventLogger('PROVIDER_MESSAGES_LOG_FILE')
 
 export type Conversation<T> = ConversationManager & {
     providerMessages: () => Promise<T[]>
@@ -67,13 +70,11 @@ export function createConversation<T>({
             }
         }
 
+        eventLogger.logEvent(providerMessages)
         return providerMessages
     }
 
-    return {
-        ...conversationManager,
-        providerMessages,
-    }
+    return { ...conversationManager, providerMessages }
 }
 
 //

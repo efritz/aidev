@@ -4,12 +4,16 @@ import {
     RawMessageStreamEvent,
 } from '@anthropic-ai/sdk/resources'
 import { AssistantMessage, TextMessage, ToolUseMessage } from '../../messages/messages'
+import { createEventLogger } from '../../util/log/event_logger'
 import { ModelTracker } from '../../util/usage/tracker'
 import { Reducer } from '../reducer'
+
+const eventLogger = createEventLogger('ANTHROPIC_EVENT_LOG_FILE')
 
 export function createStreamReducer(tracker: ModelTracker): Reducer<RawMessageStreamEvent> {
     const messages: AssistantMessage[] = []
     const last = <T>() => messages[messages.length - 1] as T
+    eventLogger.logEvent({ type: 'stream_created' })
 
     const handleStart = ({ content_block: block }: RawContentBlockStartEvent) => {
         switch (block.type) {
@@ -41,6 +45,8 @@ export function createStreamReducer(tracker: ModelTracker): Reducer<RawMessageSt
     }
 
     const handleEvent = (event: RawMessageStreamEvent) => {
+        eventLogger.logEvent(event)
+
         switch (event.type) {
             case 'message_start': {
                 const usage = event.message.usage
