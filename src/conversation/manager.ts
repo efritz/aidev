@@ -20,6 +20,9 @@ export type ConversationManager = BranchManager &
         recordLoad(paths: string[]): string
         recordLoadDir(paths: string[]): string
         recordUnload(paths: string[]): string
+        recordAddTodo(taskId: string, description: string): string
+        recordCompleteTodo(taskId: string): string
+        recordCancelTodo(taskId: string): string
     }
 
 export function createConversationManager(): ConversationManager {
@@ -44,11 +47,12 @@ export function createConversationManager(): ConversationManager {
     const pushMeta = (message: MetaMessage) => addMessage({ ...message, id: uuidv4(), role: 'meta' })
     const pushUser = (message: UserMessage) => addMessage({ ...message, id: uuidv4(), role: 'user' })
     const pushAssistant = (message: AssistantMessage) => addMessage({ ...message, id: uuidv4(), role: 'assistant' })
-
     const recordLoad = (paths: string[]) => pushMeta({ type: 'load', paths })
     const recordLoadDir = (paths: string[]) => pushMeta({ type: 'loaddir', paths })
     const recordUnload = (paths: string[]) => pushMeta({ type: 'unload', paths })
-
+    const recordAddTodo = (taskId: string, description: string) => pushMeta({ type: 'addTodo', taskId, description })
+    const recordCompleteTodo = (taskId: string) => pushMeta({ type: 'completeTodo', taskId })
+    const recordCancelTodo = (taskId: string) => pushMeta({ type: 'cancelTodo', taskId })
     const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
     const { branchMetadata, currentBranch, removeBranches, childBranches, ...branchManager } = createBranchManager(
@@ -83,6 +87,9 @@ export function createConversationManager(): ConversationManager {
         recordLoad,
         recordLoadDir,
         recordUnload,
+        recordAddTodo,
+        recordCompleteTodo,
+        recordCancelTodo,
 
         branchMetadata,
         currentBranch,

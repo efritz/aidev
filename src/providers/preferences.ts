@@ -40,7 +40,6 @@ const EmbeddingModelSchema = z.object({
 
 const PreferencesSchema = z.object({
     defaultModel: z.string(),
-    reprompterModel: z.string(),
     embeddingsModel: z.string(),
     summarizerModel: z.string(),
     relevanceModel: z.string(),

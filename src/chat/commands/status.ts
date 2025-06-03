@@ -1,5 +1,6 @@
 import chalk from 'chalk'
-import { getActiveFiles } from '../../context/conversation'
+import { getActiveFiles } from '../../context/content'
+import { getActiveTodos } from '../../context/todos'
 import { Branch } from '../../conversation/branches'
 import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
@@ -34,6 +35,11 @@ async function handleStatus(context: ChatContext, args: string) {
     console.log(chalk.bold('Stashed files:'))
     console.log()
     printStashedFiles(context)
+    console.log()
+
+    console.log(chalk.bold('Todo items:'))
+    console.log()
+    printTodos(context)
     console.log()
 
     console.log(chalk.bold('Branch structure:'))
@@ -124,6 +130,39 @@ function printStashedFiles(context: ChatContext) {
 
     for (const file of stashedFiles) {
         console.log(chalk.cyan(file))
+    }
+}
+
+function printTodos(context: ChatContext) {
+    const todos = getActiveTodos(context.provider.conversationManager.visibleMessages())
+    if (todos.length === 0) {
+        console.log(chalk.yellow('No todo items.'))
+        return
+    }
+
+    const pendingTodos = todos.filter(todo => todo.status === 'pending')
+    const completedTodos = todos.filter(todo => todo.status === 'completed')
+    const canceledTodos = todos.filter(todo => todo.status === 'canceled')
+
+    if (pendingTodos.length > 0) {
+        console.log(chalk.bold('  Pending:'))
+        pendingTodos.forEach(todo => {
+            console.log(`    ${chalk.yellow('○')} ${todo.description}`)
+        })
+    }
+
+    if (completedTodos.length > 0) {
+        console.log(chalk.bold('  Completed:'))
+        completedTodos.forEach(todo => {
+            console.log(`    ${chalk.green('✓')} ${chalk.dim(todo.description)}`)
+        })
+    }
+
+    if (canceledTodos.length > 0) {
+        console.log(chalk.bold('  Canceled:'))
+        canceledTodos.forEach(todo => {
+            console.log(`    ${chalk.red('✗')} ${chalk.dim(todo.description)}`)
+        })
     }
 }
 
