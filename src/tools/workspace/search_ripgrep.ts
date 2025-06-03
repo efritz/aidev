@@ -19,6 +19,7 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
         'Use ripgrep to search the current workspace for files containing the input query.',
         'The tool result will contain a set of filenames matching the input query.',
         'For source code files, the result will also contain the matching lines from the file.',
+        'The query is treated as a regular expression - escape regex metacharacters (like parentheses, brackets, dots, etc.) with backslashes if you want to search for them literally.',
     ].join(' '),
     parameters: {
         type: JSONSchemaDataType.Object,
@@ -52,10 +53,24 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
 
         // Execute ripgrep command
         const rgCommand = `rg --json "${query}" .`
-        const output = execSync(rgCommand).toString()
+
+        let output: string
+        try {
+            output = execSync(rgCommand).toString()
+        } catch (error: any) {
+            if (error.status !== 1) {
+                throw error
+            }
+
+            // No matches
+            output = ''
+        }
 
         // Parse the JSON output
-        const lines = output.trim().split('\n')
+        const lines = output
+            .trim()
+            .split('\n')
+            .filter(line => line.length > 0)
         const results = lines.map(line => JSON.parse(line))
 
         // Group results by file
