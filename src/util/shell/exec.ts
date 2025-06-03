@@ -25,6 +25,13 @@ export async function executeCommand(
         failure: prefixFormatter('Command failed.', formatOutput),
     })
 
+    // Since we could have arbitrarily changed the filesystem, we issue an update to
+    // all file contents and directory listings to be available before the next time
+    // we construct a context message.
+
+    context.contextStateManager.updateAllFiles()
+    context.contextStateManager.updateAllDirectories()
+
     if (!response.ok) {
         return {
             result: { output: response.snapshot ?? [] },
