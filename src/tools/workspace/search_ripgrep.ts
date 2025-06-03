@@ -51,32 +51,8 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
         console.log(`${chalk.dim('ℹ')} Searching workspace with ripgrep for "${query}"...`)
         console.log()
 
-        // Execute ripgrep command
-        const rgCommand = `rg --json "${query}" .`
-
-        let output: string
-        try {
-            output = execSync(rgCommand).toString()
-        } catch (error: any) {
-            if (error.status !== 1) {
-                throw error
-            }
-
-            // No matches
-            output = ''
-        }
-
-        // Parse the JSON output
-        const lines = output
-            .trim()
-            .split('\n')
-            .filter(line => line.length > 0)
-        const results = lines.map(line => JSON.parse(line))
-
-        // Group results by file
         const fileMatches = new Map<string, string[]>()
-
-        for (const result of results) {
+        for (const result of search(query)) {
             if (result.type === 'match') {
                 const filename = path.relative(process.cwd(), result.data.path.text)
                 const matchText = result.data.lines.text.trim()
@@ -89,7 +65,6 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
             }
         }
 
-        // Convert to the expected format
         const matches: Match[] = Array.from(fileMatches.entries()).map(([filename, lines]) => ({
             filename,
             lines: lines.length > 0 ? lines : undefined,
@@ -101,6 +76,26 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
         return { result: { matches }, reprompt: true }
     },
     serialize: ({ result }: ToolResult<SearchResult>) => ({ result: { paths: result ?? [] } }),
+}
+
+function search(query: string): any[] {
+    let output: string
+    try {
+        output = execSync(`rg --json "${query}" .`).toString()
+    } catch (error: any) {
+        if (error.status === 1) {
+            // No matches
+            return []
+        }
+
+        throw error
+    }
+
+    return output
+        .trim()
+        .split('\n')
+        .filter(line => line.length > 0)
+        .map(line => JSON.parse(line))
 }
 
 function displayMatches(matches: Match[]) {
