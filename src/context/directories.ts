@@ -83,21 +83,9 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
         }
     }
 
-    const removeDirectory = (path: string): boolean => {
-        const directory = _directories.get(path)
-        if (!directory) {
-            return false
-        }
-
-        _directories.delete(path)
-        watcher.unwatch(path)
-        return true
-    }
-
     return {
         directories,
         addDirectories,
-        removeDirectory,
         updateAllDirectories,
     }
 }

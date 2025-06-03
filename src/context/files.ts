@@ -74,21 +74,9 @@ export function createNewFileManager(
         }
     }
 
-    const removeFile = (path: string): boolean => {
-        const file = _files.get(path)
-        if (!file) {
-            return false
-        }
-
-        _files.delete(path)
-        watcher.unwatch(path)
-        return true
-    }
-
     return {
         files,
         addFiles,
-        removeFile,
         updateAllFiles,
     }
 }
