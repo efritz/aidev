@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { getActiveFiles } from '../../context/content'
+import { getActiveDirectories, getActiveFiles } from '../../context/content'
 import { getActiveTodos } from '../../context/todos'
 import { Branch } from '../../conversation/branches'
 import { Message } from '../../messages/messages'
@@ -30,6 +30,11 @@ async function handleStatus(context: ChatContext, args: string) {
     console.log(chalk.bold('Context files:'))
     console.log()
     printContextFiles(context)
+    console.log()
+
+    console.log(chalk.bold('Context directories:'))
+    console.log()
+    printContextDirectories(context)
     console.log()
 
     console.log(chalk.bold('Stashed files:'))
@@ -118,6 +123,31 @@ function printContextFiles(context: ChatContext) {
         })
 
         console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)
+    })
+}
+
+function printContextDirectories(context: ChatContext) {
+    const directories = getActiveDirectories(context.provider.conversationManager, context.contextStateManager)
+
+    if (directories.length === 0) {
+        console.log(chalk.yellow('No directories in context.'))
+        return
+    }
+
+    directories.forEach(directory => {
+        const reasons = directory.inclusionReasons.map(reason => {
+            switch (reason.type) {
+                case 'explicit':
+                    // TODO - deduplicate?
+                    return chalk.blue('added by user')
+                case 'tool_use':
+                    return chalk.magenta('added by tool use')
+                case 'editor':
+                    return chalk.green('open in editor')
+            }
+        })
+
+        console.log(`${chalk.cyan(directory.path)} - ${reasons.join(', ')}`)
     })
 }
 
