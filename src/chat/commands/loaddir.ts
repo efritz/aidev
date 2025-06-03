@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import { completeDirectoryPaths, parseArgsWithEscapedSpaces } from '../../util/fs/completion'
 import { expandDirectoryPatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
+import { normalizeDirectoryPath } from '../../util/fs/normalize'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
 
@@ -25,7 +26,7 @@ async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): 
         return
     }
 
-    const paths = await filterIgnoredPaths(await expandDirectoryPatterns(patterns))
+    const paths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).map(normalizeDirectoryPath)
 
     if (paths.length === 0) {
         console.log(chalk.red.bold('No directories matched the provided patterns.'))

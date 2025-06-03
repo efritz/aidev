@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { ChatContext } from '../../chat/context'
 import { expandDirectoryPatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
+import { normalizeDirectoryPath } from '../../util/fs/normalize'
 import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
 
 export const readDirectories: Tool<string[]> = {
@@ -43,7 +44,9 @@ export const readDirectories: Tool<string[]> = {
         }
 
         const { paths: patterns } = args as { paths: string[] }
-        const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).sort()
+        const directoryPaths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns)))
+            .map(normalizeDirectoryPath)
+            .sort()
 
         context.contextStateManager.addDirectories(directoryPaths, { type: 'tool_use', toolUseId })
 

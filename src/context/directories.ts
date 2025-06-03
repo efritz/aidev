@@ -2,6 +2,7 @@ import { Dirent } from 'fs'
 import { readdir } from 'fs/promises'
 import { dirname } from 'path'
 import { FSWatcher } from 'chokidar'
+import { normalizeDirectoryPath } from '../util/fs/normalize'
 import { InclusionReason, updateInclusionReasons } from './reason'
 
 export type ContextDirectory = {
@@ -32,6 +33,8 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
     }
 
     const updateDirectory = (path: string) => {
+        path = normalizeDirectoryPath(path)
+
         const directory = _directories.get(path)
         if (directory) {
             directory.entries = directoryContents(path)
