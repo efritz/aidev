@@ -109,6 +109,21 @@ function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
             }
             console.log()
             break
+
+        case 'addTodo':
+            console.log(`${chalk.green('✓')} Added todo: ${chalk.dim(message.description)}`)
+            console.log()
+            break
+
+        case 'completeTodo':
+            console.log(`${chalk.green('✓')} Completed todo: ${chalk.dim(message.id)}`)
+            console.log()
+            break
+
+        case 'cancelTodo':
+            console.log(`${chalk.red('✗')} Canceled todo: ${chalk.dim(message.id)}`)
+            console.log()
+            break
     }
 }
 

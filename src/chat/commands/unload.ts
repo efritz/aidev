@@ -1,6 +1,6 @@
 import { CompleterResult } from 'readline'
 import chalk from 'chalk'
-import { getActiveDirectories, getActiveFiles } from '../../context/conversation'
+import { getActiveDirectories, getActiveFiles } from '../../context/content'
 import { completeFileAndDirectoryPaths } from '../../util/fs/completion'
 import { expandFileAndDirectoryPatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'

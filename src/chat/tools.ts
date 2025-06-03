@@ -1,13 +1,12 @@
 import chalk from 'chalk'
+import { getActiveTodos } from '../context/todos'
 import { Response, ToolUse } from '../messages/messages'
 import { matchNewPostInvocationRules, matchNewPreInvocationRules } from '../rules/matcher'
 import { Rule } from '../rules/types'
 import { ExecutionResult } from '../tools/tool'
 import { findTool } from '../tools/tools'
-import { ProgressResult, withProgress } from '../util/progress/progress'
 import { generateRandomName } from '../util/random/random'
 import { ChatContext } from './context'
-import { shouldReprompt } from './mediator'
 import { promptWithPrefixes } from './output'
 
 export async function runToolsInResponse(
@@ -75,7 +74,7 @@ function canonicalizeTool(toolUse: ToolUse): ToolUse {
     return toolUse
 }
 
-async function runTools(context: ChatContext, toolUses: ToolUse[], signal?: AbortSignal): Promise<boolean> {
+async function runTools(context: ChatContext, toolUses: ToolUse[], _signal?: AbortSignal): Promise<boolean> {
     let repromptAny: boolean | undefined
 
     const queue = [...toolUses]
@@ -131,14 +130,11 @@ async function runTools(context: ChatContext, toolUses: ToolUse[], signal?: Abor
         return false
     }
 
-    // All tools are ambivalent; check with reprompt mediator if there is more required to fulfill
-    // the current user request.
-    const result = await shouldRepromptWithProgress(context, signal)
-    if (!result.ok) {
-        return false
-    }
-
-    return result.response
+    // All tools are ambivalent; check if we have any pending todos
+    return (
+        getActiveTodos(context.provider.conversationManager.visibleMessages()).filter(t => t.status === 'pending')
+            .length > 0
+    )
 }
 
 async function runTool(context: ChatContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
@@ -171,12 +167,4 @@ async function executeTool(context: ChatContext, toolUse: ToolUse): Promise<Exec
 
         return { error }
     }
-}
-
-function shouldRepromptWithProgress(context: ChatContext, signal?: AbortSignal): Promise<ProgressResult<boolean>> {
-    return withProgress(() => shouldReprompt(context, signal), {
-        progress: () => 'Checking if re-prompt is necessary...',
-        success: reprompt => (reprompt ? 'Assistant will continue...' : 'Assistant is done.'),
-        failure: (_, error) => `Failed to check if re-prmopt is necessary.\n\n${chalk.red(error)}`,
-    })
 }
