@@ -33,22 +33,27 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
 
     const updateDirectory = (path: string) => {
         const directory = _directories.get(path)
-        if (!directory) {
-            return
+        if (directory) {
+            directory.entries = directoryContents(path)
         }
+    }
 
-        directory.entries = directoryContents(path)
+    const updateAllDirectories = () => {
+        for (const [path, directory] of _directories.entries()) {
+            directory.entries = directoryContents(path)
+        }
     }
 
     watcher.on('all', (event: string, path: string) =>
         updateDirectory(['addDir', 'unlinkDir'].includes(event) ? path : dirname(path)),
     )
 
-    const getOrCreateDirectory = (paths: string | string[]): ContextDirectory[] => {
+    const getOrCreateDirectory = (paths: string[]): ContextDirectory[] => {
         const newPaths: string[] = []
-        const directories = (Array.isArray(paths) ? paths : [paths]).map(path => {
+        const directories = paths.map(path => {
             const directory = _directories.get(path)
             if (directory) {
+                directory.entries = directoryContents(path)
                 return directory
             }
 
@@ -69,7 +74,9 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
 
     const directories = () => new Map(_directories)
 
-    const addDirectories = (paths: string | string[], reason: InclusionReason): void => {
+    const addDirectories = (rawPaths: string | string[], reason: InclusionReason): void => {
+        const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths]
+
         for (const directory of getOrCreateDirectory(paths)) {
             const { inclusionReasons } = directory
             updateInclusionReasons(inclusionReasons, reason)
@@ -91,5 +98,6 @@ export function createNewDirectoryManager(watcher: FSWatcher) {
         directories,
         addDirectories,
         removeDirectory,
+        updateAllDirectories,
     }
 }
