@@ -1,8 +1,10 @@
 import { exec, spawn } from 'child_process'
 import EventEmitter from 'events'
+import { ChildProcess } from 'node:child_process'
 import { dirname } from 'node:path'
 import { Transform, TransformCallback } from 'node:stream'
 import readline, { CompleterResult } from 'readline'
+import { Subprocess } from 'bun'
 import { program } from 'commander'
 import { EventSource } from 'eventsource'
 import { completer } from './chat/completer'
@@ -81,11 +83,15 @@ async function main() {
                     throw new Error('The --port option is not supported when using --docker.')
                 }
 
+                console.log('invoking docker...')
+
                 runInDocker(options).catch(error => {
                     console.error('Error running in Docker:', error)
                     process.exit(1)
                 })
             } else {
+                console.log('running normally...')
+
                 if (options.cwd) {
                     process.chdir(options.cwd)
                 }
@@ -121,6 +127,98 @@ async function chat(
     let context: ChatContext
 
     if (!process.stdin.setRawMode) {
+        if (oneShot && yolo) {
+            console.log('ok doing this weirdo route')
+
+            // FAKE
+            const interruptHandler = {
+                withInterruptHandler: <T>(f: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+                    return f(new AbortController().signal)
+                },
+            }
+
+            // FAKE
+            const prompter = {
+                question: (): Promise<string> => Promise.reject('user input not allowed in this context'),
+                choice: (): Promise<string> => Promise.reject('user input not allowed in this context'),
+                options: <T>(): Promise<T> => Promise.reject('user input not allowed in this context'),
+            }
+
+            // readline.emitKeypressEvents(process.stdin)
+            // process.stdin.setRawMode(true)
+            // const filter = new ShiftEnterFilter()
+            // process.stdin.pipe(filter)
+
+            // const rl = readline.createInterface({
+            //     input: filter,
+            //     output: process.stdout,
+            //     terminal: true,
+            //     completer: (line: string, callback: (err?: null | Error, result?: CompleterResult) => void): void => {
+            //         if (context) {
+            //             completer(context, line).then(result => callback(undefined, result))
+            //         }
+            //     },
+            // })
+
+            // filter.on('shiftenter', () => {
+            //     ;(rl as unknown as { _insertString: (s: string) => void })._insertString('\n')
+            // })
+
+            const client = await createClient(port)
+            const system = await buildSystemPrompt(preferences)
+            const contextStateManager = await createContextState()
+            await registerTools(client)
+
+            try {
+                // const interruptHandler = createInterruptHandler(rl)
+                // const interruptInputOptions = rootInterruptHandlerOptions(rl)
+                // const prompter = createPrompter(
+                //     rl,
+                //     interruptHandler,
+                //     attentionGetter(preferences.attentionCommand ?? defaultAttentionCommand),
+                // )
+
+                const provider = await providers.createProvider({
+                    contextState: contextStateManager,
+                    modelName: preferences.defaultModel,
+                    system,
+                })
+
+                context = {
+                    preferences,
+                    rules,
+                    providers,
+                    embeddingsClients,
+                    tracker,
+                    interruptHandler,
+                    prompter,
+                    provider,
+                    events: new EventEmitter(),
+                    contextStateManager,
+                    yolo,
+                }
+
+                await registerContextListeners(context, client)
+
+                if (historyFilename) {
+                    await loadHistory(context, historyFilename)
+                }
+
+                const modelName = `${context.provider.modelName} (${context.provider.providerName})`
+                console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${modelName}...\n`)
+
+                await interruptHandler.withInterruptHandler(() => handle(context, oneShot))
+
+                return
+            } finally {
+                // process.stdin.unpipe(filter)
+                // filter.destroy()
+                // rl.close()
+                contextStateManager.dispose()
+                client?.close()
+            }
+        }
+
         throw new Error('chat command is not supported in this environment.')
     }
 
@@ -299,81 +397,108 @@ function attentionGetter(command: string): () => void {
 }
 
 async function runInDocker(options: any) {
-    const dockerArgs = buildDockerArgs(options)
+    const dockerArgs = buildDockerCommand(options)
 
-    console.log('Starting Docker container with args:')
-    console.log('docker', dockerArgs.join(' '))
-    console.log()
+    // Generate a unique container name for cleanup
+    const containerName = `aidev-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    const fullDockerArgs = ['docker', 'run', '--name', containerName, ...dockerArgs]
 
-    const dockerProcess = spawn('docker', dockerArgs, { 
-        stdio: 'inherit',
-        // Ensure we can see all output immediately
-        env: { ...process.env, FORCE_COLOR: '1' }
-    })
+    let subprocess: any = null
+    let cleanupCalled = false
 
-    // Remove the setInterval that was potentially interfering with output
-    // setInterval(() => console.log('hi...\n'), 1000)
+    // Cleanup function
+    const cleanup = async () => {
+        if (cleanupCalled) return
+        cleanupCalled = true
 
-    // Wrap the child process in a Promise to properly await completion
-    const dockerPromise = new Promise<number>((resolve, reject) => {
-        let hasResolved = false
-
-        dockerProcess.on('error', error => {
-            console.error('Docker process error:', error)
-            if (!hasResolved) {
-                hasResolved = true
-                reject(error)
+        try {
+            // Kill the subprocess if still running
+            if (subprocess && !subprocess.killed) {
+                subprocess.kill()
             }
-        })
 
-        dockerProcess.on('close', (code, signal) => {
-            console.log(`Docker container exited with code ${code}, signal ${signal}`)
-            if (!hasResolved) {
-                hasResolved = true
-                resolve(code || 0)
-            }
-        })
+            // Stop and remove container
+            const stopProc = Bun.spawn(['docker', 'stop', containerName], {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            })
+            await stopProc.exited
 
-        dockerProcess.on('exit', (code, signal) => {
-            console.log(`Docker process exited with code ${code}, signal ${signal}`)
-            if (!hasResolved) {
-                hasResolved = true
-                resolve(code || 0)
-            }
-        })
-    })
-
-    let isCleaningUp = false
-    const cleanup = () => {
-        if (isCleaningUp) return
-        isCleaningUp = true
-        
-        console.log('Cleaning up Docker process...')
-        if (!dockerProcess.killed) {
-            dockerProcess.kill('SIGTERM')
-
-            setTimeout(() => {
-                if (!dockerProcess.killed) {
-                    console.log('Force killing Docker process...')
-                    dockerProcess.kill('SIGKILL')
-                }
-            }, 5000)
+            const rmProc = Bun.spawn(['docker', 'rm', '-f', containerName], {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            })
+            await rmProc.exited
+        } catch {
+            // Ignore cleanup errors
         }
     }
 
-    // Only handle SIGINT and SIGTERM for graceful shutdown
-    for (const signal of ['SIGINT', 'SIGTERM']) {
-        process.on(signal, cleanup)
+    // Set up signal handlers
+    const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT']
+    const signalHandlers: Array<() => void> = []
+
+    for (const signal of signals) {
+        const handler = () => {
+            cleanup().then(() => {
+                process.exit(128 + (signal === 'SIGINT' ? 2 : 15))
+            })
+        }
+        signalHandlers.push(handler)
+        process.on(signal, handler)
     }
 
     try {
-        console.log('Waiting for Docker container to complete...')
-        const code = await dockerPromise
-        console.log(`Docker completed with exit code: ${code}`)
-        process.exit(code)
+        console.log(fullDockerArgs.join(' '))
+        // Spawn the Docker process
+        subprocess = Bun.spawn(fullDockerArgs, {
+            stdout: 'pipe',
+            stderr: 'pipe',
+            stdin: 'inherit', // Allow interactive input
+        })
+
+        // Stream output in real-time
+        const stdoutChunks: Uint8Array[] = []
+        const stderrChunks: Uint8Array[] = []
+
+        // Handle stdout
+        const stdoutPromise = (async () => {
+            for await (const chunk of subprocess.stdout) {
+                stdoutChunks.push(chunk)
+                process.stdout.write(chunk)
+            }
+        })()
+
+        // Handle stderr
+        const stderrPromise = (async () => {
+            for await (const chunk of subprocess.stderr) {
+                stderrChunks.push(chunk)
+                process.stderr.write(chunk)
+            }
+        })()
+
+        // Wait for completion
+        const [exitCode] = await Promise.all([subprocess.exited, stdoutPromise, stderrPromise])
+        console.log({ exitCode })
+
+        // Check exit code
+        if (exitCode !== 0) {
+            const stderr = Buffer.concat(stderrChunks).toString()
+            const error = new Error(`Docker container exited with code ${exitCode}`)
+            ;(error as any).exitCode = exitCode
+            ;(error as any).stderr = stderr
+            throw error
+        }
     } catch (error) {
-        console.error('Docker execution failed:', error)
-        process.exit(1)
+        // Clean up on any error
+        await cleanup()
+        throw error
+    } finally {
+        // Remove signal handlers
+        let i = 0
+        for (const signal of signals) {
+            process.off(signal, signalHandlers[i++])
+        }
     }
 }
 
@@ -384,29 +509,25 @@ const containerWorkspace = '/workspace'
 const containerKeyDir = `${containerConfigDir}/keys`
 const containerPreferencesDir = `${containerConfigDir}/preferences`
 
-function buildDockerArgs(options: any) {
+function buildDockerCommand(options: any) {
     const hostAidevDir = dirname(__dirname)
     const hostWorkspace = options.cwd || process.cwd()
 
-    const dockerArgs = [
+    return [
         '--rm',
-        '-it',
         ...['-v', `${hostWorkspace}:${containerWorkspace}:rw`],
         ...['-v', `${hostAidevDir}:${containerAidevDir}:ro`],
         ...['-v', `${keyDir()}:${containerKeyDir}:ro`],
         ...['-v', `${preferencesDir()}:${containerPreferencesDir}:ro`],
         ...['-e', `AIDEV_KEY_DIR=${containerKeyDir}`],
         ...['-e', `AIDEV_PREFERENCES_DIR=${containerPreferencesDir}`],
-    ]
-
-    const aidevArgs = [
+        dockerImage,
+        '--',
         ...['--one-shot', options.oneShot],
         ...['--yolo'],
         ...['--cwd', containerWorkspace],
         ...(options.history ? ['--history', options.history] : []),
     ]
-
-    return ['run', ...dockerArgs, dockerImage, '--', ...aidevArgs]
 }
 
 main()
