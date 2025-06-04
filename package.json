@@ -11,7 +11,7 @@
     },
     "main": "./dist/extension.cjs",
     "engines": {
-        "vscode": "^1.97.0"
+        "vscode": "^1.100.0"
     },
     "activationEvents": [
         "onStartupFinished"
@@ -89,7 +89,7 @@
         "@types/jest": "^29.5.14",
         "@types/node": "^22.14.1",
         "@types/uuid": "^10.0.0",
-        "@types/vscode": "^1.99.1",
+        "@types/vscode": "^1.100.0",
         "@typescript-eslint/parser": "^8.31.0",
         "bun-types": "^1.2.10",
         "esbuild": "^0.25.3",
