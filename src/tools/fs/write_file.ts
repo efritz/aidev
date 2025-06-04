@@ -1,45 +1,42 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { safeReadFile } from '../../util/fs/safe'
 import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 import { writeFileOperationMatcher } from './matcher'
 
-type WriteResult = {
+const WriteFileSchema = z.object({
+    path: z.string().describe('The target path.'),
+    contents: z.string().describe('The contents of the file.'),
+})
+
+type WriteFileArguments = z.infer<typeof WriteFileSchema>
+
+type WriteFileResult = {
     stashed: boolean
     originalContents: string
     userEditedContents?: string
 }
 
-export const writeFile: Tool<WriteResult> = {
+export const writeFile: Tool<typeof WriteFileSchema, WriteFileResult> = {
     name: 'write_file',
     description: [
         'Write file contents to disk, creating intermediate directories if necessary.',
         'The user may choose to modify the file content before writing it to disk. The tool result will include the user-supplied content, if any.',
         'The file will be added to the subsequent conversation context.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            path: {
-                type: JSONSchemaDataType.String,
-                description: 'The target path.',
-            },
-            contents: {
-                type: JSONSchemaDataType.String,
-                description: 'The contents of the file.',
-            },
-        },
-        required: ['path', 'contents'],
-    },
+    schema: WriteFileSchema,
     enabled: true,
-    replay: (args: Arguments, { result, error, canceled }: ToolResult<WriteResult>) => {
+    replay: (
+        { path, contents: proposedContents }: WriteFileArguments,
+        { result, error, canceled }: ToolResult<WriteFileResult>,
+    ) => {
         if (!result) {
             console.log()
             console.log(chalk.bold.red(error))
             console.log()
         } else {
-            const { path, contents: proposedContents } = args as { path: string; contents: string }
             const contents = result && result.userEditedContents ? result.userEditedContents : proposedContents
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
@@ -47,15 +44,14 @@ export const writeFile: Tool<WriteResult> = {
     execute: async (
         context: ChatContext,
         toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<WriteResult>> => {
-        const { path, contents } = args as { path: string; contents: string }
+        { path, contents }: WriteFileArguments,
+    ): Promise<ExecutionResult<WriteFileResult>> => {
         const originalContents = await safeReadFile(path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents, yolo: context.yolo })
         context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseId })
         return writeExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, error, canceled }: ToolResult<WriteResult>) => ({
+    serialize: ({ result, error, canceled }: ToolResult<WriteFileResult>) => ({
         result: {
             error,
             canceled,
@@ -91,8 +87,8 @@ export const writeFile: Tool<WriteResult> = {
     ruleMatcherFactory: writeFileOperationMatcher,
 }
 
-function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<WriteResult> {
-    const result: WriteResult = {
+function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<WriteFileResult> {
+    const result: WriteFileResult = {
         stashed: writeResult.stashed ?? false,
         originalContents: writeResult.originalContents,
         userEditedContents: writeResult.userEditedContents,

@@ -1,90 +1,93 @@
 import chalk from 'chalk'
 import { structuredPatch } from 'diff'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { safeReadFile } from '../../util/fs/safe'
 import { executeWriteFile, WriteResult as InternalWriteResult, replayWriteFile } from '../../util/fs/write'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 import { writeFileOperationMatcher } from './matcher'
 
-type Edit = { search: string; replacement: string; isRegex?: boolean }
-type EditResult = { stashed: boolean; originalContents: string; userEdits?: Edit[] }
+const EditFileSchema = z.object({
+    path: z.string().describe('The target path.'),
+    edits: z
+        .array(
+            z.object({
+                search: z
+                    .string()
+                    .describe(
+                        [
+                            'The lines to replace.',
+                            'This string MUST end with a newline character.',
+                            'Additional newline characters may separate lines in the search string.',
+                            'Sufficient context MUST be provided to guarantee that this is a unique occurrence in the original file.',
+                        ].join(' '),
+                    ),
+                replacement: z
+                    .string()
+                    .describe(
+                        [
+                            'The lines to replace the search string with.',
+                            'This string may be empty.',
+                            'If the string is not empty, it must end with a newline character.',
+                            'Additional newline characters may separate lines in the replacement string.',
+                        ].join(' '),
+                    ),
+                isRegex: z
+                    .boolean()
+                    .optional()
+                    .default(false)
+                    .describe(
+                        [
+                            'Whether to interpret the search string as a regular expression.',
+                            'If true, the search string will be treated as a JavaScript regular expression pattern.',
+                            'Default is false.',
+                        ].join(' '),
+                    ),
+            }),
+        )
+        .describe('A list of line-delimited edits to make to the file.'),
+})
 
-export const editFile: Tool<EditResult> = {
+type EditFileArguments = z.infer<typeof EditFileSchema>
+
+type Edit = { search: string; replacement: string; isRegex?: boolean }
+type EditFileResult = { stashed: boolean; originalContents: string; userEdits?: Edit[] }
+
+export const editFile: Tool<typeof EditFileSchema, EditFileResult> = {
     name: 'edit_file',
     description: [
         'Edit the contents of an existing file.',
         'The user may choose to modify the edit before writing it to disk. The tool result will include the user-supplied edits, if any.',
         'The file will be added to the subsequent conversation context.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            path: {
-                type: JSONSchemaDataType.String,
-                description: 'The target path.',
-            },
-            edits: {
-                type: JSONSchemaDataType.Array,
-                description: 'A list of line-delimited edits to make to the file.',
-                items: {
-                    type: JSONSchemaDataType.Object,
-                    description: 'A single line-delimited edit to make to the file.',
-                    properties: {
-                        search: {
-                            type: JSONSchemaDataType.String,
-                            description: [
-                                'The lines to replace.',
-                                'This string MUST end with a newline character.',
-                                'Additional newline characters may separate lines in the search string.',
-                                'Sufficient context MUST be provided to guarantee that this is a unique occurrence in the original file.',
-                            ].join(' '),
-                        },
-                        isRegex: {
-                            type: JSONSchemaDataType.Boolean,
-                            description: [
-                                'Whether to interpret the search string as a regular expression.',
-                                'If true, the search string will be treated as a JavaScript regular expression pattern.',
-                                'Default is false.',
-                            ].join(' '),
-                        },
-                        replacement: {
-                            type: JSONSchemaDataType.String,
-                            description: [
-                                'The lines to replace the search string with.',
-                                'This string may be empty.',
-                                'If the string is not empty, it must end with a newline character.',
-                                'Additional newline characters may separate lines in the replacement string.',
-                            ].join(' '),
-                        },
-                    },
-                    required: ['search', 'replacement'],
-                },
-            },
-        },
-        required: ['path', 'edits'],
-    },
+    schema: EditFileSchema,
     enabled: true,
-    replay: (args: Arguments, { result, error, canceled }: ToolResult<EditResult>) => {
+    replay: (
+        { path, edits: proposedEdits }: EditFileArguments,
+        { result, error, canceled }: ToolResult<EditFileResult>,
+    ) => {
         if (!result) {
             console.log()
             console.log(chalk.bold.red(error))
             console.log()
         } else {
-            const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
             const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits, path)
             const proposedContents = applyEdits(result.originalContents, proposedEdits, path)
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
     },
-    execute: async (context: ChatContext, toolUseId: string, args: Arguments): Promise<ExecutionResult<EditResult>> => {
-        const { path, edits } = args as { path: string; edits: Edit[] }
+    execute: async (
+        context: ChatContext,
+        toolUseId: string,
+        { path, edits }: EditFileArguments,
+    ): Promise<ExecutionResult<EditFileResult>> => {
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits, path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents, yolo: context.yolo })
         context.contextStateManager.addFiles(path, { type: 'tool_use', toolUseId })
         return editExecutionResultFromWriteResult(result)
     },
-    serialize: ({ result, error, canceled }: ToolResult<EditResult>) => ({
+    serialize: ({ result, error, canceled }: ToolResult<EditFileResult>) => ({
         result: {
             error,
             canceled,
@@ -120,8 +123,8 @@ export const editFile: Tool<EditResult> = {
     ruleMatcherFactory: writeFileOperationMatcher,
 }
 
-function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<EditResult> {
-    const editResult: EditResult = {
+function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<EditFileResult> {
+    const editResult: EditFileResult = {
         stashed: writeResult.stashed ?? false,
         originalContents: writeResult.originalContents,
     }

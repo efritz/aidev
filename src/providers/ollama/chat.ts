@@ -1,4 +1,5 @@
 import { ChatResponse, Message, Tool } from 'ollama'
+import { toJsonSchema } from '../../tools/tool'
 import { enabledTools } from '../../tools/tools'
 import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
@@ -78,12 +79,12 @@ function createStreamFactory({
     const tools = disableTools
         ? []
         : enabledTools.map(
-              ({ name, description, parameters }): Tool => ({
+              ({ name, description, schema }): Tool => ({
                   type: '',
                   function: {
                       name,
                       description,
-                      parameters,
+                      parameters: toJsonSchema(schema),
                   },
               }),
           )

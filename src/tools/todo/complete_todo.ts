@@ -1,30 +1,28 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { getActiveTodos, TodoItem } from '../../context/todos'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
+
+const CompleteTodoSchema = z.object({
+    todoId: z.string().describe('The unique ID of the todo item to mark as completed.'),
+})
+
+type CompleteTodoArguments = z.infer<typeof CompleteTodoSchema>
 
 type CompleteTodoResult = {
     todo?: TodoItem
 }
 
-export const completeTodo: Tool<CompleteTodoResult> = {
+export const completeTodo: Tool<typeof CompleteTodoSchema, CompleteTodoResult> = {
     name: 'complete_todo',
     description: [
         'Mark a todo item as completed.',
         'The todo item will be updated with a completed status and timestamp.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            todo_id: {
-                type: JSONSchemaDataType.String,
-                description: 'The unique ID of the todo item to mark as completed.',
-            },
-        },
-        required: ['todo_id'],
-    },
+    schema: CompleteTodoSchema,
     enabled: true,
-    replay: (_args: Arguments, { result, error }: ToolResult<CompleteTodoResult>) => {
+    replay: (_args: CompleteTodoArguments, { result, error }: ToolResult<CompleteTodoResult>) => {
         if (error) {
             // TODO - odd?
             console.log(chalk.bold.red(`Error completing todo: ${error.message}`))
@@ -37,20 +35,18 @@ export const completeTodo: Tool<CompleteTodoResult> = {
     execute: async (
         context: ChatContext,
         _toolUseId: string,
-        args: Arguments,
+        { todoId }: CompleteTodoArguments,
     ): Promise<ExecutionResult<CompleteTodoResult>> => {
-        const { todo_id } = args as { todo_id: string }
-
-        const todo = getActiveTodos(context.provider.conversationManager.visibleMessages()).find(t => t.id === todo_id)
+        const todo = getActiveTodos(context.provider.conversationManager.visibleMessages()).find(t => t.id === todoId)
         if (!todo) {
-            throw new Error(`Todo item "${todo_id}" not found`)
+            throw new Error(`Todo item "${todoId}" not found`)
         }
         if (todo.status !== 'pending') {
-            throw new Error(`Todo item "${todo_id}" is not pending`)
+            throw new Error(`Todo item "${todoId}" is not pending`)
         }
 
         todo.status = 'completed'
-        context.provider.conversationManager.recordCompleteTodo(todo_id)
+        context.provider.conversationManager.recordCompleteTodo(todoId)
         console.log(`${chalk.green('✓')} Completed todo: ${chalk.dim(todo.description)}`)
 
         return { result: { todo } }

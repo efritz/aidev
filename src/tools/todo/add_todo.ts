@@ -1,30 +1,28 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { TodoItem } from '../../context/todos'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
+
+const AddTodoSchema = z.object({
+    description: z.string().describe('A description of the task that needs to be done.'),
+})
+
+type AddTodoArguments = z.infer<typeof AddTodoSchema>
 
 type AddTodoResult = {
     todo: TodoItem
 }
 
-export const addTodo: Tool<AddTodoResult> = {
+export const addTodo: Tool<typeof AddTodoSchema, AddTodoResult> = {
     name: 'add_todo',
     description: [
         'Add a new task to the todo list for the current conversation.',
         'This helps track tasks that need to be completed during the conversation.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            description: {
-                type: JSONSchemaDataType.String,
-                description: 'A description of the task that needs to be done.',
-            },
-        },
-        required: ['description'],
-    },
+    schema: AddTodoSchema,
     enabled: true,
-    replay: (_args: Arguments, { result }: ToolResult<AddTodoResult>) => {
+    replay: (_args: AddTodoArguments, { result }: ToolResult<AddTodoResult>) => {
         if (result) {
             console.log(`${chalk.green('✓')} Added todo: ${chalk.dim(result.todo.description)}`)
         }
@@ -32,10 +30,8 @@ export const addTodo: Tool<AddTodoResult> = {
     execute: async (
         context: ChatContext,
         _toolUseId: string,
-        args: Arguments,
+        { description }: AddTodoArguments,
     ): Promise<ExecutionResult<AddTodoResult>> => {
-        const { description } = args as { description: string }
-
         const todoId = generateTodoId()
         const todo: TodoItem = { id: todoId, description, status: 'pending' }
         context.provider.conversationManager.recordAddTodo(todoId, description)

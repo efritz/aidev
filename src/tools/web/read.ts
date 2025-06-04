@@ -1,11 +1,18 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { Agent, runAgent } from '../../agent/agent'
 import { ChatContext } from '../../chat/context'
 import { prefixFormatter, withProgress } from '../../util/progress/progress'
 import { createXmlPattern } from '../../util/xml/xml'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 
-type WebResult = {
+const ReadWebSchema = z.object({
+    urls: z.array(z.string().url().describe('A target URL.')).describe('A list of target URLs to read.'),
+})
+
+type ReadWebArguments = z.infer<typeof ReadWebSchema>
+
+type ReadWebResult = {
     url: string
     error?: string
     summary?: Summary
@@ -31,25 +38,12 @@ type ResponseAndContent = {
 
 const headers: Record<string, string> = {}
 
-export const readWeb: Tool<WebResult[]> = {
+export const readWeb: Tool<typeof ReadWebSchema, ReadWebResult[]> = {
     name: 'read_web',
     description: ['Read a webpage and summarize its contents.'].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            urls: {
-                type: JSONSchemaDataType.Array,
-                description: 'A list of target URLs to read.',
-                items: {
-                    type: JSONSchemaDataType.String,
-                    description: 'A target URL.',
-                },
-            },
-        },
-        required: ['urls'],
-    },
+    schema: ReadWebSchema,
     enabled: true,
-    replay: (_args: Arguments, { result }: ToolResult<WebResult[]>) => {
+    replay: (_args: ReadWebArguments, { result }: ToolResult<ReadWebResult[]>) => {
         console.log(`${chalk.green('✔')} Read ${result?.length ?? 0} pages.`)
         console.log()
         console.log(
@@ -64,13 +58,11 @@ export const readWeb: Tool<WebResult[]> = {
     execute: async (
         context: ChatContext,
         toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<WebResult[]>> => {
+        { urls }: ReadWebArguments,
+    ): Promise<ExecutionResult<ReadWebResult[]>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
-
-        const { urls } = args as { urls: string[] }
 
         const error = (...erroables: (Errorable<any> | undefined)[]) =>
             erroables.find(erroable => erroable?.error)?.error
@@ -136,7 +128,7 @@ export const readWeb: Tool<WebResult[]> = {
             reprompt: true,
         }
     },
-    serialize: ({ result }: ToolResult<WebResult[]>) => ({ result }),
+    serialize: ({ result }: ToolResult<ReadWebResult[]>) => ({ result }),
 }
 
 async function readUrl(url: string, signal?: AbortSignal): Promise<Errorable<ResponseAndContent>> {

@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { ToolUse } from '../../messages/messages'
 import { RuleMatcher } from '../../rules/types'
@@ -11,31 +12,29 @@ import {
     serializeOutput,
 } from '../../util/shell/exec'
 import { withContentEditor } from '../../util/vscode/edit'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 
-type ShellResult = BaseShellResult & {
+const ShellExecuteSchema = z.object({
+    command: z.string().describe('The shell command to execute.'),
+})
+
+type ShellExecuteArguments = z.infer<typeof ShellExecuteSchema>
+
+type ShellExecuteResult = BaseShellResult & {
     userEditedCommand?: string
 }
 
 const allowedCommands: Set<string> = new Set()
 
-export const shellExecute: Tool<ShellResult> = {
+export const shellExecute: Tool<typeof ShellExecuteSchema, ShellExecuteResult> = {
     name: 'shell_execute',
     description: 'Execute a shell command.',
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            command: {
-                type: JSONSchemaDataType.String,
-                description: 'The shell command to execute.',
-            },
-        },
-        required: ['command'],
-    },
+    schema: ShellExecuteSchema,
     enabled: true,
-    replay: (args: Arguments, { result, error, canceled }: ToolResult<ShellResult>) => {
-        const { command: originalCommand } = args as { command: string }
-
+    replay: (
+        { command: originalCommand }: ShellExecuteArguments,
+        { result, error, canceled }: ToolResult<ShellExecuteResult>,
+    ) => {
         const command = result && result.userEditedCommand ? result.userEditedCommand : originalCommand
         const verb = canceled ? 'Proposed' : 'Executed'
         const edited = command !== originalCommand
@@ -48,9 +47,8 @@ export const shellExecute: Tool<ShellResult> = {
     execute: async (
         context: ChatContext,
         _toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<ShellResult>> => {
-        const { command } = args as { command: string }
+        { command }: ShellExecuteArguments,
+    ): Promise<ExecutionResult<ShellExecuteResult>> => {
         console.log(formatCommand(command))
 
         const editedCommand = await confirmCommand(context, command)
@@ -68,7 +66,7 @@ export const shellExecute: Tool<ShellResult> = {
 
         return { result, error, canceled, reprompt }
     },
-    serialize: ({ result, error, canceled }: ToolResult<ShellResult>) => ({
+    serialize: ({ result, error, canceled }: ToolResult<ShellExecuteResult>) => ({
         result: {
             error,
             canceled,
