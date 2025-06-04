@@ -1,10 +1,17 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { getKey } from '../../providers/keys'
 import { withProgress } from '../../util/progress/progress'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 
-type SearchResult = {
+const SearchWebSchema = z.object({
+    query: z.string().describe('The input search query.'),
+})
+
+type SearchWebArguments = z.infer<typeof SearchWebSchema>
+
+type SearchWebResult = {
     matches: Match[]
 }
 
@@ -35,22 +42,12 @@ const headers: Record<string, string> = {
     'X-Subscription-Token': braveApiKey || '',
 }
 
-export const searchWeb: Tool<SearchResult> = {
+export const searchWeb: Tool<typeof SearchWebSchema, SearchWebResult> = {
     name: 'search_web',
     description: ['Use a search engine to find web pages matching an input query.'].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            query: {
-                type: JSONSchemaDataType.String,
-                description: 'The input search query.',
-            },
-        },
-        required: ['query'],
-    },
+    schema: SearchWebSchema,
     enabled: !!braveApiKey,
-    replay: (args: Arguments, { result }: ToolResult<SearchResult>) => {
-        const { query } = args as { query: string }
+    replay: ({ query }: SearchWebArguments, { result }: ToolResult<SearchWebResult>) => {
         console.log(`${chalk.dim('ℹ')} Searched web for "${query}".`)
         console.log()
         displayMatches(result?.matches ?? [])
@@ -58,16 +55,14 @@ export const searchWeb: Tool<SearchResult> = {
     execute: async (
         _context: ChatContext,
         toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<SearchResult>> => {
+        { query }: SearchWebArguments,
+    ): Promise<ExecutionResult<SearchWebResult>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
         if (!braveApiKey) {
             throw new Error('Brave API key is not defined.')
         }
-
-        const { query } = args as { query: string }
 
         const resp = await withProgress<BraveResponse>(
             async () => {
@@ -108,7 +103,7 @@ export const searchWeb: Tool<SearchResult> = {
 
         return { result: { matches }, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<SearchResult>) => ({ result }),
+    serialize: ({ result }: ToolResult<SearchWebResult>) => ({ result }),
 }
 
 function displayMatches(matches: Match[]) {

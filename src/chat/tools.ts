@@ -157,10 +157,13 @@ function pushToolResult(
 
 async function executeTool(context: ChatContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
     const tool = findTool(toolUse.name)
-    const args = toolUse.parameters ? JSON.parse(toolUse.parameters) : {}
 
     try {
-        return await tool.execute(context, toolUse.id, args)
+        return await tool.execute(
+            context,
+            toolUse.id,
+            tool.schema.parse(toolUse.parameters ? JSON.parse(toolUse.parameters) : {}),
+        )
     } catch (error: any) {
         console.log()
         console.log(chalk.red(`Error: ${error.message}`))

@@ -12,7 +12,7 @@ import { searchWeb } from './web/search'
 import { searchWorkspaceEmbeddings } from './workspace/search_embeddings'
 import { searchWorkspaceRipgrep } from './workspace/search_ripgrep'
 
-const allTools: Tool<any>[] = [
+const allTools: Tool<any, any>[] = [
     shellExecute,
     readDirectories,
     readFiles,
@@ -29,7 +29,7 @@ const allTools: Tool<any>[] = [
 
 export const enabledTools = allTools.filter(tool => tool.enabled)
 
-export function findTool(name: string): Tool<any> {
+export function findTool(name: string): Tool<any, any> {
     const tool = enabledTools.find(tool => tool.name === name)
     if (!tool) {
         throw new Error(`Tool not found: ${name}`)

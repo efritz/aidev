@@ -1,10 +1,17 @@
 import { execSync } from 'child_process'
 import * as path from 'path'
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 
-type SearchResult = {
+const SearchWorkspaceRipgrepSchema = z.object({
+    query: z.string().describe('The input search query.'),
+})
+
+type SearchWorkspaceRipgrepArguments = z.infer<typeof SearchWorkspaceRipgrepSchema>
+
+type SearchWorkspaceRipgrepResult = {
     matches: Match[]
 }
 
@@ -13,7 +20,7 @@ type Match = {
     lines?: string[]
 }
 
-export const searchWorkspaceRipgrep: Tool<SearchResult> = {
+export const searchWorkspaceRipgrep: Tool<typeof SearchWorkspaceRipgrepSchema, SearchWorkspaceRipgrepResult> = {
     name: 'search_workspace_ripgrep',
     description: [
         'Use ripgrep to search the current workspace for files containing the input query.',
@@ -21,19 +28,9 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
         'For source code files, the result will also contain the matching lines from the file.',
         'The query is treated as a regular expression - escape regex metacharacters (like parentheses, brackets, dots, etc.) with backslashes if you want to search for them literally.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            query: {
-                type: JSONSchemaDataType.String,
-                description: 'The input search query.',
-            },
-        },
-        required: ['query'],
-    },
+    schema: SearchWorkspaceRipgrepSchema,
     enabled: true,
-    replay: (args: Arguments, { result }: ToolResult<SearchResult>) => {
-        const { query } = args as { query: string }
+    replay: ({ query }: SearchWorkspaceRipgrepArguments, { result }: ToolResult<SearchWorkspaceRipgrepResult>) => {
         console.log(`${chalk.dim('ℹ')} Searched workspace with ripgrep for "${query}".`)
         console.log()
         displayMatches(result?.matches ?? [])
@@ -41,13 +38,12 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
     execute: async (
         _context: ChatContext,
         toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<SearchResult>> => {
+        { query }: SearchWorkspaceRipgrepArguments,
+    ): Promise<ExecutionResult<SearchWorkspaceRipgrepResult>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
 
-        const { query } = args as { query: string }
         console.log(`${chalk.dim('ℹ')} Searching workspace with ripgrep for "${query}"...`)
         console.log()
 
@@ -75,7 +71,7 @@ export const searchWorkspaceRipgrep: Tool<SearchResult> = {
 
         return { result: { matches }, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<SearchResult>) => ({ result: { paths: result ?? [] } }),
+    serialize: ({ result }: ToolResult<SearchWorkspaceRipgrepResult>) => ({ result: { paths: result ?? [] } }),
 }
 
 function search(query: string): any[] {

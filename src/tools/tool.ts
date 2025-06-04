@@ -1,51 +1,25 @@
+import { z } from 'zod'
+import zodToJsonSchema, { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { ChatContext } from '../chat/context'
 import { RuleMatcherFactory } from '../rules/types'
 
-export type Tool<T> = {
+export type Tool<S extends z.ZodObject<any>, T> = {
     name: string
     description: string
-    parameters: ParametersSchema
+    schema: S
     enabled: boolean
-    execute: Executor<T>
-    replay: Replayer<T>
+    execute: Executor<z.infer<S>, T>
+    replay: Replayer<z.infer<S>, T>
     serialize: Serializer<T>
     ruleMatcherFactory?: RuleMatcherFactory
 }
 
-export type Executor<T> = (context: ChatContext, toolUseId: string, args: Arguments) => Promise<ExecutionResult<T>>
-export type Arguments = Record<string, unknown>
+export type Executor<S, T> = (context: ChatContext, toolUseId: string, args: S) => Promise<ExecutionResult<T>>
 export type ToolResult<T> = { result?: T; error?: Error; canceled?: boolean }
 export type ExecutionResult<T> = ToolResult<T> & { reprompt?: boolean }
-export type Replayer<T> = (args: Arguments, result: ToolResult<T>) => void
+export type Replayer<S, T> = (args: S, result: ToolResult<T>) => void
 export type SerializedToolResult = { result: any; suggestions?: string }
 export type Serializer<T> = (result: ToolResult<T>) => SerializedToolResult
 
-export enum JSONSchemaDataType {
-    Object = 'object',
-    Array = 'array',
-    String = 'string',
-    Number = 'number',
-    Boolean = 'boolean',
-}
-
-export type ParametersSchema = Omit<JSONSchemaObject, 'description'>
-
-export type JSONSchemaType = JSONSchemaObject | JSONSchemaArray | JSONSchemaScalar
-
-export type JSONSchemaObject = {
-    type: JSONSchemaDataType.Object
-    description: string
-    properties: { [key: string]: JSONSchemaType }
-    required: string[]
-}
-
-export type JSONSchemaArray = {
-    type: JSONSchemaDataType.Array
-    description: string
-    items: JSONSchemaType
-}
-
-export type JSONSchemaScalar = {
-    type: JSONSchemaDataType.String | JSONSchemaDataType.Number | JSONSchemaDataType.Boolean
-    description: string
-}
+export const toJsonSchema = <S extends z.ZodObject<any>>(schema: S): JsonSchema7ObjectType =>
+    zodToJsonSchema(schema) as JsonSchema7ObjectType

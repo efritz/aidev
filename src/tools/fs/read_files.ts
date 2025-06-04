@@ -1,48 +1,54 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { expandFilePatterns } from '../../util/fs/glob'
 import { filterIgnoredPaths } from '../../util/fs/ignore'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 
-export const readFiles: Tool<string[]> = {
+const ReadFilesSchema = z.object({
+    paths: z
+        .array(
+            z
+                .string()
+                .describe(
+                    [
+                        'A target file path or glob pattern.',
+                        'Glob patterns are expanded into a set of matching paths.',
+                        'Paths that do not exist or refer to a non-file are ignored.',
+                    ].join(' '),
+                ),
+        )
+        .describe('A list of target file paths to read.'),
+})
+
+type ReadFilesArguments = z.infer<typeof ReadFilesSchema>
+
+type ReadFileResult = string[]
+
+export const readFiles: Tool<typeof ReadFilesSchema, ReadFileResult> = {
     name: 'read_files',
     description: [
         'Add specific files to the conversation context.',
         'The conversation context is always up-to date. Specifying a file already in the context will not update the context.',
         'The tool result will contain a list of concrete paths loaded into the context.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            paths: {
-                type: JSONSchemaDataType.Array,
-                description: 'A list of target file paths to read.',
-                items: {
-                    type: JSONSchemaDataType.String,
-                    description: [
-                        'A target file path or glob pattern.',
-                        'Glob patterns are expanded into a set of matching paths.',
-                        'Paths that do not exist or refer to a non-file are ignored.',
-                    ].join(' '),
-                },
-            },
-        },
-        required: ['paths'],
-    },
+    schema: ReadFilesSchema,
     enabled: true,
-    replay: (_args: Arguments, { result }: ToolResult<string[]>) => {
+    replay: (_args: ReadFilesArguments, { result }: ToolResult<ReadFileResult>) => {
         console.log(
             (result ?? []).map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),
         )
     },
-    execute: async (context: ChatContext, toolUseId: string, args: Arguments): Promise<ExecutionResult<string[]>> => {
+    execute: async (
+        context: ChatContext,
+        toolUseId: string,
+        { paths: patterns }: ReadFilesArguments,
+    ): Promise<ExecutionResult<ReadFileResult>> => {
         if (!toolUseId) {
             throw new Error('No ToolUseId supplied.')
         }
 
-        const { paths: patterns } = args as { paths: string[] }
         const filePaths = (await filterIgnoredPaths(await expandFilePatterns(patterns))).sort()
-
         context.contextStateManager.addFiles(filePaths, { type: 'tool_use', toolUseId })
 
         console.log(
@@ -52,7 +58,7 @@ export const readFiles: Tool<string[]> = {
 
         return { result: filePaths, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<string[]>) => ({
+    serialize: ({ result }: ToolResult<ReadFileResult>) => ({
         result: { paths: result ?? [] },
     }),
 }
