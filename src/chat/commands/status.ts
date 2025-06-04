@@ -1,6 +1,7 @@
 import chalk from 'chalk'
+import { getActiveDirectories, getActiveFiles } from '../../context/content'
+import { getActiveTodos } from '../../context/todos'
 import { Branch } from '../../conversation/branches'
-import { shouldIncludeFile } from '../../conversation/conversation'
 import { Message } from '../../messages/messages'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
@@ -31,9 +32,19 @@ async function handleStatus(context: ChatContext, args: string) {
     printContextFiles(context)
     console.log()
 
+    console.log(chalk.bold('Context directories:'))
+    console.log()
+    printContextDirectories(context)
+    console.log()
+
     console.log(chalk.bold('Stashed files:'))
     console.log()
     printStashedFiles(context)
+    console.log()
+
+    console.log(chalk.bold('Todo items:'))
+    console.log()
+    printTodos(context)
     console.log()
 
     console.log(chalk.bold('Branch structure:'))
@@ -91,13 +102,7 @@ function printBranch(
 }
 
 function printContextFiles(context: ChatContext) {
-    const visibleToolUseIds = context.provider.conversationManager
-        .visibleMessages()
-        .flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
-
-    const files = Array.from(context.contextStateManager.files().values()).filter(file =>
-        shouldIncludeFile(file, visibleToolUseIds),
-    )
+    const files = getActiveFiles(context.provider.conversationManager, context.contextStateManager)
 
     if (files.length === 0) {
         console.log(chalk.yellow('No files in context.'))
@@ -108,15 +113,41 @@ function printContextFiles(context: ChatContext) {
         const reasons = file.inclusionReasons.map(reason => {
             switch (reason.type) {
                 case 'explicit':
-                    return chalk.blue('explicit')
+                    // TODO - deduplicate?
+                    return chalk.blue('added by user')
                 case 'tool_use':
-                    return chalk.magenta('tool_use')
+                    return chalk.magenta('added by tool use')
                 case 'editor':
-                    return chalk.green('editor')
+                    return chalk.green('open in editor')
             }
         })
 
         console.log(`${chalk.cyan(file.path)} - ${reasons.join(', ')}`)
+    })
+}
+
+function printContextDirectories(context: ChatContext) {
+    const directories = getActiveDirectories(context.provider.conversationManager, context.contextStateManager)
+
+    if (directories.length === 0) {
+        console.log(chalk.yellow('No directories in context.'))
+        return
+    }
+
+    directories.forEach(directory => {
+        const reasons = directory.inclusionReasons.map(reason => {
+            switch (reason.type) {
+                case 'explicit':
+                    // TODO - deduplicate?
+                    return chalk.blue('added by user')
+                case 'tool_use':
+                    return chalk.magenta('added by tool use')
+                case 'editor':
+                    return chalk.green('open in editor')
+            }
+        })
+
+        console.log(`${chalk.cyan(directory.path)} - ${reasons.join(', ')}`)
     })
 }
 
@@ -129,6 +160,39 @@ function printStashedFiles(context: ChatContext) {
 
     for (const file of stashedFiles) {
         console.log(chalk.cyan(file))
+    }
+}
+
+function printTodos(context: ChatContext) {
+    const todos = getActiveTodos(context.provider.conversationManager.visibleMessages())
+    if (todos.length === 0) {
+        console.log(chalk.yellow('No todo items.'))
+        return
+    }
+
+    const pendingTodos = todos.filter(todo => todo.status === 'pending')
+    const completedTodos = todos.filter(todo => todo.status === 'completed')
+    const canceledTodos = todos.filter(todo => todo.status === 'canceled')
+
+    if (pendingTodos.length > 0) {
+        console.log(chalk.bold('  Pending:'))
+        pendingTodos.forEach(todo => {
+            console.log(`    ${chalk.yellow('○')} ${todo.description}`)
+        })
+    }
+
+    if (completedTodos.length > 0) {
+        console.log(chalk.bold('  Completed:'))
+        completedTodos.forEach(todo => {
+            console.log(`    ${chalk.green('✓')} ${chalk.dim(todo.description)}`)
+        })
+    }
+
+    if (canceledTodos.length > 0) {
+        console.log(chalk.bold('  Canceled:'))
+        canceledTodos.forEach(todo => {
+            console.log(`    ${chalk.red('✗')} ${chalk.dim(todo.description)}`)
+        })
     }
 }
 

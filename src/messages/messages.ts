@@ -56,6 +56,12 @@ export type MetaMessage =
     | UnstashMessage
     | ApplyStashMessage
     | RuleMessage
+    | LoadMessage
+    | LoadDirMessage
+    | UnloadMessage
+    | AddTodoMessage
+    | CompleteTodoMessage
+    | CancelTodoMessage
 
 export type UndoMessage = { type: 'undo' }
 export type RedoMessage = { type: 'redo' }
@@ -67,3 +73,9 @@ export type StashMessage = { type: 'stash'; path: string; content: string; origi
 export type UnstashMessage = { type: 'unstash'; path: string }
 export type ApplyStashMessage = { type: 'applyStash'; path: string; content: string; originalContent: string }
 export type RuleMessage = { type: 'rule'; rules: Rule[] }
+export type LoadMessage = { type: 'load'; paths: string[] }
+export type LoadDirMessage = { type: 'loaddir'; paths: string[] }
+export type UnloadMessage = { type: 'unload'; paths: string[] }
+export type AddTodoMessage = { type: 'addTodo'; taskId: string; description: string }
+export type CompleteTodoMessage = { type: 'completeTodo'; taskId: string }
+export type CancelTodoMessage = { type: 'cancelTodo'; taskId: string }

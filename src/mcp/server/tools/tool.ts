@@ -1,10 +1,10 @@
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
-import { ParametersSchema } from '../../../tools/tool'
+import { z } from 'zod'
 import { ExecutionContext } from './context'
 
 export type Tool = {
     name: string
     description: string
-    parameters: ParametersSchema
+    schema: z.ZodObject<any>
     execute: (context: ExecutionContext, args: any) => Promise<CallToolResult>
 }

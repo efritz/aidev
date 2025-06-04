@@ -14,32 +14,17 @@ export async function loadHistory(context: ChatContext, historyFilename: string)
 
     await swapProvider(context, model)
     context.provider.conversationManager.setMessages(messages)
-    context.contextStateManager.setFiles(new Map(Object.entries(contextFiles)))
-    context.contextStateManager.setDirectories(new Map(Object.entries(contextDirectories)))
+    contextFiles.forEach(({ path, inclusionReasons }) =>
+        inclusionReasons.forEach(reason => context.contextStateManager.addFiles(path, reason)),
+    )
+    contextDirectories.forEach(({ path, inclusionReasons }) =>
+        inclusionReasons.forEach(reason => context.contextStateManager.addDirectories(path, reason)),
+    )
 
     replayMessages(context)
 }
 
 export function replayMessages(context: ChatContext): void {
-    let emitNewline = false
-    for (const [path, file] of context.contextStateManager.files().entries()) {
-        if (file.inclusionReasons.some(r => r.type === 'explicit')) {
-            emitNewline = true
-            console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
-        }
-    }
-
-    for (const [path, dir] of context.contextStateManager.directories().entries()) {
-        if (dir.inclusionReasons.some(r => r.type === 'explicit')) {
-            emitNewline = true
-            console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
-        }
-    }
-
-    if (emitNewline) {
-        console.log()
-    }
-
     for (const message of context.provider.conversationManager.visibleMessages()) {
         switch (message.role) {
             case 'meta':
@@ -101,6 +86,42 @@ function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
                 }
             }
 
+            console.log()
+            break
+
+        case 'load':
+            for (const path of message.paths) {
+                console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
+            }
+            console.log()
+            break
+
+        case 'loaddir':
+            for (const path of message.paths) {
+                console.log(`${chalk.dim('ℹ')} Added "${chalk.red(path)}" into context.`)
+            }
+            console.log()
+            break
+
+        case 'unload':
+            for (const path of message.paths) {
+                console.log(`${chalk.dim('ℹ')} Removed "${chalk.red(path)}" from context.`)
+            }
+            console.log()
+            break
+
+        case 'addTodo':
+            console.log(`${chalk.green('✓')} Added todo: ${chalk.dim(message.description)}`)
+            console.log()
+            break
+
+        case 'completeTodo':
+            console.log(`${chalk.green('✓')} Completed todo: ${chalk.dim(message.taskId)}`)
+            console.log()
+            break
+
+        case 'cancelTodo':
+            console.log(`${chalk.red('✗')} Canceled todo: ${chalk.dim(message.taskId)}`)
             console.log()
             break
     }

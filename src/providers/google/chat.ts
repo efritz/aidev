@@ -2,8 +2,10 @@ import {
     Content,
     EnhancedGenerateContentResponse,
     FunctionDeclaration,
+    FunctionDeclarationSchema,
     GoogleGenerativeAI,
 } from '@google/generative-ai'
+import { toJsonSchema } from '../../tools/tool'
 import { enabledTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
@@ -104,10 +106,10 @@ function createStreamFactory({
         : [
               {
                   functionDeclarations: enabledTools.map(
-                      ({ name, description, parameters }): FunctionDeclaration => ({
+                      ({ name, description, schema }): FunctionDeclaration => ({
                           name,
                           description,
-                          parameters: parameters as any,
+                          parameters: toJsonSchema(schema) as FunctionDeclarationSchema,
                       }),
                   ),
               },

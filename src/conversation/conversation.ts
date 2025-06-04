@@ -1,14 +1,18 @@
 import { v4 as uuidv4 } from 'uuid'
+import { getActiveDirectories, getActiveFiles } from '../context/content'
 import { ContextDirectory } from '../context/directories'
 import { ContextFile } from '../context/files'
 import { InclusionReason } from '../context/reason'
 import { ContextState } from '../context/state'
+import { getActiveTodos, TodoItem } from '../context/todos'
 import { ApplyStashMessage, AssistantMessage, Message, RuleMessage, UserMessage } from '../messages/messages'
-import { extract } from '../util/lists/lists'
+import { createEventLogger } from '../util/log/event_logger'
 import { ConversationManager, createConversationManager } from './manager'
 
+const eventLogger = createEventLogger('PROVIDER_MESSAGES_LOG_FILE')
+
 export type Conversation<T> = ConversationManager & {
-    providerMessages: () => T[]
+    providerMessages: () => Promise<T[]>
 }
 
 type ConversationOptions<T> = {
@@ -26,9 +30,9 @@ export function createConversation<T>({
     initialMessage,
     postPush,
 }: ConversationOptions<T>): Conversation<T> {
-    const { visibleMessages, ...conversationManager } = createConversationManager()
+    const conversationManager = createConversationManager()
 
-    const providerMessages = (): T[] => {
+    const providerMessages = async (): Promise<T[]> => {
         const providerMessages: T[] = []
 
         const addMessages = (messages: T[]) => {
@@ -42,7 +46,7 @@ export function createConversation<T>({
             addMessages(initialMessage)
         }
 
-        for (const message of injectContextMessages(contextState, visibleMessages())) {
+        for (const message of await injectContextMessages(conversationManager, contextState)) {
             switch (message.role) {
                 case 'user':
                     addMessages(userMessageToParam(message))
@@ -60,67 +64,114 @@ export function createConversation<T>({
 
                         case 'applyStash':
                             addMessages(userMessageToParam(createStashAppliedMessage(message)))
+                            break
                     }
+
+                    break
             }
         }
 
+        eventLogger.logEvent(providerMessages)
         return providerMessages
     }
 
-    return {
-        visibleMessages,
-        ...conversationManager,
-        providerMessages,
-    }
+    return { ...conversationManager, providerMessages }
 }
 
 //
 //
 
-type FilesAndDirectories = { files: ContextFile[]; directories: ContextDirectory[] }
-const empty: FilesAndDirectories = { files: [], directories: [] }
+type FilesAndDirectories = {
+    files: ContextFile[]
+    directories: ContextDirectory[]
+    teaserFilePaths: ContextFile[]
+    teaserDirectoryPaths: ContextDirectory[]
+}
 
-function injectContextMessages(contextState: ContextState, messages: Message[]): Message[] {
+async function injectContextMessages(
+    conversationManager: ConversationManager,
+    contextState: ContextState,
+): Promise<Message[]> {
     // Determine the set of file and directories that we want to include in the context for
     // the set of visible messages. There might be other branches that include resources that
     // aren't relevant on this branch. We'll ignore those.
-    const visibleToolUseIds = messages.flatMap(m => (m.type === 'tool_use' ? m.tools.map(({ id }) => id) : []))
-    const files = [...contextState.files().values()].filter(f => shouldIncludeFile(f, visibleToolUseIds))
-    const directories = [...contextState.directories().values()].filter(d =>
-        shouldIncludeDirectory(d, visibleToolUseIds),
-    )
+    const messages = conversationManager.visibleMessages()
+    const files = getActiveFiles(conversationManager, contextState)
+    const directories = getActiveDirectories(conversationManager, contextState)
+    const todos = getActiveTodos(messages)
 
-    // A map from target index in the message list to the set of files and directories that should
-    // be included at that index. We'll build this up by iterating the messages, then interlace the
-    // context messages with the user messages to create a new visible message list.
-    const contextByIndex = new Map<number, FilesAndDirectories>()
+    // This is a map from target position in the message list to the set of files and directories
+    // that should be included (or mentioned) at that index. We'll build this up by iterating the
+    // messages, then interlace the context messages with the user messages to create a new visible
+    // message list.
+    const contextByIndex = new Map<number, Partial<FilesAndDirectories>>()
 
-    // Iterate the visible messages from back to front. For each message, we'll determine if
-    // it references a relevant file or directory and stash that resource to be inserted directly
-    // after the linked tool result message. Once we stash a resource we remove it from the list
-    // of candidates so that it's only included once.
+    const seenFile = new Set<string>()
+    const seenDirectory = new Set<string>()
+
+    // Iterate the visible messages from back to front. For each message, we'll determine if it
+    // references a relevant file or directory and stash that resource to be inserted directly
+    // after the linked tool result message. Once we stash a resource we mark it as included so
+    // we only include the full content once. For all subsequent references to the same resource
+    // we include a teaser message that indicates the resource path but not is full contents.
     for (let i = messages.length - 1; i >= 0; i--) {
         const message = messages[i]
 
-        if (message.role === 'user' && message.type === 'tool_result') {
-            contextByIndex.set(i + 1, {
-                files: extract(files, f => includedByToolUse(f.inclusionReasons, message.toolUse.id)),
-                directories: extract(directories, d => includedByToolUse(d.inclusionReasons, message.toolUse.id)),
-            })
+        const references: FilesAndDirectories = {
+            files: [],
+            directories: [],
+            teaserFilePaths: [],
+            teaserDirectoryPaths: [],
         }
 
-        if (message.role === 'meta' && message.type === 'applyStash') {
-            contextByIndex.set(i + 1, {
-                files: extract(files, f => includedByAppliedStash(f.inclusionReasons, message.id)),
-                directories: [],
-            })
+        const addFile = (f: ContextFile) => {
+            if (seenFile.has(f.path)) {
+                references.teaserFilePaths.push(f)
+            } else {
+                seenFile.add(f.path)
+                references.files.push(f)
+            }
         }
+
+        const addDirectory = (d: ContextDirectory) => {
+            if (seenDirectory.has(d.path)) {
+                references.teaserDirectoryPaths.push(d)
+            } else {
+                seenDirectory.add(d.path)
+                references.directories.push(d)
+            }
+        }
+
+        if (message.role === 'user' && message.type === 'tool_result') {
+            const shouldInclude = ({ inclusionReasons }: { inclusionReasons: InclusionReason[] }) => {
+                return includedByToolUse(inclusionReasons, message.toolUse.id)
+            }
+
+            files.filter(shouldInclude).forEach(addFile)
+            directories.filter(shouldInclude).forEach(addDirectory)
+        }
+
+        if (message.role === 'meta') {
+            if (message.type === 'applyStash') {
+                files.filter(f => includedByAppliedStash(f.inclusionReasons, message.id)).forEach(addFile)
+            }
+
+            if (message.type === 'load') {
+                files.filter(f => message.paths.includes(f.path)).forEach(addFile)
+            }
+
+            if (message.type === 'loaddir') {
+                directories.filter(d => message.paths.includes(d.path)).forEach(addDirectory)
+            }
+        }
+
+        contextByIndex.set(i + 1, references)
     }
 
     // Include any remaining relevant files and directories at the beginning of the conversation.
     contextByIndex.set(0, {
-        files: files.filter(f => shouldIncludeFile(f, [])),
-        directories: directories.filter(d => shouldIncludeDirectory(d, [])),
+        files: files.filter(f => !seenFile.has(f.path)),
+        directories: directories.filter(d => !seenDirectory.has(d.path)),
     })
 
     // Build context messages and inject them in the correct location in the message list. We do
@@ -128,25 +179,52 @@ function injectContextMessages(contextState: ContextState, messages: Message[]):
     // the resulting list. We need to pad the initial list with a trailing undefined message so that
     // a context message after the last message has a place to be inserted. Lastly, undefined values
     // are filtered from the flattened result.
-    return [...messages, undefined]
-        .flatMap((message, index) => [createContextMessage(contextByIndex.get(index) ?? empty), message])
+    const contextMessages = (
+        await Promise.all(
+            [...messages, undefined].map(async (message, index) => [
+                await createContextMessage(contextByIndex.get(index) ?? {}),
+                message,
+            ]),
+        )
+    )
+        .flat()
         .filter(message => !!message)
+
+    // Add a summary of todos at the end
+    if (todos.length > 0) {
+        contextMessages.push(createTodoMessage(todos))
+    }
+
+    return contextMessages
 }
 
-const fence = '```'
-
-function createContextMessage({ files, directories }: FilesAndDirectories): Message | undefined {
-    if (files.length === 0 && directories.length === 0) {
+async function createContextMessage({
+    files = [],
+    directories = [],
+    teaserFilePaths = [],
+    teaserDirectoryPaths = [],
+}: Partial<FilesAndDirectories>): Promise<Message | undefined> {
+    if (
+        files.length === 0 &&
+        directories.length === 0 &&
+        teaserFilePaths.length === 0 &&
+        teaserDirectoryPaths.length === 0
+    ) {
         return undefined
     }
 
+    const normalizedFiles = await Promise.all(
+        files.map(async ({ path, content: payload }) => ({ path, payload: await payload })),
+    )
+    const normalizedDirectories = await Promise.all(
+        directories.map(async ({ path, entries: payload }) => ({ path, payload: await payload })),
+    )
+
     const payloads: string[] = []
-    const normalizedFiles = files.map(({ path, content: payload }) => ({ path, payload }))
-    const normalizedDirectories = directories.map(({ path, entries: payload }) => ({ path, payload }))
 
     for (const [path, content] of sortPayloadsByPath(normalizedFiles)) {
         if (typeof content === 'string') {
-            payloads.push(`Current contents of file "${path}":\n${fence}\n${content}\n${fence}`)
+            payloads.push(`<file path="${path}">${content}</file>`)
         } else {
             payloads.push(`Failed to load the contents of file "${path}": ${content.error}`)
         }
@@ -154,12 +232,36 @@ function createContextMessage({ files, directories }: FilesAndDirectories): Mess
 
     for (const [path, entries] of sortPayloadsByPath(normalizedDirectories)) {
         if (!('error' in entries)) {
-            const serialized = JSON.stringify(entries, null, 2)
-            payloads.push(`Current entries of directory "${path}":\n${serialized}`)
+            payloads.push(
+                `<directory path="${path}">\n${entries
+                    .map(
+                        entry =>
+                            `  <entry name="${entry.name}" type="${entry.isFile ? 'file' : entry.isDirectory ? 'directory' : 'unknown'} />`,
+                    )
+                    .join('\n')}\n</directory>`,
+            )
         } else {
             payloads.push(`Failed to load the entries of directory "${path}": ${entries.error}`)
         }
     }
+
+    teaserFilePaths
+        .map(f => f.path)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(p => {
+            payloads.push(
+                `The contents of file "${p}" has been omitted from this message. The current contents of the file will occur in full later.`,
+            )
+        })
+
+    teaserDirectoryPaths
+        .map(d => d.path)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(p => {
+            payloads.push(
+                `The entries of directory "${p}" have been omitted from this message. The current entries of the directory will occur in full later.`,
+            )
+        })
 
     return {
         id: uuidv4(),
@@ -186,44 +288,6 @@ function includedByAppliedStash(inclusionReasons: InclusionReason[], metaMessage
     return inclusionReasons.some(reason => reason.type === 'stash_applied' && reason.metaMessageId === metaMessageId)
 }
 
-export function shouldIncludeFile(file: ContextFile, visibleToolUses: string[]): boolean {
-    return shouldInclude(file.inclusionReasons, visibleToolUses)
-}
-
-function shouldIncludeDirectory(directory: ContextDirectory, visibleToolUses: string[]): boolean {
-    return shouldInclude(directory.inclusionReasons, visibleToolUses)
-}
-
-function shouldInclude(reasons: InclusionReason[], visibleToolUses: string[]): boolean {
-    for (const reason of reasons) {
-        switch (reason.type) {
-            case 'explicit':
-            case 'stash_applied':
-                return true
-
-            case 'tool_use':
-                // If we ONLY write to a file we don't need to include it. We only want to include
-                // a file if it's explicitly read by a tool. We keep the 'write' tool use class to
-                // ensure that we always include the file contents after the last modification so
-                // the assistant doesn't get confused about the current state of the contents.
-                if (reason.toolUseClass === 'read' && visibleToolUses.includes(reason.toolUseId)) {
-                    return true
-                }
-
-                break
-
-            case 'editor':
-                if (reason.currentlyOpen) {
-                    return true
-                }
-
-                break
-        }
-    }
-
-    return false
-}
-
 //
 //
 
@@ -244,5 +308,32 @@ function createStashAppliedMessage({ path }: ApplyStashMessage): UserMessage {
     return {
         type: 'text',
         content: `Wrote a stashed version of "${path}" to disk.`,
+    }
+}
+
+function createTodoMessage(todos: TodoItem[]): Message {
+    const pendingTodos = todos.filter(todo => todo.status === 'pending')
+    const completedTodos = todos.filter(todo => todo.status === 'completed')
+    const canceledTodos = todos.filter(todo => todo.status === 'canceled')
+
+    const todoElements: string[] = []
+
+    pendingTodos.forEach(todo => {
+        todoElements.push(`  <todo id="${todo.id}" status="pending">${todo.description}</todo>`)
+    })
+
+    completedTodos.forEach(todo => {
+        todoElements.push(`  <todo id="${todo.id}" status="completed">${todo.description}</todo>`)
+    })
+
+    canceledTodos.forEach(todo => {
+        todoElements.push(`  <todo id="${todo.id}" status="canceled">${todo.description}</todo>`)
+    })
+
+    return {
+        id: uuidv4(),
+        role: 'user',
+        type: 'text',
+        content: `There are pending tasks remaining.\n\n<todos>\n${todoElements.join('\n')}\n</todos>`,
     }
 }

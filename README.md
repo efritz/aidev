@@ -104,7 +104,8 @@ Tools available to the LLMs:
 - `read_files`: Reads the contents of files into the conversation.
 - `write_file`: Writes contents to a file.
 - `edit_file`: Modifies the contents of an existing file.
-- `search_workspace`: Searches a local embeddings index for files closely related to an arbitrary query.
+- `search_workspace_embeddings`: Searches a local embeddings index for files closely related to an arbitrary query.
+- `search_workspace_ripgrep`: Searches the workspace using ripgrep for files containing the input query.
 - `search_web`: Uses the Brave Search API to search the web. Add a `brave.key` alongside provider keys to enable.
 - `read_web`: Reads and summarizes the contents of a set of URLs.
 
@@ -116,8 +117,10 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:clear`: Clear all messages in the conversation.
 - `:continue`: Re-prompt the model without a user message.
 - `:cost`: Show token counts of calls to remote LLM APIs in this conversation.
+- `:dump`: Dump all context file contents to disk.
 - `:exit`: Exit the conversation.
 - `:help`: Display available commands.
+- `:index`: Update the semantic index for the current workspace.
 - `:load <patterns, ...>`: Load file contents into the conversation.
 - `:loaddir <patterns, ...>`: Load directory entries into the conversation.
 - `:model <model>`: Change the model backing the assistant.

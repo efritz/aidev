@@ -11,10 +11,21 @@ import {
     Uri,
     workspace,
 } from 'vscode'
-import { JSONSchemaDataType } from '../../../../tools/tool'
+import { z } from 'zod'
 import { createResource } from '../../../tools/resource'
 import { ExecutionContext } from '../context'
 import { Tool } from '../tool'
+
+const LangserverSchema = z.object({
+    sourceSymbolName: z.string().describe('The name of the symbol to query.'),
+    sourceFilePath: z.string().describe('The absolute path of the file containing the source symbol to query.'),
+    includeHoverText: z.boolean().default(false).describe('Whether to include hover text in the result'),
+    includeDefinitions: z.boolean().default(false).describe('Whether to include definitions in the result'),
+    includeReferences: z.boolean().default(false).describe('Whether to include references in the result'),
+    includeImplementations: z.boolean().default(false).describe('Whether to include implementations in the result'),
+})
+
+type LangserverArguments = z.infer<typeof LangserverSchema>
 
 export const langServer: Tool = {
     name: 'langserver',
@@ -23,46 +34,18 @@ export const langServer: Tool = {
         'Query response may include hover text, definitions, references, and implementations for a particular symbol reference.',
         'Prefer using this tool for precise code navigation over filesystem tools.',
     ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            sourceSymbolName: {
-                type: JSONSchemaDataType.String,
-                description: 'The name of the symbol to query.',
-            },
-            sourceFilePath: {
-                type: JSONSchemaDataType.String,
-                description: 'The absolute path of the file containing the source symbol to query.',
-            },
-            includeHoverText: {
-                type: JSONSchemaDataType.Boolean,
-                description: 'Whether to include hover text in the result',
-            },
-            includeDefinitions: {
-                type: JSONSchemaDataType.Boolean,
-                description: 'Whether to include definitions in the result',
-            },
-            includeReferences: {
-                type: JSONSchemaDataType.Boolean,
-                description: 'Whether to include references in the result',
-            },
-            includeImplementations: {
-                type: JSONSchemaDataType.Boolean,
-                description: 'Whether to include hover text in the result',
-            },
-        },
-        required: ['sourceSymbolName', 'sourceFilePath'],
-    },
-    execute: async (_context: ExecutionContext, args: any): Promise<CallToolResult> => {
-        const {
+    schema: LangserverSchema,
+    execute: async (
+        _context: ExecutionContext,
+        {
             sourceSymbolName,
             sourceFilePath,
             includeHoverText,
             includeDefinitions,
             includeReferences,
             includeImplementations,
-        } = args
-
+        }: LangserverArguments,
+    ): Promise<CallToolResult> => {
         const document = await workspace.openTextDocument(sourceFilePath)
         const text = document.getText()
         const symbolPositions = findSymbolPositions(text, sourceSymbolName, document)

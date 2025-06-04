@@ -2,13 +2,13 @@ import { Dirent } from 'fs'
 import { readdir } from 'fs/promises'
 import { dirname } from 'path'
 import { FSWatcher } from 'chokidar'
+import { normalizeDirectoryPath } from '../util/fs/normalize'
 import { InclusionReason, updateInclusionReasons } from './reason'
-import { replaceMap } from './util'
 
 export type ContextDirectory = {
     path: string
     inclusionReasons: InclusionReason[]
-    entries: DirectoryEntry[] | { error: string }
+    entries: Promise<DirectoryEntry[] | { error: string }>
 }
 
 export type DirectoryEntry = {
@@ -20,78 +20,75 @@ export type DirectoryEntry = {
 export function createNewDirectoryManager(watcher: FSWatcher) {
     const _directories = new Map<string, ContextDirectory>()
 
-    const updateDirectory = async (path: string) => {
-        const directory = _directories.get(path)
-        if (!directory) {
-            return
-        }
-
+    const directoryContents = async (path: string): ContextDirectory['entries'] => {
         try {
-            directory.entries = (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
+            return (await readdir(path, { withFileTypes: true })).map((entry: Dirent) => ({
                 name: entry.name,
                 isFile: entry.isFile(),
                 isDirectory: entry.isDirectory(),
             }))
-        } catch (error: any) {
-            directory.entries = { error: `Error reading directory: ${error.message}` }
+        } catch (err: any) {
+            return { error: `Error reading directory: ${err.message}` }
         }
     }
 
-    watcher.on('all', async (event: string, path: string) =>
+    const updateDirectory = (path: string) => {
+        path = normalizeDirectoryPath(path)
+
+        const directory = _directories.get(path)
+        if (directory) {
+            directory.entries = directoryContents(path)
+        }
+    }
+
+    const updateAllDirectories = () => {
+        for (const [path, directory] of _directories.entries()) {
+            directory.entries = directoryContents(path)
+        }
+    }
+
+    watcher.on('all', (event: string, path: string) =>
         updateDirectory(['addDir', 'unlinkDir'].includes(event) ? path : dirname(path)),
     )
 
-    const getOrCreateDirectory = async (paths: string | string[]): Promise<ContextDirectory[]> => {
+    const getOrCreateDirectory = (paths: string[]): ContextDirectory[] => {
         const newPaths: string[] = []
-        const ps = await Promise.all(
-            (Array.isArray(paths) ? paths : [paths]).map(async path => {
-                const directory = _directories.get(path)
-                if (directory) {
-                    return directory
-                }
+        const directories = paths.map(path => {
+            const directory = _directories.get(path)
+            if (directory) {
+                directory.entries = directoryContents(path)
+                return directory
+            }
 
-                const newDirectory: ContextDirectory = {
-                    path,
-                    inclusionReasons: [],
-                    entries: { error: 'Directory not yet read' },
-                }
+            const newDirectory: ContextDirectory = {
+                path,
+                inclusionReasons: [],
+                entries: directoryContents(path),
+            }
 
-                _directories.set(path, newDirectory)
-                await updateDirectory(path)
-                newPaths.push(path)
-                return newDirectory
-            }),
-        )
+            _directories.set(path, newDirectory)
+            newPaths.push(path)
+            return newDirectory
+        })
 
         watcher.add(newPaths)
-        return ps
+        return directories
     }
 
     const directories = () => new Map(_directories)
-    const setDirectories = (newDirectories: Map<string, ContextDirectory>) => replaceMap(_directories, newDirectories)
 
-    const addDirectories = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
-        for (const directory of await getOrCreateDirectory(paths)) {
+    const addDirectories = (rawPaths: string | string[], reason: InclusionReason): void => {
+        const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths]
+
+        for (const directory of getOrCreateDirectory(paths)) {
             const { inclusionReasons } = directory
             updateInclusionReasons(inclusionReasons, reason)
         }
     }
 
-    const removeDirectory = (path: string): boolean => {
-        const directory = _directories.get(path)
-        if (!directory) {
-            return false
-        }
-
-        _directories.delete(path)
-        watcher.unwatch(path)
-        return true
-    }
-
     return {
         directories,
-        setDirectories,
         addDirectories,
-        removeDirectory,
+        updateAllDirectories,
     }
 }

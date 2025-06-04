@@ -1,83 +1,82 @@
 import { readFile } from 'fs/promises'
+import { dirname } from 'path'
 import { FSWatcher } from 'chokidar'
 import { InclusionReason, updateInclusionReasons } from './reason'
-import { replaceMap } from './util'
 
 export type ContextFile = {
     path: string
     inclusionReasons: InclusionReason[]
-    content: string | { error: string }
+    content: Promise<string | { error: string }>
 }
 
-export function createNewFileManager(watcher: FSWatcher) {
+export function createNewFileManager(
+    watcher: FSWatcher,
+    { addDirectories }: { addDirectories: (paths: string[], inclusionReason: InclusionReason) => void },
+) {
     const _files = new Map<string, ContextFile>()
 
-    const updateFile = async (path: string) => {
-        const file = _files.get(path)
-        if (!file) {
-            return
-        }
-
+    const fileContents = async (path: string): ContextFile['content'] => {
         try {
-            file.content = (await readFile(path, 'utf-8')).toString()
-        } catch (error: any) {
-            file.content = { error: `Error reading file: ${error.message}` }
+            return (await readFile(path, 'utf-8')).toString()
+        } catch (err: any) {
+            return { error: `Error reading file: ${err.message}` }
         }
     }
 
-    watcher.on('all', async (_event: string, path: string) => updateFile(path))
+    const updateFile = (path: string) => {
+        const file = _files.get(path)
+        if (file) {
+            file.content = fileContents(path)
+        }
+    }
 
-    const getOrCreateFiles = async (paths: string | string[]): Promise<ContextFile[]> => {
+    const updateAllFiles = () => {
+        for (const [path, file] of _files.entries()) {
+            file.content = fileContents(path)
+        }
+    }
+
+    watcher.on('all', (_event: string, path: string) => updateFile(path))
+
+    const getOrCreateFiles = (paths: string[]): ContextFile[] => {
         const newPaths: string[] = []
-        const ps = await Promise.all(
-            (Array.isArray(paths) ? paths : [paths]).map(async path => {
-                const file = _files.get(path)
-                if (file) {
-                    return file
-                }
+        const files = paths.map(path => {
+            const file = _files.get(path)
+            if (file) {
+                file.content = fileContents(path)
+                return file
+            }
 
-                const newFile: ContextFile = {
-                    path,
-                    inclusionReasons: [],
-                    content: { error: 'File not yet read' },
-                }
+            const newFile: ContextFile = {
+                path,
+                inclusionReasons: [],
+                content: fileContents(path),
+            }
 
-                _files.set(path, newFile)
-                await updateFile(path)
-                newPaths.push(path)
-                return newFile
-            }),
-        )
+            _files.set(path, newFile)
+            newPaths.push(path)
+            return newFile
+        })
 
         watcher.add(newPaths)
-        return ps
+        return files
     }
 
     const files = () => new Map(_files)
-    const setFiles = (newFiles: Map<string, ContextFile>) => replaceMap(_files, newFiles)
 
-    const addFiles = async (paths: string | string[], reason: InclusionReason): Promise<void> => {
-        for (const file of await getOrCreateFiles(paths)) {
+    const addFiles = (rawPaths: string | string[], reason: InclusionReason): void => {
+        const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths]
+        addDirectories(Array.from(new Set(paths.map(path => dirname(path)))), reason)
+
+        for (const file of getOrCreateFiles(paths)) {
             const { inclusionReasons } = file
             updateInclusionReasons(inclusionReasons, reason)
         }
     }
 
-    const removeFile = (path: string): boolean => {
-        const file = _files.get(path)
-        if (!file) {
-            return false
-        }
-
-        _files.delete(path)
-        watcher.unwatch(path)
-        return true
-    }
-
     return {
         files,
-        setFiles,
         addFiles,
-        removeFile,
+        updateAllFiles,
     }
 }

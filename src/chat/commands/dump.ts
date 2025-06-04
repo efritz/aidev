@@ -1,7 +1,7 @@
 import { writeFile } from 'fs/promises'
 import chalk from 'chalk'
 import * as ncp from 'copy-paste'
-import { ContextStateManager } from '../../context/state'
+import { getActiveFiles } from '../../context/content'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
 
@@ -30,7 +30,7 @@ async function handleDump(context: ChatContext, args: string) {
         useClipboard = true
     }
 
-    const output = serialize(context.contextStateManager)
+    const output = await serialize(context)
 
     if (useClipboard) {
         await new Promise<void>((resolve, reject) => {
@@ -52,11 +52,11 @@ async function handleDump(context: ChatContext, args: string) {
     console.log(`Context contents dumped to ${filename}\n`)
 }
 
-function serialize(contextStateManager: ContextStateManager): string {
+async function serialize(context: ChatContext): Promise<string> {
     let output = '<files>\n'
 
-    for (const [path, contextFile] of contextStateManager.files()) {
-        output += `<file path="${path}">\n${contextFile.content}</file>\n\n`
+    for (const file of getActiveFiles(context.provider.conversationManager, context.contextStateManager)) {
+        output += `<file path="${file.path}">\n${await file.content}</file>\n\n`
     }
 
     output += '</files>\n'

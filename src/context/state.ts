@@ -9,12 +9,10 @@ export type ContextStateManager = FileManager & DirectoryManager & { dispose: ()
 
 export async function createContextState(): Promise<ContextStateManager> {
     const { watcher, dispose } = createNewFileWatcher(await createIgnoredPathFilterer())
+    const directoryManager = createNewDirectoryManager(watcher)
+    const fileManager = createNewFileManager(watcher, directoryManager)
 
-    return {
-        dispose,
-        ...createNewFileManager(watcher),
-        ...createNewDirectoryManager(watcher),
-    }
+    return { dispose, ...fileManager, ...directoryManager }
 }
 
 export type ContextState = Pick<ContextStateManager, 'files' | 'directories'>
