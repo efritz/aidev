@@ -82,6 +82,50 @@ describe('extractCodeMatches', async () => {
             { name: 'do', type: 'named-func-expr', content: match('do: func() error {...}') },
         ])
     })
+
+    it('extracts java code chunks', async () => {
+        await testLanguageExtraction('java', 'example.java', [
+            // Captures classes
+            { name: 'Example', type: 'class', content: match('class Example {...}') },
+            { name: 'AnotherExample', type: 'class', content: match('class AnotherExample {...}') },
+            { name: 'InnerExample', type: 'class', content: match('class InnerExample {...}') },
+
+            // Captures interfaces
+            { name: 'ExampleListener', type: 'interface', content: match('interface ExampleListener {...}') },
+            { name: 'Processor', type: 'interface', content: match('interface Processor {...}') },
+
+            // Captures enums
+            { name: 'Status', type: 'enum', content: match('enum Status {...}') },
+            { name: 'Priority', type: 'enum', content: match('enum Priority {...}') },
+
+            // Captures fields
+            { name: 'field1', type: 'field', content: match('int field1 = 100') },
+            { name: 'field2', type: 'field', content: match('String field2 = "test"') },
+            { name: 'PI', type: 'field', content: match('double PI = 3.14159') },
+            { name: 'items', type: 'field', content: match('List<String> items') },
+            { name: 'innerField', type: 'field', content: match('String innerField') },
+            { name: 'description', type: 'field', content: match('String description') },
+            { name: 'value', type: 'field', content: match('int value') },
+            { name: 'VERSION', type: 'field', content: match('String VERSION = "1.0"') },
+
+            // Captures methods
+            { name: 'addItem', type: 'method', content: match('void addItem(String item) {...}') },
+            { name: 'getFirstItem', type: 'method', content: match('String getFirstItem() {...}') },
+            { name: 'calculateSum', type: 'method', content: match('static int calculateSum(int a, int b) {...}') },
+            { name: 'processItems', type: 'method', content: match('void processItems() {...}') },
+            { name: 'getInnerField', type: 'method', content: match('String getInnerField() {...}') },
+            { name: 'getDescription', type: 'method', content: match('String getDescription() {...}') },
+            { name: 'setDescription', type: 'method', content: match('void setDescription(String description) {...}') },
+            { name: 'getValue', type: 'method', content: match('int getValue() {...}') },
+            { name: 'process', type: 'method', content: match('void process(String input)') },
+            { name: 'getResult', type: 'method', content: match('String getResult()') },
+
+            // Captures constructors
+            { name: 'Example', type: 'constructor', content: match('Example() {...}') },
+            { name: 'InnerExample', type: 'constructor', content: match('InnerExample(String value) {...}') },
+            { name: 'AnotherExample', type: 'constructor', content: match('AnotherExample(int value) {...}') },
+        ])
+    })
 })
 
 type ExpectedBlock = {
