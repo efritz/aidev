@@ -305,41 +305,76 @@ async function runInDocker(options: any) {
     console.log('docker', dockerArgs.join(' '))
     console.log()
 
-    const dockerProcess = spawn('docker', dockerArgs, { stdio: 'inherit' })
+    const dockerProcess = spawn('docker', dockerArgs, { 
+        stdio: 'inherit',
+        // Ensure we can see all output immediately
+        env: { ...process.env, FORCE_COLOR: '1' }
+    })
 
-    setInterval(() => console.log('hi...\n'), 1000)
+    // Remove the setInterval that was potentially interfering with output
+    // setInterval(() => console.log('hi...\n'), 1000)
 
     // Wrap the child process in a Promise to properly await completion
     const dockerPromise = new Promise<number>((resolve, reject) => {
+        let hasResolved = false
+
         dockerProcess.on('error', error => {
             console.error('Docker process error:', error)
-            reject(error)
+            if (!hasResolved) {
+                hasResolved = true
+                reject(error)
+            }
         })
 
         dockerProcess.on('close', (code, signal) => {
             console.log(`Docker container exited with code ${code}, signal ${signal}`)
-            resolve(code || 0)
+            if (!hasResolved) {
+                hasResolved = true
+                resolve(code || 0)
+            }
+        })
+
+        dockerProcess.on('exit', (code, signal) => {
+            console.log(`Docker process exited with code ${code}, signal ${signal}`)
+            if (!hasResolved) {
+                hasResolved = true
+                resolve(code || 0)
+            }
         })
     })
 
+    let isCleaningUp = false
     const cleanup = () => {
-        dockerProcess.kill('SIGTERM')
+        if (isCleaningUp) return
+        isCleaningUp = true
+        
+        console.log('Cleaning up Docker process...')
+        if (!dockerProcess.killed) {
+            dockerProcess.kill('SIGTERM')
 
-        setTimeout(() => {
-            if (!dockerProcess.killed) {
-                dockerProcess.kill('SIGKILL')
-            }
-        }, 5000)
+            setTimeout(() => {
+                if (!dockerProcess.killed) {
+                    console.log('Force killing Docker process...')
+                    dockerProcess.kill('SIGKILL')
+                }
+            }, 5000)
+        }
     }
 
-    for (const signal of ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGKILL']) {
+    // Only handle SIGINT and SIGTERM for graceful shutdown
+    for (const signal of ['SIGINT', 'SIGTERM']) {
         process.on(signal, cleanup)
     }
 
-    console.log('waiting')
-    const code = await dockerPromise
-    console.log({ code })
-    process.exit(code)
+    try {
+        console.log('Waiting for Docker container to complete...')
+        const code = await dockerPromise
+        console.log(`Docker completed with exit code: ${code}`)
+        process.exit(code)
+    } catch (error) {
+        console.error('Docker execution failed:', error)
+        process.exit(1)
+    }
 }
 
 const dockerImage = 'aidev:latest'
