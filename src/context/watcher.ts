@@ -5,6 +5,7 @@ export function createNewFileWatcher(pathFilterer: (path: string) => boolean): {
     dispose: () => void
 } {
     const watcher = chokidar.watch([], {
+        depth: 1,
         persistent: true,
         ignoreInitial: false,
         ignored: path => !pathFilterer(path),

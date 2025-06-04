@@ -1,10 +1,14 @@
 import { ChatCompletionChunk } from 'groq-sdk/resources/chat/completions'
 import { AssistantMessage } from '../../messages/messages'
+import { createEventLogger } from '../../util/log/event_logger'
 import { ModelTracker } from '../../util/usage/tracker'
 import { Reducer } from '../reducer'
 
+const eventLogger = createEventLogger('GROQ_EVENT_LOG_FILE')
+
 export function createStreamReducer(tracker: ModelTracker): Reducer<ChatCompletionChunk> {
     const messages: AssistantMessage[] = []
+    eventLogger.logEvent({ type: 'stream_created' })
 
     const handleTextChunk = (content: string) => {
         const last = messages[messages.length - 1]
@@ -43,6 +47,8 @@ export function createStreamReducer(tracker: ModelTracker): Reducer<ChatCompleti
     }
 
     const handleEvent = (message: ChatCompletionChunk) => {
+        eventLogger.logEvent(message)
+
         const usage = message.x_groq?.usage
         if (usage) {
             tracker.add({ inputTokens: usage.prompt_tokens, outputTokens: usage.completion_time })

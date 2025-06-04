@@ -1,12 +1,19 @@
 import chalk from 'chalk'
+import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { indexWorkspace, isIndexUpToDate } from '../../indexing'
 import { queryWorkspace } from '../../indexing/query'
-import { Arguments, ExecutionResult, JSONSchemaDataType, Tool, ToolResult } from '../tool'
+import { ExecutionResult, Tool, ToolResult } from '../tool'
 
 let alwaysRefreshWorkspaceIndex = false
 
-type SearchResult = {
+const SearchWorkspaceEmbeddingsSchema = z.object({
+    query: z.string().describe('The input embeddings search query.'),
+})
+
+type SearchWorkspaceEmbeddingsArguments = z.infer<typeof SearchWorkspaceEmbeddingsSchema>
+
+type SearchWorkspaceEmbeddingsResult = {
     matches: Match[]
 }
 
@@ -15,95 +22,88 @@ type Match = {
     names?: string[]
 }
 
-export const searchWorkspaceEmbeddings: Tool<SearchResult> = {
-    name: 'search_workspace_embeddings',
-    description: [
-        'Use an embeddings index of the current workspace to find matching content against an input query.',
-        'The tool result will contain a set of filenames matching the input query.',
-        'For source code files, the result will also contain the names of the relevant components from the matching file.',
-    ].join(' '),
-    parameters: {
-        type: JSONSchemaDataType.Object,
-        properties: {
-            query: {
-                type: JSONSchemaDataType.String,
-                description: 'The input embeddings search query.',
-            },
+export const searchWorkspaceEmbeddings: Tool<typeof SearchWorkspaceEmbeddingsSchema, SearchWorkspaceEmbeddingsResult> =
+    {
+        name: 'search_workspace_embeddings',
+        description: [
+            'Use an embeddings index of the current workspace to find matching content against an input query.',
+            'The tool result will contain a set of filenames matching the input query.',
+            'For source code files, the result will also contain the names of the relevant components from the matching file.',
+        ].join(' '),
+        schema: SearchWorkspaceEmbeddingsSchema,
+        enabled: true,
+        replay: (
+            { query }: SearchWorkspaceEmbeddingsArguments,
+            { result }: ToolResult<SearchWorkspaceEmbeddingsResult>,
+        ) => {
+            console.log(`${chalk.dim('ℹ')} Queried workspace embeddings index for "${query}".`)
+            console.log()
+            displayMatches(result?.matches ?? [])
         },
-        required: ['query'],
-    },
-    enabled: true,
-    replay: (args: Arguments, { result }: ToolResult<SearchResult>) => {
-        const { query } = args as { query: string }
-        console.log(`${chalk.dim('ℹ')} Queried workspace embeddings index for "${query}".`)
-        console.log()
-        displayMatches(result?.matches ?? [])
-    },
-    execute: async (
-        context: ChatContext,
-        toolUseId: string,
-        args: Arguments,
-    ): Promise<ExecutionResult<SearchResult>> => {
-        if (!toolUseId) {
-            throw new Error('No ToolUseId supplied.')
-        }
+        execute: async (
+            context: ChatContext,
+            toolUseId: string,
+            { query }: SearchWorkspaceEmbeddingsArguments,
+        ): Promise<ExecutionResult<SearchWorkspaceEmbeddingsResult>> => {
+            if (!toolUseId) {
+                throw new Error('No ToolUseId supplied.')
+            }
 
-        const { query } = args as { query: string }
-        console.log(`${chalk.dim('ℹ')} Querying workspace embeddings index for "${query}"...`)
-        console.log()
+            console.log(`${chalk.dim('ℹ')} Querying workspace embeddings index for "${query}"...`)
+            console.log()
 
-        if (!(await isIndexUpToDate(context))) {
-            if (alwaysRefreshWorkspaceIndex) {
-                await indexWorkspace(context)
-            } else {
-                console.log(chalk.red.bold('Workspace index is stale.'))
+            if (!(await isIndexUpToDate(context))) {
+                if (alwaysRefreshWorkspaceIndex) {
+                    await indexWorkspace(context)
+                } else {
+                    console.log(chalk.red.bold('Workspace index is stale.'))
 
-                const choice = await context.prompter.choice(`Update workspace index?`, [
-                    { name: 'y', description: 'yes' },
-                    { name: 'n', description: 'no', isDefault: true },
-                    { name: 'a', description: 'automatically refresh workspace index when stale for this session' },
-                ])
+                    const choice = await context.prompter.choice(`Update workspace index?`, [
+                        { name: 'y', description: 'yes' },
+                        { name: 'n', description: 'no', isDefault: true },
+                        { name: 'a', description: 'automatically refresh workspace index when stale for this session' },
+                    ])
 
-                switch (choice) {
-                    // @ts-expect-error: intentional fallthrough
-                    case 'a':
-                        alwaysRefreshWorkspaceIndex = true
-                        console.log(`${chalk.green('✓')} Automatic index refreshes enabled for this session`)
+                    switch (choice) {
+                        // @ts-expect-error: intentional fallthrough
+                        case 'a':
+                            alwaysRefreshWorkspaceIndex = true
+                            console.log(`${chalk.green('✓')} Automatic index refreshes enabled for this session`)
 
-                    case 'y':
-                        await indexWorkspace(context)
-                        break
+                        case 'y':
+                            await indexWorkspace(context)
+                            break
+                    }
                 }
             }
-        }
 
-        const protoMatches: {
-            filename: string
-            names: string[]
-        }[] = []
+            const protoMatches: {
+                filename: string
+                names: string[]
+            }[] = []
 
-        for (const chunk of await queryWorkspace(context, query)) {
-            let pair = protoMatches.find(t => t.filename === chunk.filename)
-            if (!pair) {
-                pair = { filename: chunk.filename, names: [] }
-                protoMatches.push(pair)
+            for (const chunk of await queryWorkspace(context, query)) {
+                let pair = protoMatches.find(t => t.filename === chunk.filename)
+                if (!pair) {
+                    pair = { filename: chunk.filename, names: [] }
+                    protoMatches.push(pair)
+                }
+
+                pair.names.push(chunk.name ?? '')
             }
 
-            pair.names.push(chunk.name ?? '')
-        }
+            const matches = protoMatches.map(({ filename, names }) => ({
+                filename,
+                names: !names.includes('') ? names : undefined,
+            }))
 
-        const matches = protoMatches.map(({ filename, names }) => ({
-            filename,
-            names: !names.includes('') ? names : undefined,
-        }))
+            displayMatches(matches)
+            console.log()
 
-        displayMatches(matches)
-        console.log()
-
-        return { result: { matches }, reprompt: true }
-    },
-    serialize: ({ result }: ToolResult<SearchResult>) => ({ result: { paths: result ?? [] } }),
-}
+            return { result: { matches }, reprompt: true }
+        },
+        serialize: ({ result }: ToolResult<SearchWorkspaceEmbeddingsResult>) => ({ result: { paths: result ?? [] } }),
+    }
 
 function displayMatches(matches: Match[]) {
     if (matches.length === 0) {

@@ -19,7 +19,6 @@ import { removeCommand } from './commands/remove'
 import { renameCommand } from './commands/rename'
 import { rollbackCommand } from './commands/rollback'
 import { saveCommand } from './commands/save'
-import { saveProviderCommand } from './commands/save_provider'
 import { savepointCommand } from './commands/savepoint'
 import { shellCommand } from './commands/shell'
 import { statusCommand } from './commands/status'
@@ -50,7 +49,6 @@ export const commands: CommandDescription[] = [
     rollbackCommand,
     saveCommand,
     savepointCommand,
-    saveProviderCommand,
     shellCommand,
     statusCommand,
     switchCommand,

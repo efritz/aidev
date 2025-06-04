@@ -1,7 +1,7 @@
 import { writeFile } from 'fs/promises'
 import chalk from 'chalk'
 import * as ncp from 'copy-paste'
-import { getActiveFiles } from '../../context/conversation'
+import { getActiveFiles } from '../../context/content'
 import { CommandDescription } from '../command'
 import { ChatContext } from '../context'
 

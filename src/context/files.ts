@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises'
+import { dirname } from 'path'
 import { FSWatcher } from 'chokidar'
 import { InclusionReason, updateInclusionReasons } from './reason'
 
@@ -8,7 +9,10 @@ export type ContextFile = {
     content: Promise<string | { error: string }>
 }
 
-export function createNewFileManager(watcher: FSWatcher) {
+export function createNewFileManager(
+    watcher: FSWatcher,
+    { addDirectories }: { addDirectories: (paths: string[], inclusionReason: InclusionReason) => void },
+) {
     const _files = new Map<string, ContextFile>()
 
     const fileContents = async (path: string): ContextFile['content'] => {
@@ -21,20 +25,25 @@ export function createNewFileManager(watcher: FSWatcher) {
 
     const updateFile = (path: string) => {
         const file = _files.get(path)
-        if (!file) {
-            return
+        if (file) {
+            file.content = fileContents(path)
         }
+    }
 
-        file.content = fileContents(path)
+    const updateAllFiles = () => {
+        for (const [path, file] of _files.entries()) {
+            file.content = fileContents(path)
+        }
     }
 
     watcher.on('all', (_event: string, path: string) => updateFile(path))
 
-    const getOrCreateFiles = (paths: string | string[]): ContextFile[] => {
+    const getOrCreateFiles = (paths: string[]): ContextFile[] => {
         const newPaths: string[] = []
-        const files = (Array.isArray(paths) ? paths : [paths]).map(path => {
+        const files = paths.map(path => {
             const file = _files.get(path)
             if (file) {
+                file.content = fileContents(path)
                 return file
             }
 
@@ -55,27 +64,19 @@ export function createNewFileManager(watcher: FSWatcher) {
 
     const files = () => new Map(_files)
 
-    const addFiles = (paths: string | string[], reason: InclusionReason): void => {
+    const addFiles = (rawPaths: string | string[], reason: InclusionReason): void => {
+        const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths]
+        addDirectories(Array.from(new Set(paths.map(path => dirname(path)))), reason)
+
         for (const file of getOrCreateFiles(paths)) {
             const { inclusionReasons } = file
             updateInclusionReasons(inclusionReasons, reason)
         }
     }
 
-    const removeFile = (path: string): boolean => {
-        const file = _files.get(path)
-        if (!file) {
-            return false
-        }
-
-        _files.delete(path)
-        watcher.unwatch(path)
-        return true
-    }
-
     return {
         files,
         addFiles,
-        removeFile,
+        updateAllFiles,
     }
 }

@@ -59,6 +59,9 @@ export type MetaMessage =
     | LoadMessage
     | LoadDirMessage
     | UnloadMessage
+    | AddTodoMessage
+    | CompleteTodoMessage
+    | CancelTodoMessage
 
 export type UndoMessage = { type: 'undo' }
 export type RedoMessage = { type: 'redo' }
@@ -73,3 +76,6 @@ export type RuleMessage = { type: 'rule'; rules: Rule[] }
 export type LoadMessage = { type: 'load'; paths: string[] }
 export type LoadDirMessage = { type: 'loaddir'; paths: string[] }
 export type UnloadMessage = { type: 'unload'; paths: string[] }
+export type AddTodoMessage = { type: 'addTodo'; taskId: string; description: string }
+export type CompleteTodoMessage = { type: 'completeTodo'; taskId: string }
+export type CancelTodoMessage = { type: 'cancelTodo'; taskId: string }

@@ -1,11 +1,15 @@
 import { v4 as uuidv4 } from 'uuid'
-import { getActiveDirectories, getActiveFiles } from '../context/conversation'
+import { getActiveDirectories, getActiveFiles } from '../context/content'
 import { ContextDirectory } from '../context/directories'
 import { ContextFile } from '../context/files'
 import { InclusionReason } from '../context/reason'
 import { ContextState } from '../context/state'
+import { getActiveTodos, TodoItem } from '../context/todos'
 import { ApplyStashMessage, AssistantMessage, Message, RuleMessage, UserMessage } from '../messages/messages'
+import { createEventLogger } from '../util/log/event_logger'
 import { ConversationManager, createConversationManager } from './manager'
+
+const eventLogger = createEventLogger('PROVIDER_MESSAGES_LOG_FILE')
 
 export type Conversation<T> = ConversationManager & {
     providerMessages: () => Promise<T[]>
@@ -60,17 +64,18 @@ export function createConversation<T>({
 
                         case 'applyStash':
                             addMessages(userMessageToParam(createStashAppliedMessage(message)))
+                            break
                     }
+
+                    break
             }
         }
 
+        eventLogger.logEvent(providerMessages)
         return providerMessages
     }
 
-    return {
-        ...conversationManager,
-        providerMessages,
-    }
+    return { ...conversationManager, providerMessages }
 }
 
 //
@@ -93,6 +98,7 @@ async function injectContextMessages(
     const messages = conversationManager.visibleMessages()
     const files = getActiveFiles(conversationManager, contextState)
     const directories = getActiveDirectories(conversationManager, contextState)
+    const todos = getActiveTodos(messages)
 
     // This is a map from target position in the message list to the set of files and directories
     // that should be included (or mentioned) at that index. We'll build this up by iterating the
@@ -173,7 +179,7 @@ async function injectContextMessages(
     // the resulting list. We need to pad the initial list with a trailing undefined message so that
     // a context message after the last message has a place to be inserted. Lastly, undefined values
     // are filtered from the flattened result.
-    return (
+    const contextMessages = (
         await Promise.all(
             [...messages, undefined].map(async (message, index) => [
                 await createContextMessage(contextByIndex.get(index) ?? {}),
@@ -183,6 +189,13 @@ async function injectContextMessages(
     )
         .flat()
         .filter(message => !!message)
+
+    // Add a summary of todos at the end
+    if (todos.length > 0) {
+        contextMessages.push(createTodoMessage(todos))
+    }
+
+    return contextMessages
 }
 
 async function createContextMessage({
@@ -295,5 +308,32 @@ function createStashAppliedMessage({ path }: ApplyStashMessage): UserMessage {
     return {
         type: 'text',
         content: `Wrote a stashed version of "${path}" to disk.`,
+    }
+}
+
+function createTodoMessage(todos: TodoItem[]): Message {
+    const pendingTodos = todos.filter(todo => todo.status === 'pending')
+    const completedTodos = todos.filter(todo => todo.status === 'completed')
+    const canceledTodos = todos.filter(todo => todo.status === 'canceled')
+
+    const todoElements: string[] = []
+
+    pendingTodos.forEach(todo => {
+        todoElements.push(`  <todo id="${todo.id}" status="pending">${todo.description}</todo>`)
+    })
+
+    completedTodos.forEach(todo => {
+        todoElements.push(`  <todo id="${todo.id}" status="completed">${todo.description}</todo>`)
+    })
+
+    canceledTodos.forEach(todo => {
+        todoElements.push(`  <todo id="${todo.id}" status="canceled">${todo.description}</todo>`)
+    })
+
+    return {
+        id: uuidv4(),
+        role: 'user',
+        type: 'text',
+        content: `There are pending tasks remaining.\n\n<todos>\n${todoElements.join('\n')}\n</todos>`,
     }
 }
