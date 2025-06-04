@@ -70,14 +70,14 @@ export const editFile: Tool<EditResult> = {
             console.log(chalk.bold.red(error))
             console.log()
         } else {
-            const { path, edits: proposedEdits } = safeInterpretParameters(args)
+            const { path, edits: proposedEdits } = args as { path: string; edits: Edit[] }
             const contents = applyEdits(result.originalContents, result.userEdits ?? proposedEdits, path)
             const proposedContents = applyEdits(result.originalContents, proposedEdits, path)
             replayWriteFile({ ...result, path, contents, proposedContents, error, canceled })
         }
     },
     execute: async (context: ChatContext, toolUseId: string, args: Arguments): Promise<ExecutionResult<EditResult>> => {
-        const { path, edits } = safeInterpretParameters(args)
+        const { path, edits } = args as { path: string; edits: Edit[] }
         const originalContents = await safeReadFile(path)
         const contents = applyEdits(originalContents, edits, path)
         const result = await executeWriteFile({ ...context, path, contents, originalContents, yolo: context.yolo })
@@ -282,27 +282,3 @@ function countOccurrences(content: string, search: string): number {
 }
 
 const formatCodeFence = (content: string): string => '```\n' + content + '\n```'
-
-const safeInterpretParameters = (args: Arguments): { path: string; edits: Edit[] } => {
-    const { path, edits } = args as { path: string; edits: Edit[] | string }
-
-    if (typeof edits === 'string') {
-        // Try to strip XML control sequences from the tail of the string.
-        // For example, Claude sometimes leaks `</invoke>` after an otherwise valid JSON object.
-        const stripped = edits.replace(/<\/[^>]+>$/, '')
-
-        try {
-            return { path, edits: JSON.parse(stripped) }
-        } catch (error) {
-            throw new Error(
-                [
-                    'Unable to interpret "edits" parameter as a valid JSON object.',
-                    formatCodeFence(stripped),
-                    error,
-                ].join('\n\n'),
-            )
-        }
-    }
-
-    return { path, edits }
-}
