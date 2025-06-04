@@ -1,5 +1,6 @@
 import { exec, spawn } from 'child_process'
 import EventEmitter from 'events'
+import { dirname } from 'node:path'
 import { Transform, TransformCallback } from 'node:stream'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
@@ -59,7 +60,7 @@ async function main() {
         'Skip user confirmation for potentially dangerous operations like file writing and shell execution.'
 
     const dockerFlags = '--docker'
-    const dockerDescription = 'Run in a Docker container with the current workspace copied into it.'
+    const dockerDescription = 'Run in a Docker container with the current workspace mounted into it.'
 
     program
         .option(historyFlags, historyDescription)
@@ -75,6 +76,9 @@ async function main() {
                 }
                 if (!options.yolo) {
                     throw new Error('The --yolo option is required when using --docker.')
+                }
+                if (options.port) {
+                    throw new Error('The --port option is not supported when using --docker.')
                 }
 
                 runInDocker(options)
@@ -291,65 +295,45 @@ function attentionGetter(command: string): () => void {
     }
 }
 
-/**
- * Runs the CLI in a Docker container with the current workspace copied into it
- */
 function runInDocker(options: any) {
-    const currentDir = process.cwd()
-    const dockerImage = 'aidev'
-    const containerWorkDir = '/workspace'
-
-    // Find the aidev root directory (where package.json is located)
-    const scriptDir = __dirname
-    const aidevRootDir = scriptDir.substring(0, scriptDir.indexOf('/src'))
-
-    // Build the Docker command to run the CLI
-    const dockerArgs = ['run', '--rm', '-it']
-
-    // Mount the target workspace (current dir or --cwd) as /workspace
-    const targetDir = options.cwd || currentDir
-    dockerArgs.push('-v', `${targetDir}:${containerWorkDir}`)
-
-    // Mount only necessary source code and config files (excluding node_modules) as read-only
-    dockerArgs.push('-v', `${aidevRootDir}/src:/aidev/src:ro`)
-    dockerArgs.push('-v', `${aidevRootDir}/configs:/aidev/configs:ro`)
-    dockerArgs.push('-v', `${aidevRootDir}/scripts:/aidev/scripts:ro`) // Include scripts directory
-
-    // Mount API keys directory as read-only
-
-    dockerArgs.push('-v', `${keyDir()}:/root/.config/aidev/keys:ro`)
-    dockerArgs.push('-v', `${preferencesDir()}:/root/.config/aidev/preferences:ro`)
-
-    dockerArgs.push('-e', 'AIDEV_KEY_DIR=/root/.config/aidev/keys')
-    dockerArgs.push('-e', 'AIDEV_PREFERENCES_DIR=/root/.config/aidev/preferences')
-
-    // Set the working directory inside the container
-    dockerArgs.push('-w', containerWorkDir)
-
-    // Forward all CLI options to the container command, except --docker itself
-    const cliArgs = ['bun', '/aidev/src/cli.ts']
-
-    if (options.history) cliArgs.push('--history', options.history)
-    if (options.port) cliArgs.push('--port', options.port.toString())
-    if (options.cwd) cliArgs.push('--cwd', '/workspace')
-    if (options.oneShot) cliArgs.push('--one-shot', options.oneShot)
-    if (options.yolo) cliArgs.push('--yolo')
-
-    console.log(`Starting aidev in Docker container using image ${dockerImage}...`)
-    console.log(`Mounting target directory ${targetDir} to ${containerWorkDir}`)
-    console.log(`Mounting aidev source code from ${aidevRootDir}/src to /aidev/src (read-only)`)
-    console.log(`Mounting API keys from ${keyDir} to /root/.config/aidev/keys (read-only)`)
-
-    // Execute the Docker command
-    const dockerProcess = spawn('docker', dockerArgs.concat(dockerImage, ...cliArgs), {
-        stdio: 'inherit',
-    })
-
-    // Handle process exit
-    dockerProcess.on('close', code => {
+    spawn('docker', buildDockerArgs(options), { stdio: 'inherit' }).on('close', code => {
         console.log(`Docker container exited with code ${code}`)
         process.exit(code || 0)
     })
+}
+
+const dockerImage = 'aidev:latest'
+const containerAidevDir = '/aidev'
+const containerConfigDir = '/root/.config/aidev'
+const containerWorkspace = '/workspace'
+const containerKeyDir = `${containerConfigDir}/keys`
+const containerPreferencesDir = `${containerConfigDir}/preferences`
+const implicitAidevArgs = ['--one-shot', '--yolo']
+
+function buildDockerArgs(options: any) {
+    const hostAidevDir = dirname(__dirname)
+    const hostWorkspace = options.cwd || process.cwd()
+
+    const dockerArgs = [
+        '--rm',
+        '-it',
+        ...['-v', `${hostWorkspace}:${containerWorkspace}:rw`],
+        ...['-v', `${hostAidevDir}:${containerAidevDir}:ro`],
+        ...['-v', `${keyDir()}:${containerKeyDir}:ro`],
+        ...['-v', `${preferencesDir()}:${containerPreferencesDir}:ro`],
+        ...['-e', `AIDEV_KEY_DIR=${containerKeyDir}`],
+        ...['-e', `AIDEV_PREFERENCES_DIR=${containerPreferencesDir}`],
+    ]
+
+    const aidevArgs = [
+        ...implicitAidevArgs,
+        ...['--cwd', containerWorkspace],
+        ...(options.history ? ['--history', options.history] : []),
+    ]
+
+    const x = ['run', ...dockerArgs, dockerImage, '--', 'bun', `${containerAidevDir}/src/cli.ts`, ...aidevArgs]
+    console.log({ x })
+    return x
 }
 
 main()
