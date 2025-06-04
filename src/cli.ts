@@ -81,7 +81,10 @@ async function main() {
                     throw new Error('The --port option is not supported when using --docker.')
                 }
 
-                runInDocker(options)
+                runInDocker(options).catch(error => {
+                    console.error('Error running in Docker:', error)
+                    process.exit(1)
+                })
             } else {
                 if (options.cwd) {
                     process.chdir(options.cwd)
@@ -295,11 +298,48 @@ function attentionGetter(command: string): () => void {
     }
 }
 
-function runInDocker(options: any) {
-    spawn('docker', buildDockerArgs(options), { stdio: 'inherit' }).on('close', code => {
-        console.log(`Docker container exited with code ${code}`)
-        process.exit(code || 0)
+async function runInDocker(options: any) {
+    const dockerArgs = buildDockerArgs(options)
+
+    console.log('Starting Docker container with args:')
+    console.log('docker', dockerArgs.join(' '))
+    console.log()
+
+    const dockerProcess = spawn('docker', dockerArgs, { stdio: 'inherit' })
+
+    setInterval(() => console.log('hi...\n'), 1000)
+
+    // Wrap the child process in a Promise to properly await completion
+    const dockerPromise = new Promise<number>((resolve, reject) => {
+        dockerProcess.on('error', error => {
+            console.error('Docker process error:', error)
+            reject(error)
+        })
+
+        dockerProcess.on('close', (code, signal) => {
+            console.log(`Docker container exited with code ${code}, signal ${signal}`)
+            resolve(code || 0)
+        })
     })
+
+    const cleanup = () => {
+        dockerProcess.kill('SIGTERM')
+
+        setTimeout(() => {
+            if (!dockerProcess.killed) {
+                dockerProcess.kill('SIGKILL')
+            }
+        }, 5000)
+    }
+
+    for (const signal of ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGKILL']) {
+        process.on(signal, cleanup)
+    }
+
+    console.log('waiting')
+    const code = await dockerPromise
+    console.log({ code })
+    process.exit(code)
 }
 
 const dockerImage = 'aidev:latest'
