@@ -308,7 +308,6 @@ const containerConfigDir = '/root/.config/aidev'
 const containerWorkspace = '/workspace'
 const containerKeyDir = `${containerConfigDir}/keys`
 const containerPreferencesDir = `${containerConfigDir}/preferences`
-const implicitAidevArgs = ['--one-shot', '--yolo']
 
 function buildDockerArgs(options: any) {
     const hostAidevDir = dirname(__dirname)
@@ -326,14 +325,13 @@ function buildDockerArgs(options: any) {
     ]
 
     const aidevArgs = [
-        ...implicitAidevArgs,
+        ...['--one-shot', options.oneShot],
+        ...['--yolo'],
         ...['--cwd', containerWorkspace],
         ...(options.history ? ['--history', options.history] : []),
     ]
 
-    const x = ['run', ...dockerArgs, dockerImage, '--', 'bun', `${containerAidevDir}/src/cli.ts`, ...aidevArgs]
-    console.log({ x })
-    return x
+    return ['run', ...dockerArgs, dockerImage, '--', ...aidevArgs]
 }
 
 main()
