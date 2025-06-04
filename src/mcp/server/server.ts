@@ -11,6 +11,7 @@ import {
     Notification,
 } from '@modelcontextprotocol/sdk/types.js'
 import { OutputChannel } from 'vscode'
+import { toJsonSchema } from '../../tools/tool'
 import { executeTool, tools } from './tools/tools'
 
 const name = 'aidev-vscode-server'
@@ -35,10 +36,10 @@ export function createModelContextProtocolServer(
 
 function createListToolsHandler(): () => Promise<{ tools: McpTool[] }> {
     return async () => ({
-        tools: tools.map(({ name, description, parameters: params }) => ({
+        tools: tools.map(({ name, description, schema }) => ({
             name,
             description,
-            inputSchema: params,
+            inputSchema: toJsonSchema(schema),
         })),
     })
 }

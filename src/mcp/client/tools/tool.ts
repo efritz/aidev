@@ -2,6 +2,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol.js'
 import { CallToolRequest, CallToolResult, Tool as McpTool, Progress } from '@modelcontextprotocol/sdk/types.js'
 import chalk from 'chalk'
+import jsonSchemaToZod from 'json-schema-to-zod'
+import { z } from 'zod'
 import { ChatContext } from '../../../chat/context'
 import { ExecutionResult, Tool, ToolResult } from '../../../tools/tool'
 import { CancelError } from '../../../util/interrupts/interrupts'
@@ -11,9 +13,10 @@ import { progressToResult } from '../../tools/progress'
 import { serializeResult } from '../../tools/serialize'
 
 export type Factory = {
-    create(mcpTool: McpTool): Tool<Result>
+    create(mcpTool: McpTool): Tool<z.ZodObject<any>, Result>
 }
 
+type Arguments = { [x: string]: unknown } | undefined
 type Result = CallToolResult['content']
 
 export function createToolFactory(client: Client): Factory {
@@ -101,7 +104,7 @@ export function createToolFactory(client: Client): Factory {
         create: ({ name, description, inputSchema }) => ({
             name,
             description: description || '',
-            parameters: inputSchema as ParametersSchema,
+            schema: jsonSchemaToZod(inputSchema),
             enabled: true,
             replay: (args, result) => replay(name, args, result),
             execute: (context, _, args) => execute(context, name, args),

@@ -34,7 +34,6 @@ const EditFileSchema = z.object({
                     ),
                 isRegex: z
                     .boolean()
-                    .optional()
                     .default(false)
                     .describe(
                         [
