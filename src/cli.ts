@@ -1,4 +1,4 @@
-import { exec } from 'child_process'
+import { exec, spawn } from 'child_process'
 import EventEmitter from 'events'
 import { Transform, TransformCallback } from 'node:stream'
 import readline, { CompleterResult } from 'readline'
@@ -13,7 +13,8 @@ import { createClient, registerContextListeners } from './mcp/client/client'
 import { registerTools } from './mcp/client/tools/tools'
 import { ChatProviders, initChatProviders } from './providers/chat_providers'
 import { EmbeddingsProviders, initEmbeddingsProviders } from './providers/embeddings_providers'
-import { getPreferences, Preferences } from './providers/preferences'
+import { keyDir } from './providers/keys'
+import { getPreferences, Preferences, preferencesDir } from './providers/preferences'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
@@ -57,28 +58,43 @@ async function main() {
     const yoloDescription =
         'Skip user confirmation for potentially dangerous operations like file writing and shell execution.'
 
+    const dockerFlags = '--docker'
+    const dockerDescription = 'Run in a Docker container with the current workspace copied into it.'
+
     program
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
         .option(cwdFlags, cwdDescription)
         .option(yoloFlags, yoloDescription)
         .option(oneShotFlags, oneShotDescription)
+        .option(dockerFlags, dockerDescription)
         .action(options => {
-            if (options.cwd) {
-                process.chdir(options.cwd)
-            }
+            if (options.docker) {
+                if (!options.oneShot) {
+                    throw new Error('The --one-shot option requires a prompt string.')
+                }
+                if (!options.yolo) {
+                    throw new Error('The --yolo option is required when using --docker.')
+                }
 
-            chat(
-                preferences,
-                rules,
-                providers,
-                embeddingsClients,
-                tracker,
-                options.history,
-                options.port,
-                options.oneShot,
-                options.yolo,
-            )
+                runInDocker(options)
+            } else {
+                if (options.cwd) {
+                    process.chdir(options.cwd)
+                }
+
+                chat(
+                    preferences,
+                    rules,
+                    providers,
+                    embeddingsClients,
+                    tracker,
+                    options.history,
+                    options.port,
+                    options.oneShot,
+                    options.yolo,
+                )
+            }
         })
 
     program.parse(process.argv)
@@ -273,6 +289,67 @@ function attentionGetter(command: string): () => void {
             exec(command)
         }
     }
+}
+
+/**
+ * Runs the CLI in a Docker container with the current workspace copied into it
+ */
+function runInDocker(options: any) {
+    const currentDir = process.cwd()
+    const dockerImage = 'aidev'
+    const containerWorkDir = '/workspace'
+
+    // Find the aidev root directory (where package.json is located)
+    const scriptDir = __dirname
+    const aidevRootDir = scriptDir.substring(0, scriptDir.indexOf('/src'))
+
+    // Build the Docker command to run the CLI
+    const dockerArgs = ['run', '--rm', '-it']
+
+    // Mount the target workspace (current dir or --cwd) as /workspace
+    const targetDir = options.cwd || currentDir
+    dockerArgs.push('-v', `${targetDir}:${containerWorkDir}`)
+
+    // Mount only necessary source code and config files (excluding node_modules) as read-only
+    dockerArgs.push('-v', `${aidevRootDir}/src:/aidev/src:ro`)
+    dockerArgs.push('-v', `${aidevRootDir}/configs:/aidev/configs:ro`)
+    dockerArgs.push('-v', `${aidevRootDir}/scripts:/aidev/scripts:ro`) // Include scripts directory
+
+    // Mount API keys directory as read-only
+
+    dockerArgs.push('-v', `${keyDir()}:/root/.config/aidev/keys:ro`)
+    dockerArgs.push('-v', `${preferencesDir()}:/root/.config/aidev/preferences:ro`)
+
+    dockerArgs.push('-e', 'AIDEV_KEY_DIR=/root/.config/aidev/keys')
+    dockerArgs.push('-e', 'AIDEV_PREFERENCES_DIR=/root/.config/aidev/preferences')
+
+    // Set the working directory inside the container
+    dockerArgs.push('-w', containerWorkDir)
+
+    // Forward all CLI options to the container command, except --docker itself
+    const cliArgs = ['bun', '/aidev/src/cli.ts']
+
+    if (options.history) cliArgs.push('--history', options.history)
+    if (options.port) cliArgs.push('--port', options.port.toString())
+    if (options.cwd) cliArgs.push('--cwd', '/workspace')
+    if (options.oneShot) cliArgs.push('--one-shot', options.oneShot)
+    if (options.yolo) cliArgs.push('--yolo')
+
+    console.log(`Starting aidev in Docker container using image ${dockerImage}...`)
+    console.log(`Mounting target directory ${targetDir} to ${containerWorkDir}`)
+    console.log(`Mounting aidev source code from ${aidevRootDir}/src to /aidev/src (read-only)`)
+    console.log(`Mounting API keys from ${keyDir} to /root/.config/aidev/keys (read-only)`)
+
+    // Execute the Docker command
+    const dockerProcess = spawn('docker', dockerArgs.concat(dockerImage, ...cliArgs), {
+        stdio: 'inherit',
+    })
+
+    // Handle process exit
+    dockerProcess.on('close', code => {
+        console.log(`Docker container exited with code ${code}`)
+        process.exit(code || 0)
+    })
 }
 
 main()
