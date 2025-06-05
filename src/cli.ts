@@ -207,10 +207,13 @@ async function chat(
                 const modelName = `${context.provider.modelName} (${context.provider.providerName})`
                 console.log(`${historyFilename ? 'Resuming' : 'Beginning'} session with ${modelName}...\n`)
 
+                console.log('a')
                 await interruptHandler.withInterruptHandler(() => handle(context, oneShot))
+                console.log('b')
 
                 return
             } finally {
+                console.log('c')
                 // process.stdin.unpipe(filter)
                 // filter.destroy()
                 // rl.close()
