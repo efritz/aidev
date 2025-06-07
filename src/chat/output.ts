@@ -1,7 +1,6 @@
 import chalk from 'chalk'
 import { AssistantMessage, Response } from '../messages/messages'
 import { prefixFormatter, ProgressResult, withProgress } from '../util/progress/progress'
-import { createXmlPartialClosingTagPattern, createXmlPartialOpeningTagPattern, createXmlPattern } from '../util/xml/xml'
 import { ChatContext } from './context'
 
 export type Prefixes = {
@@ -28,19 +27,12 @@ export function promptWithPrefixes(
     })
 }
 
-const partialTagPatterns = ['thought'].flatMap(name => [
-    createXmlPartialOpeningTagPattern(name),
-    createXmlPartialClosingTagPattern(name),
-])
+const partialTagPatterns: RegExp[] = []
 
-const formattedPatterns = [
-    {
-        pattern: createXmlPattern('thought'),
-        formatter: (_openingTag: string, content: string, _closingTag: string) => {
-            return chalk.italic.grey(content.trim())
-        },
-    },
-]
+const formattedPatterns: Array<{
+    pattern: RegExp
+    formatter: (openingTag: string, content: string, closingTag: string) => string
+}> = []
 
 export function formatMessage(message: AssistantMessage): string {
     if (message.type === 'text') {
