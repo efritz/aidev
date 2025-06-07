@@ -134,6 +134,7 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:savepoint <name>`: Mark a point in the conversation to which you can rollback.
 - `:shell`: Run a shell command and include its output in the conversation.
 - `:status`: Show the branch topology of the conversation.
+- `:summarize`: Replace the current conversation with a summarized version.
 - `:switch <branch>`: Switch to an existing branch.
 - `:undo`: Undo the last user action.
 - `:unload [<patterns, ...>]`: Remove matching files or directories from the conversation.
