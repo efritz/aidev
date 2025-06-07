@@ -42,6 +42,7 @@
         "vsce-package": "bun run vsce package --no-dependencies",
         "package": "bun run install-node && bun run build && bun run vsce-package",
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
+        "format:check": "prettier '**/{*.{ts,json},.*.cjs}' --check",
         "lint": "eslint 'src/**/*.{js,ts}'",
         "test": "jest",
         "typecheck": "tsc --noEmit",
