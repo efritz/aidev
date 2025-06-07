@@ -65,6 +65,10 @@ export function createConversation<T>({
                         case 'applyStash':
                             addMessages(userMessageToParam(createStashAppliedMessage(message)))
                             break
+
+                        case 'summary':
+                            addMessages(userMessageToParam(createSummaryMessage(message)))
+                            break
                     }
 
                     break
@@ -308,6 +312,15 @@ function createStashAppliedMessage({ path }: ApplyStashMessage): UserMessage {
     return {
         type: 'text',
         content: `Wrote a stashed version of "${path}" to disk.`,
+    }
+}
+
+function createSummaryMessage({ content }: { content: string }): UserMessage {
+    return {
+        type: 'text',
+        content: `Previous conversation summary:
+
+${content}`,
     }
 }
 

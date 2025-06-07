@@ -22,6 +22,7 @@ import { saveCommand } from './commands/save'
 import { savepointCommand } from './commands/savepoint'
 import { shellCommand } from './commands/shell'
 import { statusCommand } from './commands/status'
+import { summarizeCommand } from './commands/summarize'
 import { switchCommand } from './commands/switch'
 import { undoCommand } from './commands/undo'
 import { unloadCommand } from './commands/unload'
@@ -51,6 +52,7 @@ export const commands: CommandDescription[] = [
     savepointCommand,
     shellCommand,
     statusCommand,
+    summarizeCommand,
     switchCommand,
     undoCommand,
     unloadCommand,
