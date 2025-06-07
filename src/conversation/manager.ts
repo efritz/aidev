@@ -23,6 +23,7 @@ export type ConversationManager = BranchManager &
         recordAddTodo(taskId: string, description: string): string
         recordCompleteTodo(taskId: string): string
         recordCancelTodo(taskId: string): string
+        recordSummary(content: string): string
     }
 
 export function createConversationManager(): ConversationManager {
@@ -53,6 +54,7 @@ export function createConversationManager(): ConversationManager {
     const recordAddTodo = (taskId: string, description: string) => pushMeta({ type: 'addTodo', taskId, description })
     const recordCompleteTodo = (taskId: string) => pushMeta({ type: 'completeTodo', taskId })
     const recordCancelTodo = (taskId: string) => pushMeta({ type: 'cancelTodo', taskId })
+    const recordSummary = (content: string) => pushMeta({ type: 'summary', content })
     const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
     const { branchMetadata, currentBranch, removeBranches, childBranches, ...branchManager } = createBranchManager(
@@ -63,7 +65,17 @@ export function createConversationManager(): ConversationManager {
     )
 
     const visibleMessages = (): Message[] => {
-        return branchMetadata()[currentBranch()].messages.filter(m => !(m.role === 'meta' && m.type === 'switch'))
+        const allMessages = branchMetadata()[currentBranch()].messages.filter(
+            m => !(m.role === 'meta' && m.type === 'switch'),
+        )
+
+        // Return only messages after the latest summary
+        const latestSummaryIndex = allMessages.findLastIndex(m => m.role === 'meta' && m.type === 'summary')
+        if (latestSummaryIndex >= 0) {
+            return allMessages.slice(latestSummaryIndex)
+        }
+
+        return allMessages
     }
 
     const savepointManager = createSavepointManager(
@@ -90,6 +102,7 @@ export function createConversationManager(): ConversationManager {
         recordAddTodo,
         recordCompleteTodo,
         recordCancelTodo,
+        recordSummary,
 
         branchMetadata,
         currentBranch,

@@ -6,9 +6,6 @@ export type InclusionReason =
 
 export function updateInclusionReasons(reasons: InclusionReason[], reason: InclusionReason) {
     if (reason.type === 'tool_use' && reasons.some(r => r.type === 'tool_use' && r.toolUseId === reason.toolUseId)) {
-        if (true) {
-            throw new Error("HUH This souldn't happen?")
-        }
         // Already exists
         return
     }

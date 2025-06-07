@@ -124,6 +124,13 @@ function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
             console.log(`${chalk.red('✗')} Canceled todo: ${chalk.dim(message.taskId)}`)
             console.log()
             break
+
+        case 'summary':
+            console.log(`${chalk.dim('📋')} Previous conversation summary:`)
+            console.log()
+            console.log(message.content)
+            console.log()
+            break
     }
 }
 
