@@ -1,3 +1,4 @@
+import { summarizeConversation } from './conversation/summarize_conversation'
 import { editFile } from './fs/edit_file'
 import { readDirectories } from './fs/read_directories'
 import { readFiles } from './fs/read_files'
@@ -25,6 +26,7 @@ const allTools: Tool<any, any>[] = [
     addTodo,
     completeTodo,
     cancelTodo,
+    summarizeConversation,
 ]
 
 export const enabledTools = allTools.filter(tool => tool.enabled)
