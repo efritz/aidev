@@ -10,32 +10,57 @@ export const summarizeCommand: CommandDescription = {
 }
 
 async function handleSummarize(context: ChatContext, args: string): Promise<void> {
-    if (args !== '') {
-        console.log(chalk.red.bold('Unexpected arguments supplied to :summarize.'))
+    const parts = args.split(' ').filter(p => p.trim() !== '')
+
+    if (parts.length > 1) {
+        console.log(chalk.red.bold('Expected at most one savepoint name for :summarize.'))
         console.log()
         return
     }
 
-    const summary = await runAgent(context, summarizeConversationAgent, args)
+    const savepoint = parts.length === 1 ? parts[0] : undefined
+
+    // Validate savepoint if provided
+    if (savepoint) {
+        const availableSavepoints = context.provider.conversationManager.savepoints()
+        if (!availableSavepoints.includes(savepoint)) {
+            console.log(chalk.red.bold(`Savepoint "${savepoint}" not found in current branch.`))
+            console.log(chalk.dim('Available savepoints:'), availableSavepoints.join(', ') || 'none')
+            console.log()
+            return
+        }
+    }
+
+    const summary = await runAgent(context, summarizeConversationAgent, { savepoint })
     context.provider.conversationManager.recordSummary(summary)
 
-    console.log(`${chalk.dim('📋')} Previous conversation summary:`)
+    const summaryLabel = savepoint
+        ? `Conversation summary from savepoint "${savepoint}" to current:`
+        : 'Previous conversation summary:'
+
+    console.log(`${chalk.dim('📋')} ${summaryLabel}`)
     console.log()
     console.log(summary)
     console.log()
 }
 
-const summarizeConversationAgent: Agent<{}, string> = {
+const summarizeConversationAgent: Agent<{ savepoint?: string }, string> = {
     model: context => context.preferences.summarizerModel,
     buildSystemPrompt: async () => systemPromptTemplate,
-    buildUserMessage: async (context, _args) =>
-        userMessageTemplate.replace(
-            '{{conversation}}',
-            context.provider.conversationManager
-                .visibleMessages()
-                .map(message => JSON.stringify(message))
-                .join('\n'),
-        ),
+    buildUserMessage: async (context, args) => {
+        const { savepoint } = args
+        const messages = savepoint
+            ? context.provider.conversationManager.messagesFromSavepoint(savepoint)
+            : context.provider.conversationManager.visibleMessages()
+
+        const conversationJson = messages.map(message => JSON.stringify(message)).join('\n')
+
+        const rangeDescription = savepoint
+            ? `from savepoint "${savepoint}" to the current message`
+            : 'the entire visible conversation'
+
+        return userMessageTemplate.replace('{{range}}', rangeDescription).replace('{{conversation}}', conversationJson)
+    },
     processMessage: async (_, content) => content.trim(),
 }
 
@@ -53,7 +78,9 @@ Focus on actionable items, technical details, and the overall flow of the conver
 `
 
 const userMessageTemplate = `
-Please summarize the following conversation:
+Please summarize {{range}}.
+
+The conversation section to be summarized is provided below:
 
 {{conversation}}
 `

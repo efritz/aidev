@@ -13,6 +13,7 @@ export type ConversationManager = BranchManager &
     RulesManager & {
         messages(): Message[]
         visibleMessages(): Message[]
+        messagesFromSavepoint(savepointName: string): Message[]
         setMessages(messages: Message[]): void
         pushUser(message: UserMessage): void
         pushAssistant(message: AssistantMessage): void
@@ -78,6 +79,23 @@ export function createConversationManager(): ConversationManager {
         return allMessages
     }
 
+    const messagesFromSavepoint = (savepointName: string): Message[] => {
+        const allMessages = branchMetadata()[currentBranch()].messages.filter(
+            m => !(m.role === 'meta' && m.type === 'switch'),
+        )
+
+        const savepointIndex = allMessages.findIndex(
+            m => m.role === 'meta' && m.type === 'savepoint' && m.name === savepointName,
+        )
+
+        if (savepointIndex === -1) {
+            return []
+        }
+
+        // Return messages from after the savepoint to the end
+        return allMessages.slice(savepointIndex + 1)
+    }
+
     const savepointManager = createSavepointManager(
         messages,
         visibleMessages,
@@ -92,6 +110,7 @@ export function createConversationManager(): ConversationManager {
     return {
         messages,
         visibleMessages,
+        messagesFromSavepoint,
         setMessages,
         pushUser,
         pushAssistant,
