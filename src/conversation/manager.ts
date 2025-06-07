@@ -23,6 +23,7 @@ export type ConversationManager = BranchManager &
         recordAddTodo(taskId: string, description: string): string
         recordCompleteTodo(taskId: string): string
         recordCancelTodo(taskId: string): string
+        recordSummary(content: string): string
     }
 
 export function createConversationManager(): ConversationManager {
@@ -53,6 +54,7 @@ export function createConversationManager(): ConversationManager {
     const recordAddTodo = (taskId: string, description: string) => pushMeta({ type: 'addTodo', taskId, description })
     const recordCompleteTodo = (taskId: string) => pushMeta({ type: 'completeTodo', taskId })
     const recordCancelTodo = (taskId: string) => pushMeta({ type: 'cancelTodo', taskId })
+    const recordSummary = (content: string) => pushMeta({ type: 'summary', content })
     const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
     const { branchMetadata, currentBranch, removeBranches, childBranches, ...branchManager } = createBranchManager(
@@ -63,7 +65,26 @@ export function createConversationManager(): ConversationManager {
     )
 
     const visibleMessages = (): Message[] => {
-        return branchMetadata()[currentBranch()].messages.filter(m => !(m.role === 'meta' && m.type === 'switch'))
+        const allMessages = branchMetadata()[currentBranch()].messages.filter(
+            m => !(m.role === 'meta' && m.type === 'switch'),
+        )
+
+        // Find the latest summary message
+        let latestSummaryIndex = -1
+        for (let i = allMessages.length - 1; i >= 0; i--) {
+            if (allMessages[i].role === 'meta' && allMessages[i].type === 'summary') {
+                latestSummaryIndex = i
+                break
+            }
+        }
+
+        // If there's a summary, return messages from that point onwards
+        if (latestSummaryIndex >= 0) {
+            return allMessages.slice(latestSummaryIndex)
+        }
+
+        // Otherwise return all messages
+        return allMessages
     }
 
     const savepointManager = createSavepointManager(
@@ -90,6 +111,7 @@ export function createConversationManager(): ConversationManager {
         recordAddTodo,
         recordCompleteTodo,
         recordCancelTodo,
+        recordSummary,
 
         branchMetadata,
         currentBranch,

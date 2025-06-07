@@ -62,6 +62,7 @@ export type MetaMessage =
     | AddTodoMessage
     | CompleteTodoMessage
     | CancelTodoMessage
+    | SummaryMessage
 
 export type UndoMessage = { type: 'undo' }
 export type RedoMessage = { type: 'redo' }
@@ -79,3 +80,4 @@ export type UnloadMessage = { type: 'unload'; paths: string[] }
 export type AddTodoMessage = { type: 'addTodo'; taskId: string; description: string }
 export type CompleteTodoMessage = { type: 'completeTodo'; taskId: string }
 export type CancelTodoMessage = { type: 'cancelTodo'; taskId: string }
+export type SummaryMessage = { type: 'summary'; content: string }
