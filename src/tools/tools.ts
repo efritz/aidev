@@ -3,6 +3,7 @@ import { readDirectories } from './fs/read_directories'
 import { readFiles } from './fs/read_files'
 import { writeFile } from './fs/write_file'
 import { shellExecute } from './shell/shell_execute'
+import { think } from './think/think'
 import { addTodo } from './todo/add_todo'
 import { cancelTodo } from './todo/cancel_todo'
 import { completeTodo } from './todo/complete_todo'
@@ -22,6 +23,7 @@ const allTools: Tool<any, any>[] = [
     searchWorkspaceRipgrep,
     searchWeb,
     readWeb,
+    think,
     addTodo,
     completeTodo,
     cancelTodo,
