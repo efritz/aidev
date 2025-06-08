@@ -2,6 +2,7 @@ import path from 'path'
 import Parser, { Query } from 'tree-sitter'
 import Go from 'tree-sitter-go'
 import Java from 'tree-sitter-java'
+import Python from 'tree-sitter-python'
 import TypeScript from 'tree-sitter-typescript'
 import { z } from 'zod'
 import { loadYamlFromFile } from '../util/yaml/load'
@@ -56,6 +57,7 @@ export function extractCodeBlockFromMatch(
 export type LanguageConfiguration = {
     name: string
     extensions: string[]
+    commentToken: string
     parser: Parser
     queries: Map<string, Parser.Query>
 }
@@ -73,13 +75,14 @@ export function createParsers(): Promise<LanguageConfiguration[]> {
 const treesitterLanguages = {
     go: Go as Parser.Language,
     java: Java as Parser.Language,
+    python: Python as Parser.Language,
     typescript: TypeScript.typescript as Parser.Language,
 }
 
 async function createParsersUncached(): Promise<LanguageConfiguration[]> {
     const { languages } = await readLanguageConfigurations()
 
-    return languages.map(({ name, extensions, queries: queryTexts }) => {
+    return languages.map(({ name, extensions, commentToken, queries: queryTexts }) => {
         if (!Object.keys(treesitterLanguages).includes(name)) {
             throw new Error(`Unsupported language (no treesitter grammar): ${name}`)
         }
@@ -92,6 +95,7 @@ async function createParsersUncached(): Promise<LanguageConfiguration[]> {
         return {
             name,
             extensions,
+            commentToken,
             parser,
             queries: new Map(Object.entries(queryTexts).map(([type, query]) => [type, new Query(language, query)])),
         }
@@ -106,6 +110,7 @@ const LanguagesConfigSchema = z.object({
         z.object({
             name: z.enum(Object.keys(treesitterLanguages) as [string, ...string[]]),
             extensions: z.array(z.string()),
+            commentToken: z.string(),
             queries: z.record(z.string()),
         }),
     ),

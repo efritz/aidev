@@ -39,7 +39,6 @@ async function runMirrorIndexScript(sourceDir: string, targetDir: string): Promi
     return new Promise((resolve, reject) => {
         const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'mirror-index.ts')
 
-        console.log([scriptPath, sourceDir, targetDir])
         const child = spawn('bun', [scriptPath, sourceDir, targetDir], {
             stdio: 'pipe',
             cwd: path.join(__dirname, '..', '..'),
