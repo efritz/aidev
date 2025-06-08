@@ -80,4 +80,4 @@ export type UnloadMessage = { type: 'unload'; paths: string[] }
 export type AddTodoMessage = { type: 'addTodo'; taskId: string; description: string }
 export type CompleteTodoMessage = { type: 'completeTodo'; taskId: string }
 export type CancelTodoMessage = { type: 'cancelTodo'; taskId: string }
-export type SummaryMessage = { type: 'summary'; content: string }
+export type SummaryMessage = { type: 'summary'; content: string; fromSavepoint?: string }

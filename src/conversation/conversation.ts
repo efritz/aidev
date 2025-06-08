@@ -318,9 +318,7 @@ function createStashAppliedMessage({ path }: ApplyStashMessage): UserMessage {
 function createSummaryMessage({ content }: { content: string }): UserMessage {
     return {
         type: 'text',
-        content: `Previous conversation summary:
-
-${content}`,
+        content: `Summarized conversation:\n\n${content}`,
     }
 }
 
