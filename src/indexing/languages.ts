@@ -1,6 +1,7 @@
 import path from 'path'
 import Parser, { Query } from 'tree-sitter'
 import Go from 'tree-sitter-go'
+import Java from 'tree-sitter-java'
 import TypeScript from 'tree-sitter-typescript'
 import { z } from 'zod'
 import { loadYamlFromFile } from '../util/yaml/load'
@@ -71,6 +72,7 @@ export function createParsers(): Promise<LanguageConfiguration[]> {
 
 const treesitterLanguages = {
     go: Go as Parser.Language,
+    java: Java as Parser.Language,
     typescript: TypeScript.typescript as Parser.Language,
 }
 

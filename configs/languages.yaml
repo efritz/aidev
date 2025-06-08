@@ -21,3 +21,14 @@ languages:
           var: { include: ./languages/go/var.scm }
           func: { include: ./languages/go/func.scm }
           named-func-expr: { include: ./languages/go/named-func-expr.scm }
+
+    - name: java
+      extensions:
+          - .java
+      queries:
+          class: { include: ./languages/java/class.scm }
+          interface: { include: ./languages/java/interface.scm }
+          enum: { include: ./languages/java/enum.scm }
+          method: { include: ./languages/java/method.scm }
+          field: { include: ./languages/java/field.scm }
+          lambda: { include: ./languages/java/lambda.scm }

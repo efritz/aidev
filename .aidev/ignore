@@ -1,2 +1,3 @@
 bun.lockb
+src/indexing/golden
 src/indexing/testdata
