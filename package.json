@@ -79,6 +79,7 @@
         "tree-sitter-go": "^0.23.4",
         "tree-sitter-java": "^0.23.5",
         "tree-sitter-typescript": "^0.23.2",
+        "tree-sitter-python": "^0.23.4",
         "uuid": "^11.1.0",
         "zod-to-json-schema": "^3.24.5",
         "yaml": "^2.8.0",
