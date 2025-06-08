@@ -11,34 +11,24 @@ export const summarizeCommand: CommandDescription = {
 
 async function handleSummarize(context: ChatContext, args: string): Promise<void> {
     const parts = args.split(' ').filter(p => p.trim() !== '')
-
     if (parts.length > 1) {
         console.log(chalk.red.bold('Expected at most one savepoint name for :summarize.'))
         console.log()
         return
     }
-
     const savepoint = parts.length === 1 ? parts[0] : undefined
 
-    // Validate savepoint if provided
-    if (savepoint) {
-        const availableSavepoints = context.provider.conversationManager.savepoints()
-        if (!availableSavepoints.includes(savepoint)) {
-            console.log(chalk.red.bold(`Savepoint "${savepoint}" not found in current branch.`))
-            console.log(chalk.dim('Available savepoints:'), availableSavepoints.join(', ') || 'none')
-            console.log()
-            return
-        }
+    if (savepoint && !context.provider.conversationManager.savepoints().includes(savepoint)) {
+        console.log(chalk.red.bold(`Savepoint "${savepoint}" not found.`))
+        console.log()
+        return
     }
 
     const summary = await runAgent(context, summarizeConversationAgent, { savepoint })
     context.provider.conversationManager.recordSummary(summary)
 
-    const summaryLabel = savepoint
-        ? `Conversation summary from savepoint "${savepoint}" to current:`
-        : 'Previous conversation summary:'
-
-    console.log(`${chalk.dim('📋')} ${summaryLabel}`)
+    const target = savepoint ? `savepoint "${savepoint}"` : 'beginning of the conversation'
+    console.log(`${chalk.dim('📋')} Conversation summary from ${target} to current:`)
     console.log()
     console.log(summary)
     console.log()
