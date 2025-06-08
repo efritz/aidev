@@ -24,7 +24,7 @@ export type ConversationManager = BranchManager &
         recordAddTodo(taskId: string, description: string): string
         recordCompleteTodo(taskId: string): string
         recordCancelTodo(taskId: string): string
-        recordSummary(content: string): string
+        recordSummary(content: string, fromSavepoint?: string): string
     }
 
 export function createConversationManager(): ConversationManager {
@@ -55,7 +55,8 @@ export function createConversationManager(): ConversationManager {
     const recordAddTodo = (taskId: string, description: string) => pushMeta({ type: 'addTodo', taskId, description })
     const recordCompleteTodo = (taskId: string) => pushMeta({ type: 'completeTodo', taskId })
     const recordCancelTodo = (taskId: string) => pushMeta({ type: 'cancelTodo', taskId })
-    const recordSummary = (content: string) => pushMeta({ type: 'summary', content })
+    const recordSummary = (content: string, fromSavepoint?: string) =>
+        pushMeta({ type: 'summary', content, fromSavepoint })
     const { saveSnapshot, ...undoRedoManager } = createUndoRedoManager(messages, setMessages)
 
     const { branchMetadata, currentBranch, removeBranches, childBranches, ...branchManager } = createBranchManager(
@@ -70,9 +71,27 @@ export function createConversationManager(): ConversationManager {
             m => !(m.role === 'meta' && m.type === 'switch'),
         )
 
-        // Return only messages after the latest summary
+        // Find the latest summary
         const latestSummaryIndex = allMessages.findLastIndex(m => m.role === 'meta' && m.type === 'summary')
         if (latestSummaryIndex >= 0) {
+            const latestSummary = allMessages[latestSummaryIndex] as Message & {
+                type: 'summary'
+                fromSavepoint?: string
+            }
+
+            if (latestSummary.fromSavepoint) {
+                // If summarized from a savepoint, keep messages before that savepoint + messages after the summary
+                const savepointIndex = allMessages.findIndex(
+                    m => m.role === 'meta' && m.type === 'savepoint' && m.name === latestSummary.fromSavepoint,
+                )
+
+                if (savepointIndex >= 0) {
+                    // Keep messages before savepoint + summary + messages after summary
+                    return [...allMessages.slice(0, savepointIndex), ...allMessages.slice(latestSummaryIndex)]
+                }
+            }
+
+            // If summarized from beginning, only keep messages after the summary
             return allMessages.slice(latestSummaryIndex)
         }
 
