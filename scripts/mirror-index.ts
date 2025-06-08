@@ -78,10 +78,14 @@ async function annotateContentWithBlockBoundaries(content: string, parser: Langu
         const startLine = block.startLine - 1
         const endLine = block.endLine
 
-        const startMarker = commentToken ? `${commentToken} #region CHUNK (${block.type}): ${name}` : `#region CHUNK (${block.type}): ${name}`
+        const startMarker = commentToken
+            ? `${commentToken} #region CHUNK (${block.type}): ${name}`
+            : `#region CHUNK (${block.type}): ${name}`
         startMarkers.set(startLine, (startMarkers.get(startLine) ?? []).concat(startMarker))
 
-        const endMarker = commentToken ? `${commentToken} #endregion CHUNK (${block.type}): ${name}` : `#endregion CHUNK (${block.type}): ${name}`
+        const endMarker = commentToken
+            ? `${commentToken} #endregion CHUNK (${block.type}): ${name}`
+            : `#endregion CHUNK (${block.type}): ${name}`
         endMarkers.set(endLine, (endMarkers.get(endLine) ?? []).concat(endMarker))
     }
 
