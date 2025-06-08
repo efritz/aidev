@@ -129,7 +129,7 @@ function replayMetaMessage(context: ChatContext, message: MetaMessage): void {
             const target = message.fromSavepoint
                 ? `savepoint "${message.fromSavepoint}"`
                 : 'beginning of the conversation'
-            console.log(`${chalk.dim('📋')} Previous conversation summary from ${target} to current:`)
+            console.log(`${chalk.dim('📋')} Conversation summary from ${target} to current:`)
             console.log()
             console.log(message.content)
             console.log()
