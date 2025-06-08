@@ -80,19 +80,36 @@ export function createConversationManager(): ConversationManager {
             }
 
             if (latestSummary.fromSavepoint) {
-                // If summarized from a savepoint, keep messages before that savepoint + messages after the summary
+                // If summarized from a savepoint, extract meta messages from the summarized range
                 const savepointIndex = allMessages.findIndex(
                     m => m.role === 'meta' && m.type === 'savepoint' && m.name === latestSummary.fromSavepoint,
                 )
 
                 if (savepointIndex >= 0) {
-                    // Keep messages before savepoint + summary + messages after summary
-                    return [...allMessages.slice(0, savepointIndex), ...allMessages.slice(latestSummaryIndex)]
+                    // Extract meta messages from the summarized range (between savepoint and summary)
+                    const summarizedRange = allMessages.slice(savepointIndex + 1, latestSummaryIndex)
+                    const extractedMetaMessages = summarizedRange.filter(m => m.role === 'meta')
+
+                    // Keep messages before savepoint + summary + extracted meta messages + messages after summary
+                    return [
+                        ...allMessages.slice(0, savepointIndex),
+                        allMessages[latestSummaryIndex], // the summary
+                        ...extractedMetaMessages,
+                        ...allMessages.slice(latestSummaryIndex + 1),
+                    ]
                 }
             }
 
-            // If summarized from beginning, only keep messages after the summary
-            return allMessages.slice(latestSummaryIndex)
+            // If summarized from beginning, extract meta messages from the summarized range
+            const summarizedRange = allMessages.slice(0, latestSummaryIndex)
+            const extractedMetaMessages = summarizedRange.filter(m => m.role === 'meta')
+
+            // Keep summary + extracted meta messages + messages after summary
+            return [
+                allMessages[latestSummaryIndex], // the summary
+                ...extractedMetaMessages,
+                ...allMessages.slice(latestSummaryIndex + 1),
+            ]
         }
 
         return allMessages
