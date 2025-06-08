@@ -28,7 +28,7 @@ async function handleSummarize(context: ChatContext, args: string): Promise<void
     context.provider.conversationManager.recordSummary(summary, savepoint)
 
     const target = savepoint ? `savepoint "${savepoint}"` : 'beginning of the conversation'
-    console.log(`${chalk.dim('📋')} Conversation summary from ${target} to current:`)
+    console.log(`${chalk.dim('📋')} Conversation summary from ${target}:`)
     console.log()
     console.log(summary)
     console.log()

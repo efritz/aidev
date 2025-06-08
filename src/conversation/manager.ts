@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { AssistantMessage, Message, MetaMessage, UserMessage } from '../messages/messages'
+import { AssistantMessage, Message, MetaMessage, SummaryMessage, UserMessage } from '../messages/messages'
 import { BranchManager, createBranchManager } from './branches'
 import { createRuleManager, RulesManager } from './rules'
 import { createSavepointManager, SavepointManager } from './savepoints'
@@ -67,52 +67,55 @@ export function createConversationManager(): ConversationManager {
     )
 
     const visibleMessages = (): Message[] => {
-        const allMessages = branchMetadata()[currentBranch()].messages.filter(
+        // Get raw stream of visible messages with switch meta messages filtered out
+        let messages = branchMetadata()[currentBranch()].messages.filter(
             m => !(m.role === 'meta' && m.type === 'switch'),
         )
 
-        // Find the latest summary
-        const latestSummaryIndex = allMessages.findLastIndex(m => m.role === 'meta' && m.type === 'summary')
-        if (latestSummaryIndex >= 0) {
-            const latestSummary = allMessages[latestSummaryIndex] as Message & {
-                type: 'summary'
-                fromSavepoint?: string
-            }
+        // Extract all summary messages we need to process
+        const summaries = messages
+            .map((message, index) => ({ message, index }))
+            .filter(({ message }) => message.role === 'meta' && message.type === 'summary')
+            .map(({ message, index }) => {
+                const { fromSavepoint } = message as SummaryMessage
 
-            if (latestSummary.fromSavepoint) {
-                // If summarized from a savepoint, extract meta messages from the summarized range
-                const savepointIndex = allMessages.findIndex(
-                    m => m.role === 'meta' && m.type === 'savepoint' && m.name === latestSummary.fromSavepoint,
-                )
+                const savepointIndex = fromSavepoint
+                    ? messages.findIndex(m => m.role === 'meta' && m.type === 'savepoint' && m.name === fromSavepoint)
+                    : undefined
 
-                if (savepointIndex >= 0) {
-                    // Extract meta messages from the summarized range (between savepoint and summary)
-                    const summarizedRange = allMessages.slice(savepointIndex + 1, latestSummaryIndex)
-                    const extractedMetaMessages = summarizedRange.filter(m => m.role === 'meta')
+                return {
+                    rangeStart: savepointIndex ? savepointIndex + 1 : 0,
+                    rangeEnd: index,
+                }
+            })
 
-                    // Keep messages before savepoint + summary + extracted meta messages + messages after summary
-                    return [
-                        ...allMessages.slice(0, savepointIndex),
-                        allMessages[latestSummaryIndex], // the summary
-                        ...extractedMetaMessages,
-                        ...allMessages.slice(latestSummaryIndex + 1),
-                    ]
+        // Only keep the summaries that are not contained by a later summary
+        const validSummaries = summaries.filter(({ rangeStart }, i) => {
+            for (let j = i + 1; j < summaries.length; j++) {
+                if (rangeStart >= summaries[j].rangeStart && rangeStart < summaries[j].rangeEnd) {
+                    return false
                 }
             }
 
-            // If summarized from beginning, extract meta messages from the summarized range
-            const summarizedRange = allMessages.slice(0, latestSummaryIndex)
+            return true
+        })
+
+        // Process summaries in reverse order. This will maintain the indices for
+        // the non-overlapping summary messages that occur earlier in the conversation.
+        for (let i = validSummaries.length - 1; i >= 0; i--) {
+            const { rangeStart, rangeEnd } = validSummaries[i]
+            const summarizedRange = messages.slice(rangeStart, rangeStart)
             const extractedMetaMessages = summarizedRange.filter(m => m.role === 'meta')
 
-            // Keep summary + extracted meta messages + messages after summary
-            return [
-                allMessages[latestSummaryIndex], // the summary
+            messages = [
+                ...messages.slice(0, rangeStart),
+                messages[rangeEnd],
                 ...extractedMetaMessages,
-                ...allMessages.slice(latestSummaryIndex + 1),
+                ...messages.slice(rangeEnd + 1),
             ]
         }
 
-        return allMessages
+        return messages
     }
 
     const messagesFromSavepoint = (savepointName: string): Message[] => {
