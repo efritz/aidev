@@ -44,8 +44,9 @@
         "format": "prettier '**/{*.{ts,json},.*.cjs}' --list-different --write",
         "format:check": "prettier '**/{*.{ts,json},.*.cjs}' --check",
         "lint": "eslint 'src/**/*.{js,ts}'",
-        "test": "jest",
         "typecheck": "tsc --noEmit",
+        "test": "jest",
+        "update-golden": "UPDATE_GOLDEN=true bun test src/indexing/languages.test.ts",
         "mirror-index": "bun ./scripts/mirror-index.ts",
         "convert-transcript": "bun ./scripts/convert-transcript.ts"
     },
@@ -76,6 +77,7 @@
         "tree-kill": "^1.2.2",
         "tree-sitter": "^0.22.4",
         "tree-sitter-go": "^0.23.4",
+        "tree-sitter-java": "^0.23.5",
         "tree-sitter-typescript": "^0.23.2",
         "uuid": "^11.1.0",
         "zod-to-json-schema": "^3.24.5",
