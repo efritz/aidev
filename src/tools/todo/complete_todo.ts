@@ -18,7 +18,7 @@ export const completeTodo: Tool<typeof CompleteTodoSchema, CompleteTodoResult> =
     name: 'complete_todo',
     description: [
         'Mark a todo item as completed.',
-        'The todo item will be updated with a completed status and timestamp.',
+        'Make multiple todo tool calls in the same response when managing ongoing work.',
     ].join(' '),
     schema: CompleteTodoSchema,
     enabled: true,

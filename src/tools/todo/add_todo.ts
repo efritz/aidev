@@ -19,6 +19,7 @@ export const addTodo: Tool<typeof AddTodoSchema, AddTodoResult> = {
     description: [
         'Add a new task to the todo list for the current conversation.',
         'This helps track tasks that need to be completed during the conversation.',
+        'Make multiple todo tool calls in the same response when managing ongoing work.',
     ].join(' '),
     schema: AddTodoSchema,
     enabled: true,

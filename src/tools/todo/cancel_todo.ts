@@ -18,7 +18,7 @@ export const cancelTodo: Tool<typeof CancelTodoSchema, CancelTodoResult> = {
     name: 'cancel_todo',
     description: [
         'Cancel a todo item that is no longer needed.',
-        'The todo item will be updated with a canceled status and timestamp.',
+        'Make multiple todo tool calls in the same response when managing ongoing work.',
     ].join(' '),
     schema: CancelTodoSchema,
     enabled: true,
