@@ -8,7 +8,8 @@ import { ChatContext } from '../context'
 
 export const loadCommand: CommandDescription = {
     prefix: ':load',
-    description: 'Load file contents into the chat context (supports wildcards)',
+    description:
+        'Load file contents into the chat context (supports wildcards, use --force to ignore .aidev/ignore files)',
     expectsArgs: true,
     handler: handleLoad,
     complete: completeLoad,
@@ -19,13 +20,19 @@ async function handleLoad(context: ChatContext, args: string): Promise<void> {
 }
 
 async function handleLoadPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+    const forceIndex = patterns.indexOf('--force')
+    const force = forceIndex !== -1
+    if (force) {
+        patterns.splice(forceIndex, 1)
+    }
+
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :load.'))
         console.log()
         return
     }
 
-    const paths = await filterIgnoredPaths(await expandFilePatterns(patterns))
+    const paths = await filterIgnoredPaths(await expandFilePatterns(patterns), false, force)
 
     if (paths.length === 0) {
         console.log(chalk.red.bold('No files matched the provided patterns.'))

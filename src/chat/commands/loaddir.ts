@@ -9,7 +9,8 @@ import { ChatContext } from '../context'
 
 export const loaddirCommand: CommandDescription = {
     prefix: ':loaddir',
-    description: 'Load directory entries into the chat context (supports wildcards)',
+    description:
+        'Load directory entries into the chat context (supports wildcards, use --force to ignore .aidev/ignore files)',
     expectsArgs: true,
     handler: handleLoaddir,
     complete: completeLoaddir,
@@ -20,13 +21,27 @@ async function handleLoaddir(context: ChatContext, args: string): Promise<void> 
 }
 
 async function handleLoaddirPatterns(context: ChatContext, patterns: string[]): Promise<void> {
+    const forceIndex = patterns.indexOf('--force')
+    const force = forceIndex !== -1
+    if (force) {
+        patterns.splice(forceIndex, 1)
+    }
+
     if (patterns.length === 0) {
         console.log(chalk.red.bold('No patterns supplied to :loaddir.'))
         console.log()
         return
     }
 
-    const paths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns))).map(normalizeDirectoryPath)
+    if (patterns.length === 0) {
+        console.log(chalk.red.bold('No patterns supplied to :loaddir.'))
+        console.log()
+        return
+    }
+
+    const paths = (await filterIgnoredPaths(await expandDirectoryPatterns(patterns), false, force)).map(
+        normalizeDirectoryPath,
+    )
 
     if (paths.length === 0) {
         console.log(chalk.red.bold('No directories matched the provided patterns.'))

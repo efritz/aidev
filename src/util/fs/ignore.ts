@@ -4,21 +4,35 @@ import chalk from 'chalk'
 import { minimatch } from 'minimatch'
 import { safeReadFile } from './safe'
 
-export async function filterIgnoredPaths(paths: string[], silent = false): Promise<string[]> {
+export async function filterIgnoredPaths(paths: string[], silent = false, force = false): Promise<string[]> {
     const matchPatterns = await createIgnoredPathMatcher()
     const pathAndMatchingIgnorePatterns = new Map(paths.map(path => [path, matchPatterns(path)]))
 
     if (!silent) {
+        let matched = false
         for (const { path, pattern, count } of collectMinimalPaths(
             // Create path -> patterns map for paths with non-empty patterns
             filterMap(pathAndMatchingIgnorePatterns, patterns => patterns.length > 0),
         )) {
+            matched = true
             console.log(
                 chalk.yellow(
                     `${chalk.dim('ℹ')} Path ${path} ${count > 1 ? `(${count} occurrences) ` : ''}ignored by ${pattern}.`,
                 ),
             )
         }
+
+        if (matched) {
+            if (force) {
+                console.log(chalk.red('⚠ Ignored paths are being force included.'))
+            }
+
+            console.log()
+        }
+    }
+
+    if (force) {
+        return paths
     }
 
     // Extract path from pairs with no patterns
