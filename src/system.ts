@@ -42,7 +42,9 @@ This ensures nothing is forgotten and provides clear tracking of multi-step work
 
 Use multiple tool calls in one response when managing todos.
 Mark a todo item as completed only after the task has been successfully completed.
+Mark a todo item as completed immediately after the task has been successfully completed.
 Do not mark todos as complete before the task has been performed.
+Do not batch up multiple tasks before marking them as completed.
 
 Active todos will be automatically included at the end of the conversation context when there are pending, completed, or canceled tasks.
 The todo summary will be supplied by the user in a message starting with "There are pending tasks remaining".
