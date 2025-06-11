@@ -55,6 +55,7 @@ You can and should make multiple tool calls in a single response when appropriat
 When performing tool calls, group related operations together in a single response unless there is a clear reason to separate them.
 
 For example:
+- When performing workspace searches, use multiple search calls to parallelize the search
 - When completing old todos and registering follow-up work, use multiple todo management calls
 - When making related changes across multiple files or complex modifications to a single file, use multiple edit_file calls
 - Running non-overlapping shell commands concurrently - e.g., concurrent formatting, linting, and testing
