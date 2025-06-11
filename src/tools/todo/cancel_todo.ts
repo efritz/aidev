@@ -16,10 +16,7 @@ type CancelTodoResult = {
 
 export const cancelTodo: Tool<typeof CancelTodoSchema, CancelTodoResult> = {
     name: 'cancel_todo',
-    description: [
-        'Cancel a todo item that is no longer needed.',
-        'Make multiple todo tool calls in the same response when managing ongoing work.',
-    ].join(' '),
+    description: 'Cancel an active todo item that is no longer needed or relevant.',
     schema: CancelTodoSchema,
     enabled: true,
     replay: (_args: CancelTodoArguments, { result, error }: ToolResult<CancelTodoResult>) => {

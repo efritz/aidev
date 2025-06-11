@@ -16,11 +16,7 @@ type AddTodoResult = {
 
 export const addTodo: Tool<typeof AddTodoSchema, AddTodoResult> = {
     name: 'add_todo',
-    description: [
-        'Add a new task to the todo list for the current conversation.',
-        'This helps track tasks that need to be completed during the conversation.',
-        'Make multiple todo tool calls in the same response when managing ongoing work.',
-    ].join(' '),
+    description: 'Add a new todo item.',
     schema: AddTodoSchema,
     enabled: true,
     replay: (_args: AddTodoArguments, { result }: ToolResult<AddTodoResult>) => {

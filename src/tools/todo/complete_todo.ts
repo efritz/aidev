@@ -16,10 +16,7 @@ type CompleteTodoResult = {
 
 export const completeTodo: Tool<typeof CompleteTodoSchema, CompleteTodoResult> = {
     name: 'complete_todo',
-    description: [
-        'Mark a todo item as completed.',
-        'Make multiple todo tool calls in the same response when managing ongoing work.',
-    ].join(' '),
+    description: 'Mark an active todo item as completed.',
     schema: CompleteTodoSchema,
     enabled: true,
     replay: (_args: CompleteTodoArguments, { result, error }: ToolResult<CompleteTodoResult>) => {

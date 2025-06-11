@@ -32,21 +32,30 @@ Relevant rules will be supplied by the user in a message starting with "Active r
 # Todos
 
 You have access to todo management tools to help track tasks and progress during the conversation.
-Use add_todo to create new tasks when you identify work that needs to be done.
-Use complete_todo to mark tasks as finished when they are completed.
-Use cancel_todo to mark tasks as no longer needed.
+Use the add_todo tool to create new tasks when you identify work that needs to be done.
+Use the complete_todo tool to mark tasks as finished when they are completed.
+Use the cancel_todo tool to mark tasks as no longer needed.
 
-You MUST add a todo whenever you're about to perform an action that isn't guaranteed to be resolved immediately after your next response.
-Only skip adding a todo if your next response is guaranteed to fully answer the user's query with complete success.
+Add todo items when you are about to perform an action that may require multiple steps or may fail.
+Only skip adding a todo item if your next response is **guaranteed** to completely fulfill the user's request.
 This ensures nothing is forgotten and provides clear tracking of multi-step work.
 
-**CRITICAL: Make multiple todo tool calls in the same response when managing ongoing work.**
-The conversation harness uses the presence of incomplete todo items to determine who should control the next message.
-If you complete the last pending todo without adding a follow-up todo in the same response, you will lose control of the conversation even if you intended to continue working.
-Always complete old todos AND add new follow-up todos in the same response when there's ongoing work.
+Use multiple tool calls in one response when managing todos.
+Mark a todo item as completed only after the task has been successfully completed.
+Do not mark todos as complete before the task has been performed.
 
 Active todos will be automatically included at the end of the conversation context when there are pending, completed, or canceled tasks.
 The todo summary will be supplied by the user in a message starting with "There are pending tasks remaining".
+
+# Multiple Tool Calls
+
+You can and should make multiple tool calls in a single response when appropriate.
+When performing tool calls, group related operations together in a single response unless there is a clear reason to separate them.
+
+For example:
+- When completing old todos and registering follow-up work, use multiple todo management calls
+- When making related changes across multiple files or complex modifications to a single file, use multiple edit_file calls
+- Running non-overlapping shell commands concurrently - e.g., concurrent formatting, linting, and testing
 
 # Working together
 
