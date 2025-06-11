@@ -59,29 +59,38 @@ function userMessageToParam(message: UserMessage): UserParam[] {
         }
 
         case 'tool_result': {
-            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
+            const content: ToolResultBlockParam[] = []
+            const allSuggestions: string[] = []
+
+            for (const toolResult of message.results) {
+                const { result, suggestions } = serializeToolResult(toolResult.toolUse.name, toolResult)
+
+                content.push({
+                    type: 'tool_result',
+                    tool_use_id: toolResult.toolUse.id,
+                    content: JSON.stringify(result),
+                    is_error: !!toolResult.error,
+                })
+
+                if (suggestions) {
+                    allSuggestions.push(suggestions)
+                }
+            }
 
             const messages: UserParam[] = [
                 {
                     role: 'user',
-                    content: [
-                        {
-                            type: 'tool_result',
-                            tool_use_id: message.toolUse.id,
-                            content: JSON.stringify(result),
-                            is_error: !!message.error,
-                        },
-                    ],
+                    content,
                 },
             ]
 
-            if (suggestions) {
+            if (allSuggestions.length > 0) {
                 messages.push({
                     role: 'user',
                     content: [
                         {
                             type: 'text',
-                            text: suggestions,
+                            text: allSuggestions.join('\n\n'),
                         },
                     ],
                 })

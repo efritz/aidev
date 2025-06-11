@@ -147,14 +147,16 @@ function replayUserMessage(message: UserMessage): void {
         }
 
         case 'tool_result': {
-            const tool = enabledTools.find(({ name }) => name === message.toolUse.name)
-            if (!tool) {
-                throw new Error(`Tool not found: ${message.toolUse.name}`)
-            }
+            for (const result of message.results) {
+                const tool = enabledTools.find(({ name }) => name === result.toolUse.name)
+                if (!tool) {
+                    throw new Error(`Tool not found: ${result.toolUse.name}`)
+                }
 
-            const args = message.toolUse.parameters ? JSON.parse(message.toolUse.parameters) : {}
-            tool.replay(args, message)
-            console.log()
+                const args = result.toolUse.parameters ? JSON.parse(result.toolUse.parameters) : {}
+                tool.replay(args, result)
+                console.log()
+            }
             break
         }
     }

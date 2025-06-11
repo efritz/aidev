@@ -34,19 +34,29 @@ function userMessageToParam(message: UserMessage): OllamaMessage[] {
         }
 
         case 'tool_result': {
-            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
+            const messages: OllamaMessage[] = []
+            const allSuggestions: string[] = []
+            const allResults: any[] = []
 
-            const messages: OllamaMessage[] = [
-                {
-                    role: 'user',
-                    content: JSON.stringify(result),
-                },
-            ]
+            for (const toolResult of message.results) {
+                const { result, suggestions } = serializeToolResult(toolResult.toolUse.name, toolResult)
 
-            if (suggestions) {
+                allResults.push(result)
+
+                if (suggestions) {
+                    allSuggestions.push(suggestions)
+                }
+            }
+
+            messages.push({
+                role: 'user',
+                content: JSON.stringify(allResults.length === 1 ? allResults[0] : allResults),
+            })
+
+            if (allSuggestions.length > 0) {
                 messages.push({
                     role: 'user',
-                    content: suggestions,
+                    content: allSuggestions.join('\n\n'),
                 })
             }
 
