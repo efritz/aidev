@@ -16,8 +16,9 @@ type ThinkResult = {
 export const think: Tool<typeof ThinkSchema, ThinkResult> = {
     name: 'think',
     description: [
-        'Log your thoughts, reasoning, or approach to breaking down a problem.',
-        'This tool provides a place for the assistant to record internal thinking that remains available in future turns.',
+        'Use this tool to think about something.',
+        'It will not obtain new information or have any side effects - it just logs the thought.',
+        'Use it when complex reasoning or brainstorming is needed.',
     ].join(' '),
     schema: ThinkSchema,
     enabled: true,
