@@ -9,7 +9,7 @@ export type TaggedMessage =
     | ({ role: 'assistant' } & AssistantMessage)
     | ({ role: 'meta' } & MetaMessage)
 
-export type UserMessage = TextMessage | ToolResult
+export type UserMessage = TextMessage | ToolResultMessage
 export type AssistantMessage = TextMessage | ToolUseMessage
 
 export type TextMessage = {
@@ -29,8 +29,12 @@ export type ToolUse = {
     parameters: string
 }
 
-export type ToolResult = {
+export type ToolResultMessage = {
     type: 'tool_result'
+    results: ToolResult[]
+}
+
+export type ToolResult = {
     toolUse: ToolUse
     result?: any
     error?: Error

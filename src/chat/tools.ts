@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { getActiveTodos } from '../context/todos'
-import { Response, ToolUse } from '../messages/messages'
+import { Response, ToolResult, ToolUse } from '../messages/messages'
 import { matchNewPostInvocationRules, matchNewPreInvocationRules } from '../rules/matcher'
 import { Rule } from '../rules/types'
 import { ExecutionResult } from '../tools/tool'
@@ -76,22 +76,24 @@ function canonicalizeTool(toolUse: ToolUse): ToolUse {
 
 async function runTools(context: ChatContext, toolUses: ToolUse[], _signal?: AbortSignal): Promise<boolean> {
     let repromptAny: boolean | undefined
+    const toolResults: { toolUse: ToolUse; result?: any; error?: Error; canceled?: boolean }[] = []
 
     const queue = [...toolUses]
     while (queue.length > 0) {
-        const { reprompt } = await runTool(context, queue.shift()!)
+        const toolUse = queue.shift()!
+        const { reprompt, ...result } = await executeTool(context, toolUse)
+        toolResults.push({ toolUse, ...result })
 
         if (reprompt === false) {
-            // If a single tool explicitly cancels the reprompt, we cancel all of
-            // the remaining tools and throw control directly back to the user so
-            // we can get back on track.
+            // If a single tool explicitly cancels the reprompt, we cancel all of the remaining tools and throw
+            // control directly back to the user so we can get back on track.
             //
-            // Note that we don't add new rules for with an explicit non-reprompt,
-            // as the only cases where a tool explicitly cancels a reprompt is when
-            // the user cancels the operation - nothing should have occurred for a
-            // rule to apply here.
+            // Note that we don't add new rules for with an explicit non-reprompt, as the only cases where a tool
+            // explicitly cancels a reprompt is when the user cancels the operation - nothing should have occurred
+            // for a rule to apply here.
 
-            queue.forEach(toolUse => cancelTool(context, toolUse))
+            queue.forEach(canceledToolUse => toolResults.push({ toolUse: canceledToolUse, canceled: true }))
+            pushToolResults(context, toolResults)
             return false
         }
 
@@ -102,10 +104,13 @@ async function runTools(context: ChatContext, toolUses: ToolUse[], _signal?: Abo
         }
     }
 
-    // After invoking tools requested by the model, we check to see if there are any post-tool
-    // rules not yet int he conversation that need to be applied. If so, we'll add them to the
-    // context. This is much easier than pre-tool rule application, as there's no need to redo
-    // any part of the conversation - we're only guiding the assistant's next stpes.
+    // Combine all tool results in a single user message (as expected by the LLM provdiers).
+    pushToolResults(context, toolResults)
+
+    // After invoking tools requested by the model, we check to see if there are any post-tool rules not yet in
+    // the conversation that need to be applied. If so, we'll add them to the context. This is much easier than
+    // pre-tool rule application, as there's no need to redo any part of the conversation - we're only guiding
+    // the assistant's next stpes.
     const postInvocationRules = matchNewPostInvocationRules(context, toolUses)
     if (postInvocationRules.length > 0) {
         console.log(
@@ -137,22 +142,8 @@ async function runTools(context: ChatContext, toolUses: ToolUse[], _signal?: Abo
     )
 }
 
-async function runTool(context: ChatContext, toolUse: ToolUse): Promise<{ reprompt?: boolean }> {
-    const { reprompt, ...rest } = await executeTool(context, toolUse)
-    pushToolResult(context, toolUse, { ...rest })
-    return { reprompt }
-}
-
-function cancelTool(context: ChatContext, toolUse: ToolUse): void {
-    pushToolResult(context, toolUse, { canceled: true })
-}
-
-function pushToolResult(
-    context: ChatContext,
-    toolUse: ToolUse,
-    result: { result?: any; error?: Error; canceled?: boolean },
-): void {
-    context.provider.conversationManager.pushUser({ type: 'tool_result', toolUse, ...result })
+function pushToolResults(context: ChatContext, results: ToolResult[]): void {
+    context.provider.conversationManager.pushUser({ type: 'tool_result', results })
 }
 
 async function executeTool(context: ChatContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
