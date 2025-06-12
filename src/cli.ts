@@ -17,7 +17,7 @@ import { getPreferences, Preferences } from './providers/preferences'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
-import { enabledToolNames } from './tools/tools'
+import { enabledToolNames, filterTools } from './tools/tools'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
@@ -58,12 +58,16 @@ async function main() {
     const yoloDescription =
         'Skip user confirmation for potentially dangerous operations like file writing and shell execution.'
 
+    const toolsFlags = '--tools [string]'
+    const toolsDescription = 'Comma-separated list of tool names to enable.'
+
     program
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
         .option(cwdFlags, cwdDescription)
         .option(yoloFlags, yoloDescription)
         .option(oneShotFlags, oneShotDescription)
+        .option(toolsFlags, toolsDescription)
         .action(options => {
             if (options.cwd) {
                 process.chdir(options.cwd)
@@ -79,6 +83,7 @@ async function main() {
                 options.port,
                 options.oneShot,
                 options.yolo,
+                options.tools,
             )
         })
 
@@ -95,6 +100,7 @@ async function chat(
     port?: number,
     oneShot?: string,
     yolo: boolean = false,
+    tools?: string | true,
 ) {
     let context: ChatContext
 
@@ -127,6 +133,13 @@ async function chat(
     const contextStateManager = await createContextState()
     await registerTools(client)
 
+    const toolNames =
+        tools === undefined
+            ? enabledToolNames()
+            : typeof tools === 'string'
+              ? filterTools(tools.split(',').map(name => name.trim())).map(({ name }) => name)
+              : []
+
     try {
         const interruptHandler = createInterruptHandler(rl)
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
@@ -140,7 +153,7 @@ async function chat(
             contextState: contextStateManager,
             modelName: preferences.defaultModel,
             system,
-            allowedTools: enabledToolNames(),
+            allowedTools: toolNames,
         })
 
         context = {
@@ -155,6 +168,7 @@ async function chat(
             events: new EventEmitter(),
             contextStateManager,
             yolo,
+            tools: toolNames,
         }
 
         await registerContextListeners(context, client)

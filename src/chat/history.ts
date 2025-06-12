@@ -12,6 +12,18 @@ export async function loadHistory(context: ChatContext, historyFilename: string)
     const content = await readFile(historyFilename, 'utf8')
     const { model, messages, contextFiles, contextDirectories }: SaveFilePayload = JSON.parse(content, reviver)
 
+    const unavailableTools = Array.from(
+        new Set(
+            messages.flatMap(message => (message.type === 'tool_use' ? message.tools.map(({ name }) => name) : [])),
+        ).difference(new Set(context.tools)),
+    ).sort()
+
+    if (unavailableTools.length > 0) {
+        throw new Error(
+            `Tools were used in the previous chat but are no available in the ucrrent context: ${unavailableTools.join(', ')}.`,
+        )
+    }
+
     await swapProvider(context, model)
     context.provider.conversationManager.setMessages(messages)
     contextFiles.forEach(({ path, inclusionReasons }) =>

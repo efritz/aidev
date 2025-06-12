@@ -6,7 +6,6 @@ import { ChatProviders } from '../providers/chat_providers'
 import { EmbeddingsProviders } from '../providers/embeddings_providers'
 import { Preferences } from '../providers/preferences'
 import { Rule } from '../rules/types'
-import { enabledToolNames } from '../tools/tools'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
 import { UsageTracker } from '../util/usage/tracker'
@@ -23,6 +22,7 @@ export type ChatContext = {
     events: EventEmitter
     contextStateManager: ContextStateManager
     yolo: boolean
+    tools: string[]
 }
 
 export async function swapProvider(context: ChatContext, modelName: string): Promise<void> {
@@ -30,7 +30,7 @@ export async function swapProvider(context: ChatContext, modelName: string): Pro
         contextState: context.contextStateManager,
         modelName,
         system: context.provider.system,
-        allowedTools: enabledToolNames(),
+        allowedTools: context.tools,
     })
 
     const messages = context.provider.conversationManager.messages()

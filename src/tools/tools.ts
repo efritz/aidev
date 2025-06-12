@@ -31,7 +31,9 @@ const allTools: Tool<any, any>[] = [
 
 export const enabledTools = allTools.filter(tool => tool.enabled)
 export const enabledToolNames = () => enabledTools.map(({ name }) => name)
-export const filterTools = (names?: string[]) => enabledTools.filter(({ name }) => (names ?? []).includes(name))
+
+export const filterTools = (names?: string[]) =>
+    names === undefined ? enabledTools : names.map(name => findTool(name))
 
 export function findTool(name: string): Tool<any, any> {
     const tool = enabledTools.find(tool => tool.name === name)
