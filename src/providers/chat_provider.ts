@@ -36,7 +36,7 @@ export type ChatProviderOptions = {
     system: string
     temperature?: number
     maxTokens?: number
-    disableTools?: boolean
+    allowedTools?: string[]
 }
 
 export type ChatProviderFactory = (opts: ChatProviderOptions) => Promise<ChatProvider>

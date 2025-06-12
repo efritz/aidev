@@ -43,7 +43,7 @@ function createGroqChatProvider(providerName: string, apiKey: string, limiter: L
         system,
         temperature = 0.0,
         maxTokens = 4096,
-        disableTools,
+        allowedTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new Groq({ apiKey })
         const modelTracker = tracker.trackerFor(modelName)
@@ -54,7 +54,7 @@ function createGroqChatProvider(providerName: string, apiKey: string, limiter: L
             model,
             temperature,
             maxTokens,
-            disableTools,
+            allowedTools,
         })
 
         return createChatProvider({
@@ -74,27 +74,27 @@ function createStreamFactory({
     model,
     temperature,
     maxTokens,
-    disableTools,
+    allowedTools,
 }: {
     client: Groq
     limiter: Limiter
     model: string
     temperature?: number
     maxTokens?: number
-    disableTools?: boolean
+    allowedTools?: string[]
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
-    const tools = disableTools
-        ? []
-        : enabledTools.map(
-              ({ name, description, schema }): ChatCompletionTool => ({
-                  type: 'function',
-                  function: {
-                      name,
-                      description,
-                      parameters: toJsonSchema(schema),
-                  },
-              }),
-          )
+    const tools = enabledTools
+        .filter(({ name }) => (allowedTools ?? []).includes(name))
+        .map(
+            ({ name, description, schema }): ChatCompletionTool => ({
+                type: 'function',
+                function: {
+                    name,
+                    description,
+                    parameters: toJsonSchema(schema),
+                },
+            }),
+        )
 
     return wrapAsyncIterable(limiter, model, async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) =>
         client.chat.completions.create(

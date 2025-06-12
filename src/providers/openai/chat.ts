@@ -64,7 +64,7 @@ export function createOpenAICompatibleChatProvider(
         system,
         temperature = 0.0,
         maxTokens = options?.maxTokens || 4096,
-        disableTools,
+        allowedTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new OpenAI({ apiKey, baseURL })
         const modelTracker = tracker.trackerFor(modelName)
@@ -75,7 +75,8 @@ export function createOpenAICompatibleChatProvider(
             model,
             temperature: Math.max(temperature, options?.minimumTemperature ?? 0),
             maxTokens,
-            supportsTools: (options?.supportsTools ?? true) && !disableTools,
+            allowedTools,
+            supportsTools: options?.supportsTools ?? true,
             supportsStreaming: options?.supportsStreaming ?? true,
         })
 
@@ -97,6 +98,7 @@ function createStreamFactory({
     model,
     temperature,
     maxTokens,
+    allowedTools,
     supportsTools,
     supportsStreaming,
 }: {
@@ -105,20 +107,23 @@ function createStreamFactory({
     model: string
     temperature?: number
     maxTokens?: number
+    allowedTools?: string[]
     supportsTools: boolean
     supportsStreaming: boolean
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
     const tools = supportsTools
-        ? enabledTools.map(
-              ({ name, description, schema }): ChatCompletionTool => ({
-                  type: 'function',
-                  function: {
-                      name,
-                      description,
-                      parameters: toJsonSchema(schema),
-                  },
-              }),
-          )
+        ? enabledTools
+              .filter(({ name }) => (allowedTools ?? []).includes(name))
+              .map(
+                  ({ name, description, schema }): ChatCompletionTool => ({
+                      type: 'function',
+                      function: {
+                          name,
+                          description,
+                          parameters: toJsonSchema(schema),
+                      },
+                  }),
+              )
         : undefined
 
     // TODO - signal should return a cancellation error

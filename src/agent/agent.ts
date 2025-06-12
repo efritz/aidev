@@ -14,6 +14,7 @@ export async function runAgent<T, R>(
     agent: Agent<T, R>,
     args: T,
     signal?: AbortSignal,
+    allowedTools?: string[],
 ): Promise<R> {
     const modelName = agent.model(context)
     const contextState = createEmptyContextState()
@@ -24,7 +25,7 @@ export async function runAgent<T, R>(
         contextState,
         modelName,
         system,
-        disableTools: true,
+        allowedTools,
     })
 
     provider.conversationManager.pushUser({
