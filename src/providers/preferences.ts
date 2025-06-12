@@ -16,13 +16,15 @@ const ChatModelSchema = z.object({
             headers: z.record(z.string(), z.string()).optional(),
 
             // OpenAI
-            supportsTools: z.boolean().optional(),
             supportsStreaming: z.boolean().optional(),
             minimumTemperature: z.number().optional(),
             systemMessageRole: z.enum(['developer', 'system', 'user']).optional(),
 
             // Anthropic and OpenAI
             maxTokens: z.number().optional(),
+
+            // DeepSeek (via OpenAI)
+            supportsTools: z.boolean().optional(),
         })
         .optional(),
     maxPerSecond: z.number().optional(),

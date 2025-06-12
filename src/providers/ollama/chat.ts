@@ -42,14 +42,14 @@ function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatP
         system,
         temperature = 0.0,
         maxTokens = 4096,
-        disableTools,
+        allowedTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const createStream = createStreamFactory({
             limiter,
             model,
             temperature,
             maxTokens,
-            disableTools,
+            allowedTools,
         })
 
         return createChatProvider({
@@ -68,26 +68,26 @@ function createStreamFactory({
     model,
     temperature,
     maxTokens,
-    disableTools,
+    allowedTools,
 }: {
     limiter: Limiter
     model: string
     temperature?: number
     maxTokens?: number
-    disableTools?: boolean
+    allowedTools?: string[]
 }): StreamFactory<ChatResponse, Message> {
-    const tools = disableTools
-        ? []
-        : enabledTools.map(
-              ({ name, description, schema }): Tool => ({
-                  type: '',
-                  function: {
-                      name,
-                      description,
-                      parameters: toJsonSchema(schema),
-                  },
-              }),
-          )
+    const tools = enabledTools
+        .filter(({ name }) => (allowedTools ?? []).includes(name))
+        .map(
+            ({ name, description, schema }): Tool => ({
+                type: '',
+                function: {
+                    name,
+                    description,
+                    parameters: toJsonSchema(schema),
+                },
+            }),
+        )
 
     return wrapAsyncIterable(limiter, model, async (messages: Message[], signal?: AbortSignal) => {
         // https://github.com/ollama/ollama-js/issues/123

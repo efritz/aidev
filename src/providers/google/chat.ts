@@ -58,7 +58,7 @@ function createGoogleChatProvider(
         system,
         temperature = 0.0,
         maxTokens = 4096,
-        disableTools,
+        allowedTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new GoogleGenerativeAI(apiKey)
         const modelTracker = tracker.trackerFor(modelName)
@@ -70,7 +70,7 @@ function createGoogleChatProvider(
             system,
             temperature,
             maxTokens,
-            disableTools,
+            allowedTools,
         })
 
         return createChatProvider({
@@ -91,7 +91,7 @@ function createStreamFactory({
     system,
     temperature,
     maxTokens,
-    disableTools,
+    allowedTools,
 }: {
     client: GoogleGenerativeAI
     limiter: Limiter
@@ -99,21 +99,21 @@ function createStreamFactory({
     system: string
     temperature?: number
     maxTokens?: number
-    disableTools?: boolean
+    allowedTools?: string[]
 }): StreamFactory<EnhancedGenerateContentResponse, Content> {
-    const tools = disableTools
-        ? []
-        : [
-              {
-                  functionDeclarations: enabledTools.map(
-                      ({ name, description, schema }): FunctionDeclaration => ({
-                          name,
-                          description,
-                          parameters: toJsonSchema(schema) as FunctionDeclarationSchema,
-                      }),
-                  ),
-              },
-          ]
+    const tools = [
+        {
+            functionDeclarations: enabledTools
+                .filter(({ name }) => (allowedTools ?? []).includes(name))
+                .map(
+                    ({ name, description, schema }): FunctionDeclaration => ({
+                        name,
+                        description,
+                        parameters: toJsonSchema(schema) as FunctionDeclarationSchema,
+                    }),
+                ),
+        },
+    ]
 
     return wrapAsyncIterable(limiter, model, async (messages: Content[], signal?: AbortSignal) => {
         const m = client.getGenerativeModel({

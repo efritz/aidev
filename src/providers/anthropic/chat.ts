@@ -53,7 +53,7 @@ function createAnthropicChatProvider(
         system,
         temperature = 0.0,
         maxTokens = options?.maxTokens || 4096,
-        disableTools,
+        allowedTools,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const defaultHeaders = options?.headers
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
@@ -66,7 +66,7 @@ function createAnthropicChatProvider(
             system,
             temperature,
             maxTokens,
-            disableTools,
+            allowedTools,
         })
 
         return createChatProvider({
@@ -87,7 +87,7 @@ function createStreamFactory({
     system,
     temperature,
     maxTokens,
-    disableTools,
+    allowedTools,
 }: {
     client: Anthropic
     limiter: Limiter
@@ -95,17 +95,17 @@ function createStreamFactory({
     system: string
     temperature?: number
     maxTokens: number
-    disableTools?: boolean
+    allowedTools?: string[]
 }): StreamFactory<MessageStreamEvent, MessageParam> {
-    const tools = disableTools
-        ? []
-        : enabledTools.map(
-              ({ name, description, schema }): Tool => ({
-                  name,
-                  description,
-                  input_schema: toJsonSchema(schema),
-              }),
-          )
+    const tools = enabledTools
+        .filter(({ name }) => (allowedTools ?? []).includes(name))
+        .map(
+            ({ name, description, schema }): Tool => ({
+                name,
+                description,
+                input_schema: toJsonSchema(schema),
+            }),
+        )
 
     return wrapAsyncIterable(limiter, model, async (messages: MessageParam[], signal?: AbortSignal) =>
         client.messages.stream(
