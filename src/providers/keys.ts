@@ -10,7 +10,7 @@ function keyPath(name: string): string {
     return path.join(keyDir(), `${name.toLowerCase()}.key`)
 }
 
-function keyDir(): string {
+export function keyDir(): string {
     return process.env['AIDEV_KEY_DIR'] || path.join(configDir(), 'keys')
 }
 

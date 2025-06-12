@@ -13,6 +13,26 @@ export type ProgressOptions<T> = {
 }
 
 export async function withProgress<T>(f: ProgressSubject<T>, options: ProgressOptions<T>): Promise<ProgressResult<T>> {
+    if (!process.stdin.setRawMode) {
+        console.log('ok weirdo way')
+        // setInterval(() => console.log('tick'), 1000)
+        let snapshot: T | undefined
+        console.log(options.progress(undefined))
+        try {
+            const response = await f(latest => {
+                snapshot = latest
+                // console.log(options.progress(snapshot))
+            })
+            console.log(options.success(response))
+            return { ok: true, response }
+        } catch (error: any) {
+            console.log(options.failure(snapshot, error))
+            return { ok: false, error }
+        } finally {
+            console.log('DONE')
+        }
+    }
+
     const spinner = ora({
         text: options.progress(undefined),
         discardStdin: false,
