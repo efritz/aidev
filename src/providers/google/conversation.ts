@@ -24,27 +24,33 @@ function userMessageToParam(message: UserMessage): Content[] {
         }
 
         case 'tool_result': {
-            const { result, suggestions } = serializeToolResult(message.toolUse.name, message)
-            // TODO
+            const messages: Content[] = []
+            const allSuggestions: string[] = []
 
-            const messages: Content[] = [
-                {
+            for (const toolResult of message.results) {
+                const { result, suggestions } = serializeToolResult(toolResult.toolUse.name, toolResult)
+
+                messages.push({
                     role: 'function',
                     parts: [
                         {
                             functionResponse: {
-                                name: message.toolUse.name,
+                                name: toolResult.toolUse.name,
                                 response: result,
                             },
                         },
                     ],
-                },
-            ]
+                })
 
-            if (suggestions) {
+                if (suggestions) {
+                    allSuggestions.push(suggestions)
+                }
+            }
+
+            if (allSuggestions.length > 0) {
                 messages.push({
                     role: 'user',
-                    parts: [{ text: suggestions }],
+                    parts: [{ text: allSuggestions.join('\n\n') }],
                 })
             }
 

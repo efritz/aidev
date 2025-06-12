@@ -147,12 +147,14 @@ async function injectContextMessages(
         }
 
         if (message.role === 'user' && message.type === 'tool_result') {
-            const shouldInclude = ({ inclusionReasons }: { inclusionReasons: InclusionReason[] }) => {
-                return includedByToolUse(inclusionReasons, message.toolUse.id)
-            }
+            for (const result of message.results) {
+                const shouldInclude = ({ inclusionReasons }: { inclusionReasons: InclusionReason[] }) => {
+                    return includedByToolUse(inclusionReasons, result.toolUse.id)
+                }
 
-            files.filter(shouldInclude).forEach(addFile)
-            directories.filter(shouldInclude).forEach(addDirectory)
+                files.filter(shouldInclude).forEach(addFile)
+                directories.filter(shouldInclude).forEach(addDirectory)
+            }
         }
 
         if (message.role === 'meta') {
