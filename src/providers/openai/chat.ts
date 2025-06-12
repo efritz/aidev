@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
 import { toJsonSchema } from '../../tools/tool'
-import { enabledTools } from '../../tools/tools'
+import { filterTools } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
@@ -112,18 +112,16 @@ function createStreamFactory({
     supportsStreaming: boolean
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
     const tools = supportsTools
-        ? enabledTools
-              .filter(({ name }) => (allowedTools ?? []).includes(name))
-              .map(
-                  ({ name, description, schema }): ChatCompletionTool => ({
-                      type: 'function',
-                      function: {
-                          name,
-                          description,
-                          parameters: toJsonSchema(schema),
-                      },
-                  }),
-              )
+        ? filterTools(allowedTools).map(
+              ({ name, description, schema }): ChatCompletionTool => ({
+                  type: 'function',
+                  function: {
+                      name,
+                      description,
+                      parameters: toJsonSchema(schema),
+                  },
+              }),
+          )
         : undefined
 
     // TODO - signal should return a cancellation error

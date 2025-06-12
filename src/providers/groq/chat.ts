@@ -2,7 +2,7 @@ import Groq from 'groq-sdk'
 import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 import { ChatCompletionTool } from 'openai/resources'
 import { toJsonSchema } from '../../tools/tool'
-import { enabledTools } from '../../tools/tools'
+import { filterTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
 import { ChatProvider, ChatProviderOptions, ChatProviderSpec, registerModelLimits } from '../chat_provider'
@@ -83,18 +83,16 @@ function createStreamFactory({
     maxTokens?: number
     allowedTools?: string[]
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
-    const tools = enabledTools
-        .filter(({ name }) => (allowedTools ?? []).includes(name))
-        .map(
-            ({ name, description, schema }): ChatCompletionTool => ({
-                type: 'function',
-                function: {
-                    name,
-                    description,
-                    parameters: toJsonSchema(schema),
-                },
-            }),
-        )
+    const tools = filterTools(allowedTools).map(
+        ({ name, description, schema }): ChatCompletionTool => ({
+            type: 'function',
+            function: {
+                name,
+                description,
+                parameters: toJsonSchema(schema),
+            },
+        }),
+    )
 
     return wrapAsyncIterable(limiter, model, async (messages: ChatCompletionMessageParam[], signal?: AbortSignal) =>
         client.chat.completions.create(

@@ -6,7 +6,7 @@ import {
     GoogleGenerativeAI,
 } from '@google/generative-ai'
 import { toJsonSchema } from '../../tools/tool'
-import { enabledTools } from '../../tools/tools'
+import { filterTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
 import {
@@ -103,15 +103,13 @@ function createStreamFactory({
 }): StreamFactory<EnhancedGenerateContentResponse, Content> {
     const tools = [
         {
-            functionDeclarations: enabledTools
-                .filter(({ name }) => (allowedTools ?? []).includes(name))
-                .map(
-                    ({ name, description, schema }): FunctionDeclaration => ({
-                        name,
-                        description,
-                        parameters: toJsonSchema(schema) as FunctionDeclarationSchema,
-                    }),
-                ),
+            functionDeclarations: filterTools(allowedTools).map(
+                ({ name, description, schema }): FunctionDeclaration => ({
+                    name,
+                    description,
+                    parameters: toJsonSchema(schema) as FunctionDeclarationSchema,
+                }),
+            ),
         },
     ]
 

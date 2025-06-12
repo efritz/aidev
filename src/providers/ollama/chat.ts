@@ -1,6 +1,6 @@
 import { ChatResponse, Message, Tool } from 'ollama'
 import { toJsonSchema } from '../../tools/tool'
-import { enabledTools } from '../../tools/tools'
+import { filterTools } from '../../tools/tools'
 import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import {
@@ -76,18 +76,16 @@ function createStreamFactory({
     maxTokens?: number
     allowedTools?: string[]
 }): StreamFactory<ChatResponse, Message> {
-    const tools = enabledTools
-        .filter(({ name }) => (allowedTools ?? []).includes(name))
-        .map(
-            ({ name, description, schema }): Tool => ({
-                type: '',
-                function: {
-                    name,
-                    description,
-                    parameters: toJsonSchema(schema),
-                },
-            }),
-        )
+    const tools = filterTools(allowedTools).map(
+        ({ name, description, schema }): Tool => ({
+            type: '',
+            function: {
+                name,
+                description,
+                parameters: toJsonSchema(schema),
+            },
+        }),
+    )
 
     return wrapAsyncIterable(limiter, model, async (messages: Message[], signal?: AbortSignal) => {
         // https://github.com/ollama/ollama-js/issues/123

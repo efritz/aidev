@@ -17,7 +17,7 @@ import { getPreferences, Preferences } from './providers/preferences'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
-import { enabledTools } from './tools/tools'
+import { enabledToolNames } from './tools/tools'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
@@ -140,7 +140,7 @@ async function chat(
             contextState: contextStateManager,
             modelName: preferences.defaultModel,
             system,
-            allowedTools: enabledTools.map(({ name }) => name),
+            allowedTools: enabledToolNames(),
         })
 
         context = {
