@@ -17,6 +17,7 @@ import { getPreferences, Preferences } from './providers/preferences'
 import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
+import { seedAllowedCommands } from './tools/shell/shell_execute'
 import { enabledToolNames, filterTools } from './tools/tools'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
@@ -132,6 +133,7 @@ async function chat(
     const system = await buildSystemPrompt(preferences)
     const contextStateManager = await createContextState()
     await registerTools(client)
+    await seedAllowedCommands()
 
     const toolNames =
         tools === undefined

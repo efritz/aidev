@@ -1,8 +1,10 @@
+import path from 'path'
 import chalk from 'chalk'
 import { z } from 'zod'
 import { ChatContext } from '../../chat/context'
 import { ToolUse } from '../../messages/messages'
 import { RuleMatcher } from '../../rules/types'
+import { safeReadFile } from '../../util/fs/safe'
 import { CancelError } from '../../util/interrupts/interrupts'
 import {
     ShellResult as BaseShellResult,
@@ -25,6 +27,16 @@ type ShellExecuteResult = BaseShellResult & {
 }
 
 const allowedCommands: Set<string> = new Set()
+const allowedCommandsPath = path.join('.aidev', 'allowed-commands')
+
+export async function seedAllowedCommands(): Promise<void> {
+    for (const line of (await safeReadFile(allowedCommandsPath)).split('\n')) {
+        const command = line.split('#')[0].trim()
+        if (command !== '') {
+            allowedCommands.add(command)
+        }
+    }
+}
 
 export const shellExecute: Tool<typeof ShellExecuteSchema, ShellExecuteResult> = {
     name: 'shell_execute',
