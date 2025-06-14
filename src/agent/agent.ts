@@ -4,6 +4,7 @@ import { promptWithPrefixes } from '../chat/output'
 import { runToolsInResponse } from '../chat/tools'
 import { createContextState } from '../context/state'
 import { Response } from '../messages/messages'
+import { filterTools } from '../tools/tools'
 import { CancelError } from '../util/interrupts/interrupts'
 import { withProgress } from '../util/progress/progress'
 
@@ -23,7 +24,7 @@ export async function runAgent<T, R>(
     signal?: AbortSignal, // TODO - use
 ): Promise<R> {
     const modelName = agent.model(context)
-    const tools = Array.from(new Set([...agent.allowedTools(), 'submit_answer']))
+    const tools = filterTools(Array.from(new Set([...agent.allowedTools(), 'submit_answer']))).map(tool => tool.name)
     const quiet = agent.quiet()
 
     // TODO - restructure system prompt around this a bit

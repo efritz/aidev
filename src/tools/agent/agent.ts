@@ -24,19 +24,8 @@ export const agent: Tool<typeof AgentSchema, AgentResult> = {
     schema: AgentSchema,
     enabled: true,
     execute: async (context: ChatContext, _toolUseId: string, args: AgentArguments) => {
-        // Validate tool names if provided
-        const availableTools = enabledToolNames()
-        if (args.allowedTools) {
-            const invalidTools = args.allowedTools.filter(tool => !availableTools.includes(tool))
-            if (invalidTools.length > 0) {
-                throw new Error(
-                    `Invalid tool names: ${invalidTools.join(', ')}. Available tools: ${availableTools.join(', ')}`,
-                )
-            }
-        }
-
         const agent: Agent<{ userMessage: string }, string> = {
-            model: () => 'sonnet',
+            model: () => 'sonnet', // TODO - configure from preferences
             allowedTools: () => args.allowedTools ?? [],
             quiet: () => false,
             buildSystemPrompt: async (_context: ChatContext, _args: any) => args.systemPrompt,
@@ -47,11 +36,7 @@ export const agent: Tool<typeof AgentSchema, AgentResult> = {
         // TODO - signal
         const result = await runAgent(context, agent, { userMessage: args.userMessage })
         console.log({ result })
-
-        return {
-            result: result as string,
-            reprompt: false,
-        }
+        return { result }
     },
     replay: (_args: AgentArguments, result: { result?: string; error?: Error; canceled?: boolean }) => {
         if (result.error) {
