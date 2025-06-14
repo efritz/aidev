@@ -161,6 +161,8 @@ async function translate(
 
 const translatorAgent: Agent<{ url: string; content: string }, Summary> = {
     model: context => context.preferences.webTranslatorModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { url, content }) => {
         return userMessageTemplate.replace('{{url}}', url).replace('{{content}}', content)
