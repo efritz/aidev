@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { Agent, runAgent } from '../../agent/agent'
 import { ChatContext } from '../../chat/context'
 import { Tool } from '../tool'
-import { enabledToolNames } from '../tools'
 
 const AgentSchema = z.object({
     systemPrompt: z.string().describe('The system prompt/instruction for the sub-agent'),

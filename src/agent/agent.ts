@@ -1,11 +1,8 @@
-import EventEmitter from 'events'
 import { ChatContext } from '../chat/context'
-import { promptWithPrefixes } from '../chat/output'
 import { runToolsInResponse } from '../chat/tools'
 import { createContextState } from '../context/state'
 import { Response } from '../messages/messages'
 import { filterTools } from '../tools/tools'
-import { CancelError } from '../util/interrupts/interrupts'
 import { withProgress } from '../util/progress/progress'
 
 export interface Agent<T, R> {
@@ -21,7 +18,7 @@ export async function runAgent<T, R>(
     context: ChatContext,
     agent: Agent<T, R>,
     args: T,
-    signal?: AbortSignal, // TODO - use
+    _signal?: AbortSignal, // TODO - use
 ): Promise<R> {
     const modelName = agent.model(context)
     const tools = filterTools(Array.from(new Set([...agent.allowedTools(), 'submit_result']))).map(tool => tool.name)
@@ -51,8 +48,6 @@ export async function runAgent<T, R>(
         provider,
         contextStateManager,
         tools,
-
-        events: new EventEmitter(), // TODO - independent?
     }
 
     try {
