@@ -1,3 +1,5 @@
+import { agent } from './agent/agent'
+import { submitAnswer } from './agent/submit_answer'
 import { editFile } from './fs/edit_file'
 import { readDirectories } from './fs/read_directories'
 import { readFiles } from './fs/read_files'
@@ -27,6 +29,8 @@ const allTools: Tool<any, any>[] = [
     addTodo,
     completeTodo,
     cancelTodo,
+    agent,
+    submitAnswer, // TODO - agent only
 ]
 
 export const enabledTools = allTools.filter(tool => tool.enabled)

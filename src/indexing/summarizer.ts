@@ -156,6 +156,8 @@ const summarizerAgent: Agent<
     Summary
 > = {
     model: context => context.preferences.summarizerModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { file, block, childSummaries }) => {
         const resolvedChildSummaries: string[] = []

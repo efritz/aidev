@@ -25,6 +25,8 @@ const relevanceAgent: Agent<
     boolean
 > = {
     model: context => context.preferences.relevanceModel || context.preferences.summarizerModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { file, block }) => {
         return userMessageTemplate.replace('{{file}}', file.content).replace('{{chunk}}', block.content)
