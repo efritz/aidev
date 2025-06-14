@@ -136,7 +136,7 @@ async function chat(
     await seedAllowedCommands()
 
     // TODO - force some small set of core tools (todos)
-    // TODO - submit_answer should NOT be a default tool
+    // TODO - submit_result should NOT be a default tool
 
     const toolNames =
         tools === undefined

@@ -24,11 +24,11 @@ export async function runAgent<T, R>(
     signal?: AbortSignal, // TODO - use
 ): Promise<R> {
     const modelName = agent.model(context)
-    const tools = filterTools(Array.from(new Set([...agent.allowedTools(), 'submit_answer']))).map(tool => tool.name)
+    const tools = filterTools(Array.from(new Set([...agent.allowedTools(), 'submit_result']))).map(tool => tool.name)
     const quiet = agent.quiet()
 
     // TODO - restructure system prompt around this a bit
-    const epilogue = 'When submitting a response, use the submit_answer tool.'
+    const epilogue = 'When submitting a response, use the submit_result tool.'
     const system = (await agent.buildSystemPrompt(context, args)) + '\n\n' + epilogue
     const userMessage = await agent.buildUserMessage(context, args)
 
@@ -56,7 +56,7 @@ export async function runAgent<T, R>(
             content: userMessage,
         })
 
-        const submittedAnswer = await context.interruptHandler.withInterruptHandler(async signal => {
+        const submittedAnswer = await subContext.interruptHandler.withInterruptHandler(async signal => {
             let submittedAnswer: string | undefined
 
             while (!submittedAnswer) {
@@ -79,7 +79,7 @@ export async function runAgent<T, R>(
 
                 const submitAnswerUse = response.messages
                     .flatMap(m => (m.type !== 'tool_use' ? [] : m.tools))
-                    .find(tool => tool.name === 'submit_answer')
+                    .find(tool => tool.name === 'submit_result')
 
                 if (submitAnswerUse) {
                     const params = submitAnswerUse.parameters ? JSON.parse(submitAnswerUse.parameters) : {}
