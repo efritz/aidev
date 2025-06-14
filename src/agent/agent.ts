@@ -28,7 +28,12 @@ export async function runAgent<T, R>(
     const quiet = agent.quiet()
 
     // TODO - restructure system prompt around this a bit
-    const epilogue = 'When submitting a response, use the submit_result tool.'
+    const epilogue = [
+        'When submitting a final response, use the submit_result tool.',
+        'Do not submit a final response via text.',
+        'If you do not use this tool, the coordinator will keep reprompting you and may cause an endless loop.',
+    ].join(' ')
+
     const system = (await agent.buildSystemPrompt(context, args)) + '\n\n' + epilogue
     const userMessage = await agent.buildUserMessage(context, args)
 
@@ -59,6 +64,9 @@ export async function runAgent<T, R>(
         const submittedAnswer = await subContext.interruptHandler.withInterruptHandler(async signal => {
             let submittedAnswer: string | undefined
 
+            // TODO - maximum runtime
+            // TODO - maximum number of iterations
+
             while (!submittedAnswer) {
                 const response = quiet
                     ? await subContext.provider.prompt(() => {}, signal)
@@ -66,9 +74,9 @@ export async function runAgent<T, R>(
                           const response2 = await withProgress<Response>(
                               progress => subContext.provider.prompt(progress, signal),
                               {
-                                  progress: () => 'progress',
-                                  success: () => 'success',
-                                  failure: () => 'failure',
+                                  progress: snapshot => `progress (${JSON.stringify(snapshot)})`,
+                                  success: snapshot => `success (${JSON.stringify(snapshot)})`,
+                                  failure: snapshot => `failure (${JSON.stringify(snapshot)})`,
                               },
                           )
                           if (!response2.ok) {
