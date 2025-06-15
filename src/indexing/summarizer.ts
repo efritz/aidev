@@ -156,6 +156,8 @@ const summarizerAgent: Agent<
     Summary
 > = {
     model: context => context.preferences.summarizerModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { file, block, childSummaries }) => {
         const resolvedChildSummaries: string[] = []
@@ -171,7 +173,7 @@ const summarizerAgent: Agent<
             .replace('{{chunk}}', block.content)
             .replace('{{children}}', resolvedChildSummaries.sort().join('\n') ?? 'No children defined')
     },
-    processMessage: async (_, content) => {
+    processResult: async (_, content) => {
         const signatureMatch = createXmlPattern('signature').exec(content)
         if (!signatureMatch) {
             throw new Error(`Summarizer did not provide a signature:\n\n${content}`)

@@ -1,3 +1,5 @@
+import { agent } from './agent/agent'
+import { submitResult } from './agent/submit_result'
 import { editFile } from './fs/edit_file'
 import { readDirectories } from './fs/read_directories'
 import { readFiles } from './fs/read_files'
@@ -7,7 +9,7 @@ import { think } from './think/think'
 import { addTodo } from './todo/add_todo'
 import { cancelTodo } from './todo/cancel_todo'
 import { completeTodo } from './todo/complete_todo'
-import { SerializedToolResult, Tool, ToolResult } from './tool'
+import { AgentType, SerializedToolResult, Tool, ToolResult } from './tool'
 import { readWeb } from './web/read'
 import { searchWeb } from './web/search'
 import { searchWorkspaceEmbeddings } from './workspace/search_embeddings'
@@ -27,13 +29,36 @@ const allTools: Tool<any, any>[] = [
     addTodo,
     completeTodo,
     cancelTodo,
+    agent,
+    submitResult,
 ]
 
 export const enabledTools = allTools.filter(tool => tool.enabled)
-export const enabledToolNames = () => enabledTools.map(({ name }) => name)
 
-export const filterTools = (names?: string[]) =>
-    names === undefined ? enabledTools : names.map(name => findTool(name))
+export const filterTools = (names: string[] | undefined, agentType: AgentType) => {
+    if (names === undefined) {
+        return enabledTools.filter(tool => tool.agentContext.some(ctx => ctx.type === agentType))
+    }
+
+    const tools = names.map(name => {
+        const tool = enabledTools.find(tool => tool.name === name)
+        if (!tool) {
+            throw new Error(`Tool not found: ${name}`)
+        }
+
+        if (!tool.agentContext.some(ctx => ctx.type === agentType)) {
+            throw new Error(`Tool ${name} is not available in context ${agentType}`)
+        }
+
+        return tool
+    })
+
+    const required = enabledTools.filter(tool =>
+        tool.agentContext.some(({ type, required }) => type === agentType && required),
+    )
+
+    return [...new Set([...tools, ...required])]
+}
 
 export function findTool(name: string): Tool<any, any> {
     const tool = enabledTools.find(tool => tool.name === name)

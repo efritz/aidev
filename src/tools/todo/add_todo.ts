@@ -19,6 +19,10 @@ export const addTodo: Tool<typeof AddTodoSchema, AddTodoResult> = {
     description: 'Add a new todo item.',
     schema: AddTodoSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: true },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: AddTodoArguments, { result }: ToolResult<AddTodoResult>) => {
         if (result) {
             console.log(`${chalk.green('✓')} Added todo: ${chalk.dim(result.todo.description)}`)

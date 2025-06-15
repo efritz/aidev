@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk'
 import { ChatCompletionChunk, ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 import { ChatCompletionTool } from 'openai/resources'
-import { toJsonSchema } from '../../tools/tool'
+import { AgentType, toJsonSchema } from '../../tools/tool'
 import { filterTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
@@ -44,6 +44,7 @@ function createGroqChatProvider(providerName: string, apiKey: string, limiter: L
         temperature = 0.0,
         maxTokens = 4096,
         allowedTools,
+        agentType,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new Groq({ apiKey })
         const modelTracker = tracker.trackerFor(modelName)
@@ -55,6 +56,7 @@ function createGroqChatProvider(providerName: string, apiKey: string, limiter: L
             temperature,
             maxTokens,
             allowedTools,
+            agentType,
         })
 
         return createChatProvider({
@@ -75,6 +77,7 @@ function createStreamFactory({
     temperature,
     maxTokens,
     allowedTools,
+    agentType,
 }: {
     client: Groq
     limiter: Limiter
@@ -82,8 +85,9 @@ function createStreamFactory({
     temperature?: number
     maxTokens?: number
     allowedTools?: string[]
+    agentType: AgentType
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
-    const tools = filterTools(allowedTools).map(
+    const tools = filterTools(allowedTools, agentType).map(
         ({ name, description, schema }): ChatCompletionTool => ({
             type: 'function',
             function: {

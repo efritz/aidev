@@ -19,6 +19,10 @@ export const cancelTodo: Tool<typeof CancelTodoSchema, CancelTodoResult> = {
     description: 'Cancel an active todo item that is no longer needed or relevant.',
     schema: CancelTodoSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: true },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: CancelTodoArguments, { result, error }: ToolResult<CancelTodoResult>) => {
         if (error) {
             // TODO - odd?

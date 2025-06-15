@@ -61,6 +61,10 @@ export const editFile: Tool<typeof EditFileSchema, EditFileResult> = {
     ].join(' '),
     schema: EditFileSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (
         { path, edits: proposedEdits }: EditFileArguments,
         { result, error, canceled }: ToolResult<EditFileResult>,

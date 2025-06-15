@@ -40,6 +40,10 @@ export const readDirectories: Tool<typeof ReadDirectoriesSchema, ReadDirectories
     ].join(' '),
     schema: ReadDirectoriesSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: ReadDirectoriesArguments, { result }: ToolResult<ReadDirectoriesResult>) => {
         console.log(
             (result ?? [])

@@ -19,6 +19,10 @@ export const completeTodo: Tool<typeof CompleteTodoSchema, CompleteTodoResult> =
     description: 'Mark an active todo item as completed.',
     schema: CompleteTodoSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: true },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: CompleteTodoArguments, { result, error }: ToolResult<CompleteTodoResult>) => {
         if (error) {
             // TODO - odd?

@@ -22,6 +22,10 @@ export const think: Tool<typeof ThinkSchema, ThinkResult> = {
     ].join(' '),
     schema: ThinkSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: ThinkArguments, { result }: ToolResult<ThinkResult>) => {
         if (result) {
             console.log(chalk.italic.grey(result.thoughts.trim()))
