@@ -28,6 +28,10 @@ export const writeFile: Tool<typeof WriteFileSchema, WriteFileResult> = {
     ].join(' '),
     schema: WriteFileSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (
         { path, contents: proposedContents }: WriteFileArguments,
         { result, error, canceled }: ToolResult<WriteFileResult>,

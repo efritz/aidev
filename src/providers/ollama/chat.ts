@@ -1,5 +1,5 @@
 import { ChatResponse, Message, Tool } from 'ollama'
-import { toJsonSchema } from '../../tools/tool'
+import { AgentType, toJsonSchema } from '../../tools/tool'
 import { filterTools } from '../../tools/tools'
 import { abortableIterable, toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
@@ -43,6 +43,7 @@ function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatP
         temperature = 0.0,
         maxTokens = 4096,
         allowedTools,
+        agentType,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const createStream = createStreamFactory({
             limiter,
@@ -50,6 +51,7 @@ function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatP
             temperature,
             maxTokens,
             allowedTools,
+            agentType,
         })
 
         return createChatProvider({
@@ -69,14 +71,16 @@ function createStreamFactory({
     temperature,
     maxTokens,
     allowedTools,
+    agentType,
 }: {
     limiter: Limiter
     model: string
     temperature?: number
     maxTokens?: number
     allowedTools?: string[]
+    agentType: AgentType
 }): StreamFactory<ChatResponse, Message> {
-    const tools = filterTools(allowedTools).map(
+    const tools = filterTools(allowedTools, agentType).map(
         ({ name, description, schema }): Tool => ({
             type: '',
             function: {

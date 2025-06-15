@@ -34,6 +34,10 @@ export const readFiles: Tool<typeof ReadFilesSchema, ReadFileResult> = {
     ].join(' '),
     schema: ReadFilesSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: ReadFilesArguments, { result }: ToolResult<ReadFileResult>) => {
         console.log(
             (result ?? []).map(path => `${chalk.dim('ℹ')} Added file "${chalk.red(path)}" into context.`).join('\n'),

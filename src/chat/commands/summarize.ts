@@ -36,6 +36,8 @@ async function handleSummarize(context: ChatContext, args: string): Promise<void
 
 const summarizeConversationAgent: Agent<{ savepoint?: string }, string> = {
     model: context => context.preferences.summarizerModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (context, args) => {
         const { savepoint } = args
@@ -51,7 +53,7 @@ const summarizeConversationAgent: Agent<{ savepoint?: string }, string> = {
 
         return userMessageTemplate.replace('{{range}}', rangeDescription).replace('{{conversation}}', conversationJson)
     },
-    processMessage: async (_, content) => content.trim(),
+    processResult: async (_, content) => content.trim(),
 }
 
 const systemPromptTemplate = `

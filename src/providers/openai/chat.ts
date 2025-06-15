@@ -1,6 +1,6 @@
 import { OpenAI } from 'openai'
 import { ChatCompletionChunk, ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources'
-import { toJsonSchema } from '../../tools/tool'
+import { AgentType, toJsonSchema } from '../../tools/tool'
 import { filterTools } from '../../tools/tools'
 import { toIterable } from '../../util/iterable/iterable'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
@@ -65,6 +65,7 @@ export function createOpenAICompatibleChatProvider(
         temperature = 0.0,
         maxTokens = options?.maxTokens || 4096,
         allowedTools,
+        agentType,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new OpenAI({ apiKey, baseURL })
         const modelTracker = tracker.trackerFor(modelName)
@@ -76,6 +77,7 @@ export function createOpenAICompatibleChatProvider(
             temperature: Math.max(temperature, options?.minimumTemperature ?? 0),
             maxTokens,
             allowedTools,
+            agentType,
             supportsTools: options?.supportsTools ?? true,
             supportsStreaming: options?.supportsStreaming ?? true,
         })
@@ -99,6 +101,7 @@ function createStreamFactory({
     temperature,
     maxTokens,
     allowedTools,
+    agentType,
     supportsTools,
     supportsStreaming,
 }: {
@@ -108,11 +111,12 @@ function createStreamFactory({
     temperature?: number
     maxTokens?: number
     allowedTools?: string[]
+    agentType: AgentType
     supportsTools: boolean
     supportsStreaming: boolean
 }): StreamFactory<ChatCompletionChunk, ChatCompletionMessageParam> {
     const tools = supportsTools
-        ? filterTools(allowedTools).map(
+        ? filterTools(allowedTools, agentType).map(
               ({ name, description, schema }): ChatCompletionTool => ({
                   type: 'function',
                   function: {

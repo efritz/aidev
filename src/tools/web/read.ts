@@ -43,6 +43,10 @@ export const readWeb: Tool<typeof ReadWebSchema, ReadWebResult[]> = {
     description: ['Read a webpage and summarize its contents.'].join(' '),
     schema: ReadWebSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (_args: ReadWebArguments, { result }: ToolResult<ReadWebResult[]>) => {
         console.log(`${chalk.green('✔')} Read ${result?.length ?? 0} pages.`)
         console.log()
@@ -161,11 +165,13 @@ async function translate(
 
 const translatorAgent: Agent<{ url: string; content: string }, Summary> = {
     model: context => context.preferences.webTranslatorModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { url, content }) => {
         return userMessageTemplate.replace('{{url}}', url).replace('{{content}}', content)
     },
-    processMessage: async (_, content) => {
+    processResult: async (_, content) => {
         const contentMatch = createXmlPattern('content').exec(content)
         if (!contentMatch) {
             throw new Error(`Translator did not provide content:\n\n${content}`)

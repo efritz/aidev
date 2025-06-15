@@ -1,6 +1,6 @@
 import { Anthropic } from '@anthropic-ai/sdk'
 import { MessageParam, MessageStreamEvent, Tool } from '@anthropic-ai/sdk/resources/messages'
-import { toJsonSchema } from '../../tools/tool'
+import { AgentType, toJsonSchema } from '../../tools/tool'
 import { filterTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
@@ -54,6 +54,7 @@ function createAnthropicChatProvider(
         temperature = 0.0,
         maxTokens = options?.maxTokens || 4096,
         allowedTools,
+        agentType,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const defaultHeaders = options?.headers
         const client = new Anthropic({ apiKey: apiKey, defaultHeaders })
@@ -67,6 +68,7 @@ function createAnthropicChatProvider(
             temperature,
             maxTokens,
             allowedTools,
+            agentType,
         })
 
         return createChatProvider({
@@ -88,6 +90,7 @@ function createStreamFactory({
     temperature,
     maxTokens,
     allowedTools,
+    agentType,
 }: {
     client: Anthropic
     limiter: Limiter
@@ -96,8 +99,9 @@ function createStreamFactory({
     temperature?: number
     maxTokens: number
     allowedTools?: string[]
+    agentType: AgentType
 }): StreamFactory<MessageStreamEvent, MessageParam> {
-    const tools = filterTools(allowedTools).map(
+    const tools = filterTools(allowedTools, agentType).map(
         ({ name, description, schema }): Tool => ({
             name,
             description,

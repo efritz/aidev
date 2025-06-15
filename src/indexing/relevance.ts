@@ -25,11 +25,13 @@ const relevanceAgent: Agent<
     boolean
 > = {
     model: context => context.preferences.relevanceModel || context.preferences.summarizerModel,
+    allowedTools: () => [],
+    quiet: () => true,
     buildSystemPrompt: async () => systemPromptTemplate,
     buildUserMessage: async (_, { file, block }) => {
         return userMessageTemplate.replace('{{file}}', file.content).replace('{{chunk}}', block.content)
     },
-    processMessage: async (_, content) => {
+    processResult: async (_, content) => {
         const decisionMatch = createXmlPattern('decision').exec(content)
         if (!decisionMatch) {
             throw new Error(`Relevance agent did not provide a decision:\n\n${content}`)
