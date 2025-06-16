@@ -51,9 +51,10 @@ Use the add_todo tool to create new tasks when you identify work that needs to b
 Use the complete_todo tool to mark tasks as finished when they are completed.
 Use the cancel_todo tool to mark tasks as no longer needed.
 
-Add todo items when you are about to perform an action that may require multiple steps or may fail.
-Only skip adding a todo item if your next response is **guaranteed** to completely fulfill the user's request.
-This ensures nothing is forgotten and provides clear tracking of multi-step work.
+When you identify work that needs to be done, create todo items for ALL the subtasks required to complete the user's request upfront.
+Break down complex requests into specific, actionable subtasks and add them all to the todo list before beginning work.
+This ensures comprehensive planning and allows you to work through tasks systematically without requiring user intervention between steps.
+Only skip adding todo items if your next response is **guaranteed** to completely fulfill the user's request in a single action.
 
 Use multiple tool calls in one response when managing todos.
 Mark a todo item as completed only after the task has been successfully completed.
