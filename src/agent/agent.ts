@@ -1,7 +1,10 @@
+import chalk from 'chalk'
 import { ChatContext } from '../chat/context'
 import { promptWithPrefixes } from '../chat/output'
 import { runToolsInResponse } from '../chat/tools'
 import { createContextState } from '../context/state'
+import { Response } from '../messages/messages'
+import { submitResult } from '../tools/agent/submit_result'
 import { filterTools } from '../tools/tools'
 
 export interface Agent<T, R> {
@@ -96,13 +99,16 @@ export async function runAgent<T, R>(
 
                 await runToolsInResponse(subContext, response, signal)
 
-                // TODO - add validation
-                const submitAnswerUse = response.messages
+                const submitResultToolUses = response.messages
                     .flatMap(m => (m.type !== 'tool_use' ? [] : m.tools))
-                    .find(tool => tool.name === 'submit_result')
-                if (submitAnswerUse) {
-                    const { result } = JSON.parse(submitAnswerUse.parameters) as { result: string }
-                    return result
+                    .filter(tool => tool.name === submitResult.name)
+
+                if (submitResultToolUses.length !== 0) {
+                    if (submitResultToolUses.length > 1) {
+                        throw new Error(`Multiple results submitteed by agent.`)
+                    }
+
+                    return submitResult.schema.parse(JSON.parse(submitResultToolUses[0].parameters)).result
                 }
             }
         })
