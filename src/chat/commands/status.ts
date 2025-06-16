@@ -170,30 +170,19 @@ function printTodos(context: ChatContext) {
         return
     }
 
-    const pendingTodos = todos.filter(todo => todo.status === 'pending')
-    const completedTodos = todos.filter(todo => todo.status === 'completed')
-    const canceledTodos = todos.filter(todo => todo.status === 'canceled')
-
-    if (pendingTodos.length > 0) {
-        console.log(chalk.bold('  Pending:'))
-        pendingTodos.forEach(todo => {
-            console.log(`    ${chalk.yellow('○')} ${todo.description}`)
-        })
-    }
-
-    if (completedTodos.length > 0) {
-        console.log(chalk.bold('  Completed:'))
-        completedTodos.forEach(todo => {
-            console.log(`    ${chalk.green('✓')} ${chalk.dim(todo.description)}`)
-        })
-    }
-
-    if (canceledTodos.length > 0) {
-        console.log(chalk.bold('  Canceled:'))
-        canceledTodos.forEach(todo => {
-            console.log(`    ${chalk.red('✗')} ${chalk.dim(todo.description)}`)
-        })
-    }
+    todos.forEach(todo => {
+        switch (todo.status) {
+            case 'pending':
+                console.log(`${chalk.yellow('○')} ${todo.description}`)
+                break
+            case 'completed':
+                console.log(`${chalk.green('✓')} ${chalk.dim(todo.description)}`)
+                break
+            case 'canceled':
+                console.log(`${chalk.red('✗')} ${chalk.dim(todo.description)}`)
+                break
+        }
+    })
 }
 
 const countUserMessages = (messages: Message[]): number => messages.filter(message => message.role === 'user').length
