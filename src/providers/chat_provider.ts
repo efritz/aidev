@@ -1,6 +1,7 @@
 import { ContextState } from '../context/state'
 import { ConversationManager } from '../conversation/manager'
 import { Response } from '../messages/messages'
+import { AgentType } from '../tools/tool'
 import { Limiter } from '../util/ratelimits/limiter'
 import { ChatModel } from './preferences'
 
@@ -37,6 +38,7 @@ export type ChatProviderOptions = {
     temperature?: number
     maxTokens?: number
     allowedTools?: string[]
+    agentType: AgentType
 }
 
 export type ChatProviderFactory = (opts: ChatProviderOptions) => Promise<ChatProvider>

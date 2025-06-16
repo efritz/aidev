@@ -32,6 +32,10 @@ export const searchWorkspaceEmbeddings: Tool<typeof SearchWorkspaceEmbeddingsSch
         ].join(' '),
         schema: SearchWorkspaceEmbeddingsSchema,
         enabled: true,
+        agentContext: [
+            { type: 'main', required: false },
+            { type: 'subagent', required: false },
+        ],
         replay: (
             { query }: SearchWorkspaceEmbeddingsArguments,
             { result }: ToolResult<SearchWorkspaceEmbeddingsResult>,

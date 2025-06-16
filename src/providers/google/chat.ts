@@ -5,7 +5,7 @@ import {
     FunctionDeclarationSchema,
     GoogleGenerativeAI,
 } from '@google/generative-ai'
-import { toJsonSchema } from '../../tools/tool'
+import { AgentType, toJsonSchema } from '../../tools/tool'
 import { filterTools } from '../../tools/tools'
 import { Limiter, wrapAsyncIterable } from '../../util/ratelimits/limiter'
 import { UsageTracker } from '../../util/usage/tracker'
@@ -59,6 +59,7 @@ function createGoogleChatProvider(
         temperature = 0.0,
         maxTokens = 4096,
         allowedTools,
+        agentType,
     }: ChatProviderOptions): Promise<ChatProvider> => {
         const client = new GoogleGenerativeAI(apiKey)
         const modelTracker = tracker.trackerFor(modelName)
@@ -71,6 +72,7 @@ function createGoogleChatProvider(
             temperature,
             maxTokens,
             allowedTools,
+            agentType,
         })
 
         return createChatProvider({
@@ -92,6 +94,7 @@ function createStreamFactory({
     temperature,
     maxTokens,
     allowedTools,
+    agentType,
 }: {
     client: GoogleGenerativeAI
     limiter: Limiter
@@ -100,10 +103,11 @@ function createStreamFactory({
     temperature?: number
     maxTokens?: number
     allowedTools?: string[]
+    agentType: AgentType
 }): StreamFactory<EnhancedGenerateContentResponse, Content> {
     const tools = [
         {
-            functionDeclarations: filterTools(allowedTools).map(
+            functionDeclarations: filterTools(allowedTools, agentType).map(
                 ({ name, description, schema }): FunctionDeclaration => ({
                     name,
                     description,

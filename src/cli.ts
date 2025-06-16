@@ -17,7 +17,7 @@ import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
 import { seedAllowedCommands } from './tools/shell/shell_execute'
-import { enabledToolNames, filterTools } from './tools/tools'
+import { filterTools } from './tools/tools'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
@@ -83,7 +83,11 @@ async function main() {
                 options.port,
                 options.oneShot,
                 options.yolo,
-                options.tools,
+                options.tools === undefined
+                    ? undefined
+                    : options.tools === true
+                      ? []
+                      : (options.tools as string).split(',').map(name => name.trim()),
             )
         })
 
@@ -100,13 +104,15 @@ async function chat(
     port?: number,
     oneShot?: string,
     yolo: boolean = false,
-    tools?: string | true,
+    toolNames?: string[] | undefined,
 ) {
-    let context: ChatContext
-
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
+
+    let context: ChatContext
+    const allowedTools = filterTools(toolNames, 'main')
+    const allowedToolNames = allowedTools.map(({ name }) => name)
 
     readline.emitKeypressEvents(process.stdin)
     process.stdin.setRawMode(true)
@@ -134,13 +140,6 @@ async function chat(
     await registerTools(client)
     await seedAllowedCommands()
 
-    const toolNames =
-        tools === undefined
-            ? enabledToolNames()
-            : typeof tools === 'string'
-              ? filterTools(tools.split(',').map(name => name.trim())).map(({ name }) => name)
-              : []
-
     try {
         const interruptHandler = createInterruptHandler(rl)
         const interruptInputOptions = rootInterruptHandlerOptions(rl)
@@ -149,12 +148,12 @@ async function chat(
             interruptHandler,
             attentionGetter(preferences.attentionCommand ?? defaultAttentionCommand),
         )
-
         const provider = await providers.createProvider({
             contextState: contextStateManager,
             modelName: preferences.defaultModel,
             system,
-            allowedTools: toolNames,
+            allowedTools: allowedToolNames,
+            agentType: 'main',
         })
 
         context = {
@@ -168,7 +167,7 @@ async function chat(
             provider,
             contextStateManager,
             yolo,
-            tools: toolNames,
+            tools: allowedToolNames,
         }
 
         await registerContextListeners(context, client)
