@@ -1,5 +1,6 @@
 import path from 'path'
 import { parse } from 'yaml'
+import { z } from 'zod'
 import { findTool } from '../tools/tools'
 import { expandFilePatterns } from '../util/fs/glob'
 import { safeReadFile } from '../util/fs/safe'
@@ -22,37 +23,50 @@ function configDir(): string {
     return path.join(xdgConfigHome(), 'aidev')
 }
 
-async function parseRuleFile(path: string): Promise<Rule[]> {
-    const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(await safeReadFile(path))
+const RuleMetadataSchema = z
+    .object({
+        description: z.string().describe('Rule description.'),
+        tool: z.union([z.string(), z.array(z.string())]).describe('Tool name or array of tool names.'),
+        timing: z.enum(['pre', 'post']).describe('Rule timing - either "pre" or "post".'),
+    })
+    .passthrough()
+
+type RuleMetadata = z.infer<typeof RuleMetadataSchema>
+
+async function parseRuleFile(filePath: string): Promise<Rule[]> {
+    const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(await safeReadFile(filePath))
     if (!match) {
-        throw new Error(`Malformed rule "${path}": no YAML frontmatter`)
+        throw new Error(`Malformed rule "${filePath}": no YAML frontmatter`)
     }
 
     const [_, frontMatter, body] = match
-    const metadata = parse(frontMatter)
+    const rawMetadata = parse(frontMatter)
+
+    let metadata: RuleMetadata
+    try {
+        metadata = RuleMetadataSchema.parse(rawMetadata)
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            const issues = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+            throw new Error(`Malformed rule "${filePath}": ${issues}`)
+        }
+
+        throw error
+    }
+
     const toolNames = Array.isArray(metadata.tool) ? metadata.tool : [metadata.tool]
 
     const rules = []
     for (const toolName of toolNames) {
-        if (typeof metadata.description !== 'string') {
-            throw new Error('Rule must have a description string')
-        }
-        if (typeof toolName !== 'string') {
-            throw new Error('Malformed rule "${path}": rule must have a tool string')
-        }
-        if (metadata.timing !== 'pre' && metadata.timing !== 'post') {
-            throw new Error('Malformed rule "${path}": rule timing must be either "pre" or "post"')
-        }
-
         const tool = findTool(toolName)
 
         if (!tool.ruleMatcherFactory) {
-            throw new Error(`Malformed rule "${path}": tool "${toolName}" does not have a ruleMatcher`)
+            throw new Error(`Malformed rule "${filePath}": tool "${toolName}" does not have a ruleMatcher`)
         }
 
         rules.push({
             description: metadata.description,
-            tool: metadata.tool,
+            tool: toolName,
             timing: metadata.timing,
             matcher: tool.ruleMatcherFactory.parseMatchConfig(metadata),
             body: body.trim(),
