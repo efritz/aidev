@@ -1,6 +1,8 @@
 ---
 description: Apply typechecker
-tool: write_file
+tool:
+    - edit_file
+    - write_file
 timing: post
 paths: '*.ts'
 ---

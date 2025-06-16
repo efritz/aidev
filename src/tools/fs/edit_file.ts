@@ -119,7 +119,7 @@ export const editFile: Tool<typeof EditFileSchema, EditFileResult> = {
                   ]
         ).join('\n'),
     }),
-    ruleMatcherFactory: writeFileOperationMatcher,
+    ruleMatcherFactory: writeFileOperationMatcher('edit_file'),
 }
 
 function editExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<EditFileResult> {

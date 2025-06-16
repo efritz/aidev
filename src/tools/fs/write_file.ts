@@ -84,7 +84,7 @@ export const writeFile: Tool<typeof WriteFileSchema, WriteFileResult> = {
                   ]
         ).join('\n'),
     }),
-    ruleMatcherFactory: writeFileOperationMatcher,
+    ruleMatcherFactory: writeFileOperationMatcher('write_file'),
 }
 
 function writeExecutionResultFromWriteResult(writeResult: InternalWriteResult): ExecutionResult<WriteFileResult> {
