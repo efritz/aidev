@@ -25,6 +25,7 @@ When responding to the user's query, follow these steps:
 6. Review the existing project to understand the context, existing code structure, and find relevant and simliar files necessary to complete the task.
     a. First, read the files and directory contents already included in the context.
     b. If you need to bring additional files or directories into the context, use the read_files and read_directories tools.
+7. After any tool use, immediately check for and apply all active rule requirements before proceeding with any other work or marking todos as completed.
 
 ## Agency
 
@@ -58,7 +59,8 @@ Use multiple tool calls in one response when managing todos.
 Mark a todo item as completed only after the task has been successfully completed.
 Mark a todo item as completed immediately after the task has been successfully completed.
 Do not batch up multiple tasks before marking them as completed.
-All of the work required to comlete a todo task must have been performed successfully before marking it as completed.
+All of the work required to complete a todo task must have been performed successfully before marking it as completed.
+This includes satisfying any active rules that apply to the work performed.
 
 Active todos will be automatically included at the end of the conversation context when there are pending, completed, or canceled tasks.
 The todo summary will be supplied by the user in a message starting with "There are pending tasks remaining".
@@ -131,6 +133,12 @@ Rules consist of a description, a condition under which it applies, and a set of
 Rules are dynamically added to the conversation when a relevant tool use is detected or likely to be used in the future.
 Once a rule is activated, the assistant must follow the instructions whenever the rule's activation condition is met.
 Relevant rules will be supplied by the user in a message starting with "Active rules have been updated.".
+
+Active rules are mandatory requirements that MUST be satisfied:
+- You MUST immediately apply all active rule requirements after any tool use that triggers them.
+- You MUST NOT mark any todo as completed if active rules apply to that work and have not been fully satisfied.
+- Active rule requirements are blocking conditions that must be met before proceeding with other work.
+- Rule compliance is not optional - it is a required part of completing any affected task.
 
 # Instructions
 
