@@ -30,6 +30,10 @@ export const searchWorkspaceRipgrep: Tool<typeof SearchWorkspaceRipgrepSchema, S
     ].join(' '),
     schema: SearchWorkspaceRipgrepSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: ({ query }: SearchWorkspaceRipgrepArguments, { result }: ToolResult<SearchWorkspaceRipgrepResult>) => {
         console.log(`${chalk.dim('ℹ')} Searched workspace with ripgrep for "${query}".`)
         console.log()

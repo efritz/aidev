@@ -3,11 +3,19 @@ import zodToJsonSchema, { JsonSchema7ObjectType } from 'zod-to-json-schema'
 import { ChatContext } from '../chat/context'
 import { RuleMatcherFactory } from '../rules/types'
 
+export type AgentType = 'main' | 'subagent'
+
+export type AgentContext = {
+    type: AgentType
+    required: boolean
+}
+
 export type Tool<S extends z.ZodObject<any>, T> = {
     name: string
     description: string
     schema: S
     enabled: boolean
+    agentContext: AgentContext[]
     execute: Executor<z.infer<S>, T>
     replay: Replayer<z.infer<S>, T>
     serialize: Serializer<T>

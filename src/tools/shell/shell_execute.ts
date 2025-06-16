@@ -43,6 +43,10 @@ export const shellExecute: Tool<typeof ShellExecuteSchema, ShellExecuteResult> =
     description: 'Execute a shell command.',
     schema: ShellExecuteSchema,
     enabled: true,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: (
         { command: originalCommand }: ShellExecuteArguments,
         { result, error, canceled }: ToolResult<ShellExecuteResult>,

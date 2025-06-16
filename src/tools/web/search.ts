@@ -47,6 +47,10 @@ export const searchWeb: Tool<typeof SearchWebSchema, SearchWebResult> = {
     description: ['Use a search engine to find web pages matching an input query.'].join(' '),
     schema: SearchWebSchema,
     enabled: !!braveApiKey,
+    agentContext: [
+        { type: 'main', required: false },
+        { type: 'subagent', required: false },
+    ],
     replay: ({ query }: SearchWebArguments, { result }: ToolResult<SearchWebResult>) => {
         console.log(`${chalk.dim('ℹ')} Searched web for "${query}".`)
         console.log()

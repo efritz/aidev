@@ -29,6 +29,7 @@ export async function swapProvider(context: ChatContext, modelName: string): Pro
         modelName,
         system: context.provider.system,
         allowedTools: context.tools,
+        agentType: 'main',
     })
 
     const messages = context.provider.conversationManager.messages()
