@@ -2,6 +2,20 @@ import path from 'path'
 import { Preferences } from './providers/preferences'
 import { safeReadFile } from './util/fs/safe'
 
+//////////////////////////////////////////////////////////////////////////////////
+// TODO - we may want to abstract references to these tools or make them required.
+//////////////////////////////////////////////////////////////////////////////////
+//
+// Looking at the system prompt, the tools that are referenced directly by name are:
+//
+// 1. **think** - explicitly mentioned as "use the think tool to record your thoughts"
+// 2. **add_todo** - referenced as "Use the add_todo tool to create new tasks"
+// 3. **complete_todo** - referenced as "Use the complete_todo tool to mark tasks as finished"
+// 4. **cancel_todo** - referenced as "Use the cancel_todo tool to mark tasks as no longer needed"
+// 5. **read_files** and **read_directories** - mentioned together as "use the read_files and read_directories tools"
+//
+// The system prompt also mentions several other tools indirectly without naming them specifically, such as tools for "workspace searches", "edit_file calls", and "shell commands", but these five are the ones explicitly referenced by their tool names in the instructions.
+
 const systemPromptTemplate = `
 You are an expert AI coding agent "aidev" engaged in pair programming with the user.
 Your role is to provide assistance, guidance, and code solutions based on the user's queries and the existing project context.
