@@ -1,5 +1,4 @@
 import { exec } from 'child_process'
-import EventEmitter from 'events'
 import { Transform, TransformCallback } from 'node:stream'
 import readline, { CompleterResult } from 'readline'
 import { program } from 'commander'
@@ -167,7 +166,6 @@ async function chat(
             interruptHandler,
             prompter,
             provider,
-            events: new EventEmitter(),
             contextStateManager,
             yolo,
             tools: toolNames,

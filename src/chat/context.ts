@@ -1,4 +1,3 @@
-import EventEmitter from 'events'
 import { ContextStateManager } from '../context/state'
 import { createSQLiteEmbeddingsStore, EmbeddingsStore } from '../indexing/store'
 import { ChatProvider } from '../providers/chat_provider'
@@ -19,7 +18,6 @@ export type ChatContext = {
     interruptHandler: InterruptHandler
     prompter: Prompter
     provider: ChatProvider
-    events: EventEmitter
     contextStateManager: ContextStateManager
     yolo: boolean
     tools: string[]
