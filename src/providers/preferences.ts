@@ -57,6 +57,14 @@ const PreferencesSchema = z.object({
     ),
     shellCommand: z.enum(['bash', 'zsh', 'fish']).optional(),
     attentionCommand: z.string().optional(),
+    agentConfig: z
+        .object({
+            maxIterations: z.number().optional(),
+            maxIterationLimit: z.number().optional(),
+            maxRuntimeMs: z.number().optional(),
+            maxRuntimeMsLimit: z.number().optional(),
+        })
+        .optional(),
 })
 
 export type ChatModel = z.infer<typeof ChatModelSchema>

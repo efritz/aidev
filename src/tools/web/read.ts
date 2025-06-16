@@ -157,7 +157,7 @@ async function translate(
     signal?: AbortSignal,
 ): Promise<Errorable<Summary>> {
     try {
-        return await runAgent(context, translatorAgent, { url, content }, signal)
+        return await runAgent(context, translatorAgent, { url, content }, { signal })
     } catch (error: any) {
         return { error }
     }

@@ -17,11 +17,17 @@ export type AgentPrompt = {
     instanceInstructions: string
 }
 
+export type AgentConfig = {
+    signal?: AbortSignal // TODO - use
+    maxIterations?: number
+    maxRuntimeMs?: number
+}
+
 export async function runAgent<T, R>(
     context: ChatContext,
     agent: Agent<T, R>,
     args: T,
-    _signal?: AbortSignal, // TODO - use
+    config?: AgentConfig,
 ): Promise<R> {
     const modelName = agent.model(context)
     const quiet = agent.quiet()
@@ -65,12 +71,29 @@ export async function runAgent<T, R>(
         return response.response
     }
 
+    const prefs = context.preferences.agentConfig
+    const maxIterations = agentConfigValue(config?.maxIterations, prefs?.maxIterations, prefs?.maxIterationLimit)
+    const runtimeMs = agentConfigValue(config?.maxRuntimeMs, prefs?.maxRuntimeMs, prefs?.maxRuntimeMsLimit)
+
     try {
         const result = await subContext.interruptHandler.withInterruptHandler(async signal => {
-            // TODO - add maximum runtime
-            // TODO - add maximum number of iterations
+            let iterations = 0
+            let elapsedMs = 0
+            let lastTimestamp: number
+
             while (true) {
+                if (maxIterations && iterations >= maxIterations) {
+                    throw new Error(`Agent exceeded maximum iterations (${maxIterations})`)
+                }
+                if (runtimeMs && elapsedMs > runtimeMs) {
+                    throw new Error(`Agent exceeded maximum runtime (${runtimeMs}ms)`)
+                }
+
+                iterations++
+                lastTimestamp = Date.now()
                 const response = await prompt(signal)
+                elapsedMs += Date.now() - lastTimestamp
+
                 await runToolsInResponse(subContext, response, signal)
 
                 // TODO - add validation
@@ -122,3 +145,17 @@ Process only the information provided in the instance instructions and produce t
 
 {{agentInstructions}}
 `
+
+const agentConfigValue = (
+    configValue: number | undefined,
+    defaultValue: number | undefined,
+    limit: number | undefined,
+): number | undefined => {
+    let value = configValue ?? defaultValue
+
+    if (value !== undefined && limit !== undefined) {
+        value = Math.min(value, limit)
+    }
+
+    return value
+}

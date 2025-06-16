@@ -5,6 +5,9 @@ summarizerModel: gpt-4.1-mini
 relevanceModel: gpt-4.1-mini
 webTranslatorModel: gpt-4.1-mini
 shellCommand: zsh
+agentConfig:
+    maxIterationLimit: 50
+    maxRuntimeMsLimit: 300000 # 5m
 
 providers:
     Anthropic: { include: ./models/chat/anthropic.yaml }

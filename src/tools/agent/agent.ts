@@ -34,7 +34,9 @@ export const agent: Tool<typeof AgentSchema, AgentResult> = {
             processResult: async (_context: ChatContext, result: string, _args: any) => result,
         }
 
-        const result = await context.interruptHandler.withInterruptHandler(signal => runAgent(context, agent, signal))
+        const result = await context.interruptHandler.withInterruptHandler(signal =>
+            runAgent(context, agent, undefined, { signal }),
+        )
 
         console.log(`${chalk.dim('ℹ')} Sub-agent result:`)
         console.log(chalk.cyanBright.bold(result.trim()))

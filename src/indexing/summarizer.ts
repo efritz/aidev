@@ -143,7 +143,7 @@ async function makeSummaryPromise(
     signal: AbortSignal,
 ): Promise<Summary> {
     return (await checkCodeBlockRelevance(context, file, block, signal))
-        ? runAgent(context, summarizerAgent, { file, block, childSummaries }, signal)
+        ? runAgent(context, summarizerAgent, { file, block, childSummaries }, { signal })
         : Promise.resolve<Summary>({ relevant: false })
 }
 

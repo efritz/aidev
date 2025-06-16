@@ -14,7 +14,7 @@ export async function checkCodeBlockRelevance(
         return true
     }
 
-    return runAgent(context, relevanceAgent, { file, block }, signal)
+    return runAgent(context, relevanceAgent, { file, block }, { signal })
 }
 
 const relevanceAgent: Agent<
