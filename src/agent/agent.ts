@@ -103,7 +103,7 @@ export async function runAgent<T, R>(
 
                 if (submitResultToolUses.length !== 0) {
                     if (submitResultToolUses.length > 1) {
-                        throw new Error(`Multiple results submitteed by agent.`)
+                        throw new Error(`Multiple results submitted by agent.`)
                     }
 
                     return submitResult.schema.parse(JSON.parse(submitResultToolUses[0].parameters)).result

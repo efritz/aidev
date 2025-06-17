@@ -58,7 +58,7 @@ export async function summarizeCodeBlocks(
         populateSummaries(block)
     }
 
-    // Resolve each promise in the valuee of the memoized map
+    // Resolve each promise in the value of the memoized map
     const summariesByBlock = new Map<HierarchicalCodeBlock, Summary>()
     await Promise.all([...memo.values()])
     for (const [block, promise] of memo.entries()) {
