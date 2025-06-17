@@ -92,12 +92,14 @@ export async function indexWorkspace(context: ChatContext): Promise<ProgressResu
     }
 
     try {
-        return await context.interruptHandler.withInterruptHandler(signal =>
-            withProgress<IndexingProgress>(update => index(signal, update), {
-                progress: onProgress,
-                success: () => 'Workspace indexed.',
-                failure: (_, err) => `Failed to index workspace: ${err}`,
-            }),
+        return await context.interruptHandler.withInterruptHandler(
+            signal =>
+                withProgress<IndexingProgress>(update => index(signal, update), {
+                    progress: onProgress,
+                    success: () => 'Workspace indexed.',
+                    failure: (_, err) => `Failed to index workspace: ${err}`,
+                }),
+            { permanent: true },
         )
     } catch (error: any) {
         if (!(error instanceof CancelError)) {

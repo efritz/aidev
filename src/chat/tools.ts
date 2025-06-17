@@ -74,14 +74,14 @@ function canonicalizeTool(toolUse: ToolUse): ToolUse {
     return toolUse
 }
 
-async function runTools(context: ChatContext, toolUses: ToolUse[], _signal?: AbortSignal): Promise<boolean> {
+async function runTools(context: ChatContext, toolUses: ToolUse[], signal?: AbortSignal): Promise<boolean> {
     let repromptAny: boolean | undefined
     const toolResults: { toolUse: ToolUse; result?: any; error?: Error; canceled?: boolean }[] = []
 
     const queue = [...toolUses]
     while (queue.length > 0) {
         const toolUse = queue.shift()!
-        const { reprompt, ...result } = await executeTool(context, toolUse)
+        const { reprompt, ...result } = await executeTool(context, toolUse, signal)
         toolResults.push({ toolUse, ...result })
 
         if (reprompt === false) {
@@ -146,7 +146,11 @@ function pushToolResults(context: ChatContext, results: ToolResult[]): void {
     context.provider.conversationManager.pushUser({ type: 'tool_result', results })
 }
 
-async function executeTool(context: ChatContext, toolUse: ToolUse): Promise<ExecutionResult<any>> {
+async function executeTool(
+    context: ChatContext,
+    toolUse: ToolUse,
+    signal?: AbortSignal,
+): Promise<ExecutionResult<any>> {
     const tool = findTool(toolUse.name)
 
     try {
@@ -156,6 +160,10 @@ async function executeTool(context: ChatContext, toolUse: ToolUse): Promise<Exec
             tool.schema.parse(toolUse.parameters ? JSON.parse(toolUse.parameters) : {}),
         )
     } catch (error: any) {
+        if (signal?.aborted) {
+            return { canceled: true }
+        }
+
         console.log()
         console.log(chalk.red(`Error: ${error.message}`))
 

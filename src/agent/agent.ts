@@ -19,7 +19,7 @@ export type AgentPrompt = {
 }
 
 export type AgentConfig = {
-    signal?: AbortSignal // TODO - use
+    signal?: AbortSignal
     maxIterations?: number
     maxRuntimeMs?: number
 }
@@ -78,6 +78,11 @@ export async function runAgent<T, R>(
 
     try {
         const result = await subContext.interruptHandler.withInterruptHandler(async signal => {
+            // Combine internal and external signals
+            const controller = new AbortController()
+            signal.addEventListener('abort', () => controller.abort())
+            config?.signal?.addEventListener('abort', () => controller.abort())
+
             let iterations = 0
             let elapsedMs = 0
             let lastTimestamp: number
@@ -92,10 +97,10 @@ export async function runAgent<T, R>(
 
                 iterations++
                 lastTimestamp = Date.now()
-                const response = await prompt(signal)
+                const response = await prompt(controller.signal)
                 elapsedMs += Date.now() - lastTimestamp
 
-                await runToolsInResponse(subContext, response, signal)
+                await runToolsInResponse(subContext, response, controller.signal)
 
                 const submitResultToolUses = response.messages
                     .flatMap(m => (m.type !== 'tool_use' ? [] : m.tools))
