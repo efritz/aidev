@@ -44,7 +44,7 @@ export const shellExecute: Tool<typeof ShellExecuteSchema, ShellExecuteResult> =
     schema: ShellExecuteSchema,
     enabled: true,
     agentContext: [
-        { type: 'main', required: false },
+        { type: 'main', required: true },
         { type: 'subagent', required: false },
     ],
     replay: (

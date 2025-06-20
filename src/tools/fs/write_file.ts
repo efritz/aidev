@@ -29,7 +29,7 @@ export const writeFile: Tool<typeof WriteFileSchema, WriteFileResult> = {
     schema: WriteFileSchema,
     enabled: true,
     agentContext: [
-        { type: 'main', required: false },
+        { type: 'main', required: true },
         { type: 'subagent', required: false },
     ],
     replay: (

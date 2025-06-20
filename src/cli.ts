@@ -17,7 +17,7 @@ import { getRules } from './rules/loader'
 import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
 import { seedAllowedCommands } from './tools/shell/shell_execute'
-import { filterTools } from './tools/tools'
+import { removeDisabledTools } from './tools/tools'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
@@ -58,8 +58,8 @@ async function main() {
     const yoloDescription =
         'Skip user confirmation for potentially dangerous operations like file writing and shell execution.'
 
-    const toolsFlags = '--tools [string]'
-    const toolsDescription = 'Comma-separated list of tool names to enable.'
+    const disableToolsFlags = '--disable-tools <string>'
+    const disableToolsDescription = 'Comma-separated list of tool names to disable.'
 
     program
         .option(historyFlags, historyDescription)
@@ -67,7 +67,7 @@ async function main() {
         .option(cwdFlags, cwdDescription)
         .option(yoloFlags, yoloDescription)
         .option(oneShotFlags, oneShotDescription)
-        .option(toolsFlags, toolsDescription)
+        .option(disableToolsFlags, disableToolsDescription)
         .action(options => {
             if (options.cwd) {
                 process.chdir(options.cwd)
@@ -83,11 +83,7 @@ async function main() {
                 options.port,
                 options.oneShot,
                 options.yolo,
-                options.tools === undefined
-                    ? undefined
-                    : options.tools === true
-                      ? []
-                      : (options.tools as string).split(',').map(name => name.trim()),
+                options.disableTools,
             )
         })
 
@@ -104,14 +100,14 @@ async function chat(
     port?: number,
     oneShot?: string,
     yolo: boolean = false,
-    toolNames?: string[] | undefined,
+    disabledTools?: string,
 ) {
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
     }
 
     let context: ChatContext
-    const allowedTools = filterTools(toolNames, 'main')
+    const allowedTools = removeDisabledTools(disabledTools?.split(',').map(name => name.trim()) ?? [], 'main')
     const allowedToolNames = allowedTools.map(({ name }) => name)
 
     readline.emitKeypressEvents(process.stdin)

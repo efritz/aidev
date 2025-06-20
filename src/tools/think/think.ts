@@ -23,7 +23,7 @@ export const think: Tool<typeof ThinkSchema, ThinkResult> = {
     schema: ThinkSchema,
     enabled: true,
     agentContext: [
-        { type: 'main', required: false },
+        { type: 'main', required: true },
         { type: 'subagent', required: false },
     ],
     replay: (_args: ThinkArguments, { result }: ToolResult<ThinkResult>) => {

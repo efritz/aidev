@@ -47,7 +47,7 @@ export const filterTools = (names: string[] | undefined, agentType: AgentType) =
         }
 
         if (!tool.agentContext.some(ctx => ctx.type === agentType)) {
-            throw new Error(`Tool ${name} is not available in context ${agentType}`)
+            throw new Error(`Tool not available in ${agentType} context: ${name}`)
         }
 
         return tool
@@ -58,6 +58,27 @@ export const filterTools = (names: string[] | undefined, agentType: AgentType) =
     )
 
     return [...new Set([...tools, ...required])]
+}
+
+export const removeDisabledTools = (names: string[], agentType: AgentType) => {
+    for (const name of names) {
+        const tool = enabledTools.find(tool => tool.name === name)
+        if (!tool) {
+            throw new Error(`Tool not found: ${name}`)
+        }
+
+        const agentContext = tool.agentContext.find(ctx => ctx.type === agentType)
+        if (!agentContext) {
+            throw new Error(`Tool not available in ${agentType} context: ${name}`)
+        }
+        if (agentContext.required) {
+            throw new Error(`Tool required in ${agentType} context: ${name}`)
+        }
+    }
+
+    return enabledTools.filter(
+        tool => tool.agentContext.some(ctx => ctx.type === agentType) && !names.includes(tool.name),
+    )
 }
 
 export function findTool(name: string): Tool<any, any> {

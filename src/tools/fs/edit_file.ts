@@ -62,7 +62,7 @@ export const editFile: Tool<typeof EditFileSchema, EditFileResult> = {
     schema: EditFileSchema,
     enabled: true,
     agentContext: [
-        { type: 'main', required: false },
+        { type: 'main', required: true },
         { type: 'subagent', required: false },
     ],
     replay: (

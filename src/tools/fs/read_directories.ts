@@ -41,7 +41,7 @@ export const readDirectories: Tool<typeof ReadDirectoriesSchema, ReadDirectories
     schema: ReadDirectoriesSchema,
     enabled: true,
     agentContext: [
-        { type: 'main', required: false },
+        { type: 'main', required: true },
         { type: 'subagent', required: false },
     ],
     replay: (_args: ReadDirectoriesArguments, { result }: ToolResult<ReadDirectoriesResult>) => {

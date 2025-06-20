@@ -35,7 +35,7 @@ export const readFiles: Tool<typeof ReadFilesSchema, ReadFileResult> = {
     schema: ReadFilesSchema,
     enabled: true,
     agentContext: [
-        { type: 'main', required: false },
+        { type: 'main', required: true },
         { type: 'subagent', required: false },
     ],
     replay: (_args: ReadFilesArguments, { result }: ToolResult<ReadFileResult>) => {
