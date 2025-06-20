@@ -12,6 +12,7 @@ import { completeTodo } from './todo/complete_todo'
 import { AgentType, SerializedToolResult, Tool, ToolResult } from './tool'
 import { readWeb } from './web/read'
 import { searchWeb } from './web/search'
+import { searchWorkspaceAgent } from './workspace/search_agent'
 import { searchWorkspaceEmbeddings } from './workspace/search_embeddings'
 import { searchWorkspaceRipgrep } from './workspace/search_ripgrep'
 
@@ -23,6 +24,7 @@ const allTools: Tool<any, any>[] = [
     editFile,
     searchWorkspaceEmbeddings,
     searchWorkspaceRipgrep,
+    searchWorkspaceAgent,
     searchWeb,
     readWeb,
     think,
