@@ -44,6 +44,11 @@ export async function executeCommand(
 }
 
 async function runCommand(context: ChatContext, command: string, update: Updater<OutputLine[]>): Promise<OutputLine[]> {
+    // Use Docker container if sandboxed mode is enabled
+    if (context.dockerContainer?.isRunning()) {
+        return runDockerCommand(context, command, update)
+    }
+
     return context.interruptHandler.withInterruptHandler(signal => {
         return new Promise((resolve, reject) => {
             const output: OutputLine[] = []
@@ -55,6 +60,35 @@ async function runCommand(context: ChatContext, command: string, update: Updater
             }
             const shellCommand = context.preferences.shellCommand ?? 'zsh'
             const cmd = spawn(shellCommand, ['-c', command])
+            cmd.stdout.on('data', data => aggregate('stdout', data.toString()))
+            cmd.stderr.on('data', data => aggregate('stderr', data.toString()))
+
+            signal.addEventListener('abort', () => treeKill(cmd.pid!, 'SIGKILL'))
+
+            cmd.on('exit', exitCode => {
+                if (exitCode === 0 && !signal.aborted) {
+                    resolve(output)
+                } else {
+                    reject(new Error(`exit code ${exitCode}`))
+                }
+            })
+        })
+    })
+}
+
+async function runDockerCommand(context: ChatContext, command: string, update: Updater<OutputLine[]>): Promise<OutputLine[]> {
+    return context.interruptHandler.withInterruptHandler(signal => {
+        return new Promise((resolve, reject) => {
+            const output: OutputLine[] = []
+            const aggregate = (type: 'stdout' | 'stderr', s: string) => {
+                if (!signal.aborted) {
+                    output.push({ content: s, type })
+                    update(output)
+                }
+            }
+
+            const containerId = context.dockerContainer!.getContainerId()!
+            const cmd = spawn('docker', ['exec', containerId, 'sh', '-c', command])
             cmd.stdout.on('data', data => aggregate('stdout', data.toString()))
             cmd.stderr.on('data', data => aggregate('stderr', data.toString()))
 
