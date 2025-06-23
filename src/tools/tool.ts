@@ -16,6 +16,7 @@ export type Tool<S extends z.ZodObject<any>, T> = {
     schema: S
     enabled: boolean
     agentContext: AgentContext[]
+    requiredSubTools?: string[]
     execute: Executor<z.infer<S>, T>
     replay: Replayer<z.infer<S>, T>
     serialize: Serializer<T>
