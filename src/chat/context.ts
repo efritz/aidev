@@ -5,6 +5,7 @@ import { ChatProviders } from '../providers/chat_providers'
 import { EmbeddingsProviders } from '../providers/embeddings_providers'
 import { Preferences } from '../providers/preferences'
 import { Rule } from '../rules/types'
+import { Container } from '../util/docker/container'
 import { InterruptHandler } from '../util/interrupts/interrupts'
 import { Prompter } from '../util/prompter/prompter'
 import { UsageTracker } from '../util/usage/tracker'
@@ -21,6 +22,7 @@ export type ChatContext = {
     contextStateManager: ContextStateManager
     yolo: boolean
     tools: string[]
+    container?: Container
 }
 
 export async function swapProvider(context: ChatContext, modelName: string): Promise<void> {

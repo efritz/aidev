@@ -5,6 +5,7 @@ summarizerModel: gpt-4.1-mini
 relevanceModel: gpt-4.1-mini
 webTranslatorModel: gpt-4.1-mini
 shellCommand: zsh
+containerImage: alpine
 agentConfig:
     maxIterationLimit: 50
     maxRuntimeMsLimit: 300000 # 5m

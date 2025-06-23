@@ -15,11 +15,14 @@ export type OutputLine = {
     content: string
 }
 
+export type ExecContext = Pick<ChatContext, 'interruptHandler' | 'preferences' | 'contextStateManager' | 'container'>
+
 export async function executeCommand(
-    context: ChatContext,
+    context: ExecContext,
     command: string,
+    signal?: AbortSignal, // TODO - check callers
 ): Promise<{ result?: ShellResult; error?: Error; canceled?: boolean }> {
-    const response = await withProgress<OutputLine[]>(update => runCommand(context, command, update), {
+    const response = await withProgress<OutputLine[]>(update => runCommand(context, command, update, signal), {
         progress: prefixFormatter('Executing command...', formatOutput),
         success: prefixFormatter('Command succeeded.', formatOutput),
         failure: prefixFormatter('Command failed.', formatOutput),
@@ -43,7 +46,26 @@ export async function executeCommand(
     }
 }
 
-async function runCommand(context: ChatContext, command: string, update: Updater<OutputLine[]>): Promise<OutputLine[]> {
+async function runCommand(
+    context: ExecContext,
+    command: string,
+    update: Updater<OutputLine[]> = () => {},
+    signal?: AbortSignal,
+): Promise<OutputLine[]> {
+    const containerId = context.container?.containerId
+    if (containerId) {
+        command = `docker exec ${containerId} sh -c ${command}`
+    }
+
+    return execOnHost(context, command, update, signal)
+}
+
+export async function execOnHost(
+    context: ExecContext,
+    command: string,
+    update: Updater<OutputLine[]> = () => {},
+    _signal?: AbortSignal, // TODO - use
+): Promise<OutputLine[]> {
     return context.interruptHandler.withInterruptHandler(signal => {
         return new Promise((resolve, reject) => {
             const output: OutputLine[] = []
