@@ -152,16 +152,31 @@ Remember:
 
 Begin your assistance by analyzing the user's query and providing an appropriate response.
 
-The current directory is {{cwd}}.
-The user's preferred shell is {{shellCommand}}.
+{{environment}}
 
 {{custom instructions}}
 `
 
-export async function buildSystemPrompt(preferences: Preferences): Promise<string> {
+const hostEnvironmentTemplate = `
+The current directory is {{cwd}}.
+The user's preferred shell is {{shellCommand}}.
+`
+
+const containerEnvironmentTemplate = `
+The current directory is /workspace.
+You are in a Docker container running {{image}}.
+Commands you run will be invoked via sh -c '...'.
+`
+
+export async function buildSystemPrompt(preferences: Preferences, containerImage?: string): Promise<string> {
+    const environment = containerImage
+        ? containerEnvironmentTemplate.replace('{{image}}', containerImage)
+        : hostEnvironmentTemplate
+              .replace('{{cwd}}', process.cwd())
+              .replace('{{shellCommand}}', preferences.shellCommand ?? 'zsh')
+
     return systemPromptTemplate
-        .replace('{{cwd}}', process.cwd())
-        .replace('{{shellCommand}}', preferences.shellCommand ?? 'zsh')
+        .replace('{{environment}}', environment)
         .replace('{{custom instructions}}', await buildProjectInstructions())
 }
 

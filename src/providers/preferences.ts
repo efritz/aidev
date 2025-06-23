@@ -56,6 +56,7 @@ const PreferencesSchema = z.object({
         z.array(EmbeddingModelSchema),
     ),
     shellCommand: z.enum(['bash', 'zsh', 'fish']).optional(),
+    containerImage: z.string(),
     attentionCommand: z.string().optional(),
     agentConfig: z
         .object({

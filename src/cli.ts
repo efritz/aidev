@@ -18,6 +18,7 @@ import { Rule } from './rules/types'
 import { buildSystemPrompt } from './system'
 import { seedAllowedCommands } from './tools/shell/shell_execute'
 import { removeDisabledTools } from './tools/tools'
+import { startContainer } from './util/docker/container'
 import { createInterruptHandler, InterruptHandlerOptions } from './util/interrupts/interrupts'
 import { createPrompter } from './util/prompter/prompter'
 import { createLimiter } from './util/ratelimits/limiter'
@@ -61,6 +62,9 @@ async function main() {
     const disableToolsFlags = '--disable-tools <string>'
     const disableToolsDescription = 'Comma-separated list of tool names to disable.'
 
+    const sandboxedFlags = '--sandboxed [container]'
+    const sandboxedDescription = 'Run shell commands in a Docker container.'
+
     program
         .option(historyFlags, historyDescription)
         .option(portFlags, portDescription)
@@ -68,6 +72,7 @@ async function main() {
         .option(yoloFlags, yoloDescription)
         .option(oneShotFlags, oneShotDescription)
         .option(disableToolsFlags, disableToolsDescription)
+        .option(sandboxedFlags, sandboxedDescription)
         .action(options => {
             if (options.cwd) {
                 process.chdir(options.cwd)
@@ -84,6 +89,7 @@ async function main() {
                 options.oneShot,
                 options.yolo,
                 options.disableTools,
+                options.sandboxed,
             )
         })
 
@@ -101,6 +107,7 @@ async function chat(
     oneShot?: string,
     yolo: boolean = false,
     disabledTools?: string,
+    sandboxed: string | boolean = false,
 ) {
     if (!process.stdin.setRawMode) {
         throw new Error('chat command is not supported in this environment.')
@@ -109,6 +116,7 @@ async function chat(
     let context: ChatContext
     const allowedTools = removeDisabledTools(disabledTools?.split(',').map(name => name.trim()) ?? [], 'main')
     const allowedToolNames = allowedTools.map(({ name }) => name)
+    const containerImage = sandboxed === true ? preferences.containerImage : (sandboxed ?? '')
 
     readline.emitKeypressEvents(process.stdin)
     process.stdin.setRawMode(true)
@@ -136,14 +144,19 @@ async function chat(
     await registerTools(client)
     await seedAllowedCommands()
 
+    const interruptHandler = createInterruptHandler(rl)
+    const interruptInputOptions = rootInterruptHandlerOptions(rl)
+
+    const execContext = { interruptHandler, preferences, contextStateManager }
+    const container = containerImage ? await startContainer(execContext, containerImage) : undefined
+
     try {
-        const interruptHandler = createInterruptHandler(rl)
-        const interruptInputOptions = rootInterruptHandlerOptions(rl)
         const prompter = createPrompter(
             rl,
             interruptHandler,
             attentionGetter(preferences.attentionCommand ?? defaultAttentionCommand),
         )
+
         const provider = await providers.createProvider({
             contextState: contextStateManager,
             modelName: preferences.defaultModel,
@@ -164,6 +177,7 @@ async function chat(
             contextStateManager,
             yolo,
             tools: allowedToolNames,
+            container,
         }
 
         await registerContextListeners(context, client)
@@ -180,6 +194,7 @@ async function chat(
             interruptInputOptions,
         )
     } finally {
+        await container?.stop()
         process.stdin.unpipe(filter)
         filter.destroy()
         rl.close()
