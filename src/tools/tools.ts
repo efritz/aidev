@@ -12,6 +12,7 @@ import { completeTodo } from './todo/complete_todo'
 import { AgentType, SerializedToolResult, Tool, ToolResult } from './tool'
 import { readWeb } from './web/read'
 import { searchWeb } from './web/search'
+import { searchWorkspaceAgent } from './workspace/search_agent'
 import { searchWorkspaceEmbeddings } from './workspace/search_embeddings'
 import { searchWorkspaceRipgrep } from './workspace/search_ripgrep'
 
@@ -23,6 +24,7 @@ const allTools: Tool<any, any>[] = [
     editFile,
     searchWorkspaceEmbeddings,
     searchWorkspaceRipgrep,
+    searchWorkspaceAgent,
     searchWeb,
     readWeb,
     think,
@@ -35,12 +37,18 @@ const allTools: Tool<any, any>[] = [
 
 export const enabledTools = allTools.filter(tool => tool.enabled)
 
-export const filterTools = (names: string[] | undefined, agentType: AgentType) => {
-    if (names === undefined) {
+export const filterTools = (allowedToolNames: string[] | undefined, agentType: AgentType) => {
+    const tools = filterToolsUnvalidated(allowedToolNames, agentType)
+    validateToolSet(tools)
+    return tools
+}
+
+const filterToolsUnvalidated = (allowedToolNames: string[] | undefined, agentType: AgentType) => {
+    if (allowedToolNames === undefined) {
         return enabledTools.filter(tool => tool.agentContext.some(ctx => ctx.type === agentType))
     }
 
-    const tools = names.map(name => {
+    const tools = allowedToolNames.map(name => {
         const tool = enabledTools.find(tool => tool.name === name)
         if (!tool) {
             throw new Error(`Tool not found: ${name}`)
@@ -57,11 +65,19 @@ export const filterTools = (names: string[] | undefined, agentType: AgentType) =
         tool.agentContext.some(({ type, required }) => type === agentType && required),
     )
 
-    return [...new Set([...tools, ...required])]
+    const allowedTools = [...new Set([...tools, ...required])]
+    validateToolSet(allowedTools)
+    return allowedTools
 }
 
-export const removeDisabledTools = (names: string[], agentType: AgentType) => {
-    for (const name of names) {
+export const removeDisabledTools = (disabledToolNames: string[], agentType: AgentType) => {
+    const tools = removeDisabledToolsUnvalidated(disabledToolNames, agentType)
+    validateToolSet(tools)
+    return tools
+}
+
+const removeDisabledToolsUnvalidated = (disabledToolNames: string[], agentType: AgentType) => {
+    for (const name of disabledToolNames) {
         const tool = enabledTools.find(tool => tool.name === name)
         if (!tool) {
             throw new Error(`Tool not found: ${name}`)
@@ -77,8 +93,20 @@ export const removeDisabledTools = (names: string[], agentType: AgentType) => {
     }
 
     return enabledTools.filter(
-        tool => tool.agentContext.some(ctx => ctx.type === agentType) && !names.includes(tool.name),
+        tool => tool.agentContext.some(ctx => ctx.type === agentType) && !disabledToolNames.includes(tool.name),
     )
+}
+
+const validateToolSet = (tools: Tool<any, any>[]) => {
+    const toolNames = new Set(tools.map(tool => tool.name))
+
+    for (const tool of tools) {
+        const subTools = new Set(tool.requiredSubTools ?? [])
+
+        if (subTools.size > 0 && subTools.isDisjointFrom(toolNames)) {
+            throw new Error(`No subtools of ${tool.name} are available: ${[...subTools].sort().join(', ')}`)
+        }
+    }
 }
 
 export function findTool(name: string): Tool<any, any> {
