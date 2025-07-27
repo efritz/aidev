@@ -2,7 +2,7 @@
   model: llama3.3
 
 - name: qwen
-  model: qwen2.5-coder:32b
+  model: freehuntx/qwen3-coder:14b
 
 - name: r1
   model: MFDoom/deepseek-r1-tool-calling:32b
