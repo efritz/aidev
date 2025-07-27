@@ -116,6 +116,7 @@ The following meta commands have special behaviors to manipulate the context or 
 - `:branch <branch>`: Create a new branch in the conversation.
 - `:clear`: Clear all messages in the conversation.
 - `:continue`: Re-prompt the model without a user message.
+- `:copy`: Copy the last agent response to clipboard.
 - `:cost`: Show token counts of calls to remote LLM APIs in this conversation.
 - `:dump`: Dump all context file contents to disk.
 - `:exit`: Exit the conversation.
