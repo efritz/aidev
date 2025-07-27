@@ -4,6 +4,7 @@ import { CommandDescription } from './command'
 import { branchCommand } from './commands/branch'
 import { clearCommand } from './commands/clear'
 import { continueCommand } from './commands/continue'
+import { copyCommand } from './commands/copy'
 import { costCommand } from './commands/cost'
 import { dumpCommand } from './commands/dump'
 import { exitCommand } from './commands/exit'
@@ -34,6 +35,7 @@ export const commands: CommandDescription[] = [
     branchCommand,
     clearCommand,
     continueCommand,
+    copyCommand,
     costCommand,
     dumpCommand,
     exitCommand,
