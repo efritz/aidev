@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { CommandDescription } from '../command'
-import { commands } from '../commands'
+import { getCommands } from '../commands'
 import { ChatContext } from '../context'
 
 export const helpCommand: CommandDescription = {
@@ -16,6 +16,7 @@ async function handleHelp(_context: ChatContext, args: string) {
         return
     }
 
+    const commands = await getCommands()
     const maxWidth = commands.reduce((max, { prefix }) => Math.max(max, prefix.length), 0)
 
     console.log()
