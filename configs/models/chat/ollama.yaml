@@ -6,3 +6,6 @@
 
 - name: r1
   model: MFDoom/deepseek-r1-tool-calling:32b
+
+- name: gpt-oss
+  model: gpt-oss:20b

@@ -1,9 +1,9 @@
 defaultModel: sonnet
 subagentModel: sonnet
 embeddingsModel: mxbai-embed-large
-summarizerModel: gpt-4.1-mini
-relevanceModel: gpt-4.1-mini
-webTranslatorModel: gpt-4.1-mini
+summarizerModel: gpt-5-nano
+relevanceModel: gpt-5-nano
+webTranslatorModel: gpt-5-nano
 shellCommand: zsh
 containerImage: alpine
 agentConfig:
