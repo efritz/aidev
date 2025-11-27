@@ -41,7 +41,7 @@ function createOllamaChatProvider(providerName: string, limiter: Limiter): ChatP
         model: { name: modelName, model },
         system,
         temperature = 0.0,
-        maxTokens = 4096,
+        maxTokens = 16384,
         allowedTools,
         agentType,
     }: ChatProviderOptions): Promise<ChatProvider> => {
