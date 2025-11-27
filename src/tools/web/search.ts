@@ -113,11 +113,35 @@ export const searchWeb: Tool<typeof SearchWebSchema, SearchWebResult> = {
 function displayMatches(matches: Match[]) {
     if (matches.length === 0) {
         console.log(`${chalk.dim('ℹ')} No results match the query.`)
-    } else {
-        for (const [i, match] of matches.entries()) {
-            console.log(
-                `#${(i + 1).toString().padStart(2, '0')}: ${chalk.red(match.title)}\n     ${chalk.dim(`from ${match.name}`)}`,
-            )
+        return
+    }
+
+    const totalResults = matches.length
+    const bySource = new Map<string, number>()
+
+    for (const m of matches) {
+        let host: string
+        try {
+            host = new URL(m.url).hostname.replace(/^www\./, '')
+        } catch {
+            host = 'unknown'
         }
+        bySource.set(host, (bySource.get(host) ?? 0) + 1)
+    }
+
+    const groups = Array.from(bySource.entries())
+        .map(([source, count]) => ({ source, count }))
+        .sort((a, b) => b.count - a.count || a.source.localeCompare(b.source))
+
+    const pad = String(groups.length).length
+
+    console.log(
+        `${chalk.dim('ℹ')} Found ${chalk.red(totalResults.toString())} result${totalResults === 1 ? '' : 's'} across ${chalk.red(groups.length.toString())} source${groups.length === 1 ? '' : 's'}.`,
+    )
+
+    for (const [i, { source, count }] of groups.entries()) {
+        console.log(
+            `#${(i + 1).toString().padStart(pad, '0')}: ${chalk.red(source)} — ${count} result${count === 1 ? '' : 's'}`,
+        )
     }
 }

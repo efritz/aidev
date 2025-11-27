@@ -102,16 +102,19 @@ function displayMatches(matches: Match[]) {
     if (matches.length === 0) {
         console.log(`${chalk.dim('ℹ')} No files found in the workspace matching the query.`)
     } else {
-        for (const [i, { filename, lines }] of matches.entries()) {
-            if (lines) {
-                console.log(`#${(i + 1).toString().padStart(2, '0')}: Found matching file "${chalk.red(filename)}":`)
+        const totalFiles = matches.length
+        const totalMatches = matches.reduce((acc, m) => acc + (m.lines ? m.lines.length : 0), 0)
+        const pad = String(matches.length).length
 
-                for (const line of lines) {
-                    console.log(`     - "${chalk.red(line)}"`)
-                }
-            } else {
-                console.log(`#${(i + 1).toString().padStart(2, '0')}: Found matching file "${chalk.red(filename)}".`)
-            }
+        console.log(
+            `${chalk.dim('ℹ')} Found ${chalk.red(totalMatches.toString())} match${totalMatches === 1 ? '' : 'es'} across ${chalk.red(totalFiles.toString())} file${totalFiles === 1 ? '' : 's'} in the workspace.`,
+        )
+
+        for (const [i, { filename, lines }] of matches.entries()) {
+            const count = lines ? lines.length : 0
+            console.log(
+                `#${(i + 1).toString().padStart(pad, '0')}: ${chalk.red(filename)} — ${count} match${count === 1 ? '' : 'es'}`,
+            )
         }
     }
 }
