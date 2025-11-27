@@ -30,8 +30,9 @@ export const searchWorkspaceRipgrep: Tool<typeof SearchWorkspaceRipgrepSchema, S
     description: [
         'Use ripgrep to search the current workspace for files containing the input query.',
         'The tool result will contain a set of filenames matching the input query.',
-        'For source code files, the result will also contain the matching lines from the file.',
-        'The query is treated as a regular expression - escape regex metacharacters (like parentheses, brackets, dots, etc.) with backslashes if you want to search for them literally.',
+        'For source code files, the result will also contain the matching lines from the file, each with its line number.',
+        'The search query is interpreted as a regular expression.',
+        'Literal regex metacharacters, including `(`, `)`, `<`, `>`, `*`, `+`, `?`, `[`, `]`, `{`, `}`, `|`, and `.`, MUST be escaped with a backslash.',
     ].join(' '),
     schema: SearchWorkspaceRipgrepSchema,
     enabled: true,
