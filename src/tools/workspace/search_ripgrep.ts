@@ -15,9 +15,14 @@ type SearchWorkspaceRipgrepResult = {
     matches: Match[]
 }
 
+type LineMatch = {
+    number: number
+    text: string
+}
+
 type Match = {
     filename: string
-    lines?: string[]
+    lines?: LineMatch[]
 }
 
 export const searchWorkspaceRipgrep: Tool<typeof SearchWorkspaceRipgrepSchema, SearchWorkspaceRipgrepResult> = {
@@ -51,17 +56,18 @@ export const searchWorkspaceRipgrep: Tool<typeof SearchWorkspaceRipgrepSchema, S
         console.log(`${chalk.dim('ℹ')} Searching workspace with ripgrep for "${query}"...`)
         console.log()
 
-        const fileMatches = new Map<string, string[]>()
+        const fileMatches = new Map<string, LineMatch[]>()
         for (const result of search(query)) {
             if (result.type === 'match') {
                 const filename = path.relative(process.cwd(), result.data.path.text)
-                const matchText = result.data.lines.text.trim()
+                const matchText: string = result.data.lines.text.trim()
+                const lineNumber: number = result.data.line_number
 
                 if (!fileMatches.has(filename)) {
                     fileMatches.set(filename, [])
                 }
 
-                fileMatches.get(filename)?.push(matchText)
+                fileMatches.get(filename)?.push({ number: lineNumber, text: matchText })
             }
         }
 
@@ -75,7 +81,11 @@ export const searchWorkspaceRipgrep: Tool<typeof SearchWorkspaceRipgrepSchema, S
 
         return { result: { matches }, reprompt: true }
     },
-    serialize: ({ result }: ToolResult<SearchWorkspaceRipgrepResult>) => ({ result: { paths: result ?? [] } }),
+    serialize: ({ result }: ToolResult<SearchWorkspaceRipgrepResult>) => ({
+        result: {
+            matches: result?.matches ?? [],
+        },
+    }),
 }
 
 function search(query: string): any[] {
