@@ -1,5 +1,5 @@
 import { CompleterResult } from 'readline'
-import { commands, completeCommand } from './commands'
+import { completeCommand, getCommands } from './commands'
 import { ChatContext } from './context'
 
 export type CompleterType = 'meta' | 'choice'
@@ -21,6 +21,7 @@ export async function completer(context: ChatContext, line: string): Promise<Com
 }
 
 async function metaCompleter(context: ChatContext, line: string): Promise<CompleterResult> {
+    const commands = await getCommands()
     const prefixes = commands
         .filter(({ valid }) => valid?.(context) ?? true)
         .map(({ prefix, expectsArgs }) => prefix + (expectsArgs ? ' ' : ''))

@@ -30,8 +30,10 @@ import { unloadCommand } from './commands/unload'
 import { unstashCommand } from './commands/unstash'
 import { writeCommand } from './commands/write'
 import { ChatContext } from './context'
+import { createUserCommandCompleter, createUserCommandHandler } from './user_command_handler'
+import { loadUserCommands } from './user_commands'
 
-export const commands: CommandDescription[] = [
+const builtinCommands: CommandDescription[] = [
     branchCommand,
     clearCommand,
     continueCommand,
@@ -62,11 +64,33 @@ export const commands: CommandDescription[] = [
     writeCommand,
 ]
 
+let allCommands: CommandDescription[] | undefined = undefined
+
+export async function getCommands(): Promise<CommandDescription[]> {
+    if (!allCommands) {
+        const userCommands = await loadUserCommands()
+        const userCommandDescriptions: CommandDescription[] = Object.entries(userCommands).map(
+            ([name, userCommand]) => ({
+                prefix: `:${name}`,
+                description: userCommand.description,
+                expectsArgs: userCommand.args.length > 0,
+                handler: createUserCommandHandler(name, userCommand),
+                complete: userCommand.args.length > 0 ? createUserCommandCompleter(userCommand) : undefined,
+            }),
+        )
+
+        allCommands = [...builtinCommands, ...userCommandDescriptions]
+    }
+
+    return allCommands
+}
+
 export async function handleCommand(context: ChatContext, message: string): Promise<boolean> {
     const parts = message.split(' ')
     const command = parts[0]
     const args = parts.slice(1).join(' ')
 
+    const commands = await getCommands()
     for (const { prefix, handler, continuePrompt } of commands) {
         if (command === prefix) {
             await handler(context, args)
@@ -88,6 +112,7 @@ export async function completeCommand(context: ChatContext, message: string): Pr
         return undefined
     }
 
+    const commands = await getCommands()
     for (const { prefix, expectsArgs, complete } of commands) {
         if (expectsArgs && command === prefix && prefix === message) {
             // Force insert missing space after command
